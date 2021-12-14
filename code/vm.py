@@ -73,7 +73,7 @@ class VirtualMachine:
                 output_data += chr(int(memory[memory_pointer].value % 256))
             elif instructions_program[instruction_pointer] == F(','):
                 instruction_pointer += 1
-                input_data += [getchar()]
+                input_data += [sys.stdin.read(1)]
                 memory[memory_pointer] = BaseFieldElement(input_data[-1], field)
             else:
                 assert(False), f"unrecognized instruction at {instruction_pointer}: {instructions_program[instruction_pointer].value}"
