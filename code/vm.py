@@ -40,7 +40,7 @@ class VirtualMachine:
         # initial state
         instruction_pointer = 0
         memory_pointer = BaseFieldElement(0, VirtualMachine.field)
-        memory = dict() # F -> F
+        memory = dict() # field elements to field elements
         output_data = []
         input_data = []
 
