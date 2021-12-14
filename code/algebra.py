@@ -63,6 +63,9 @@ class BaseFieldElement:
         else:
             return False
 
+    def __hash__(self):
+        return self.value
+
 
 class BaseField:
     def __init__(self, p):
