@@ -76,7 +76,7 @@ class VirtualMachine:
                 if input_data:
                     char = input_data[input_counter]
                     input_counter += 1
-                else
+                else:
                     char = sys.stdin.read(1)
                 memory[memory_pointer] = BaseFieldElement(ord(char), field)
             else:
@@ -84,7 +84,7 @@ class VirtualMachine:
 
         return input_data, output_data
 
-    def simulate( program, input_data ):
+    def simulate( program, input_data=[] ):
         # shorthands
         field = VirtualMachine.field
         zero = field.zero()
@@ -97,75 +97,68 @@ class VirtualMachine:
         instruction = 1
         instruction_pointer = 2
         memory_value = 3
+        memory_pointer = 4
 
         # initial state
-        instruction_pointer = 0
-        memory_pointer = zero
-        register = [zero] * 4
+        register = [zero] * 5 #BaseFieldElement(0, field) for i in range(5)]
         register[instruction] = program[0]
         memory = dict() # field elements to field elements
         input_counter = 0
+        output_data = []
 
         # main loop
         trace = [register]
         while register[instruction_pointer].value < len(program):
+            # common to all instructions
+            register[instruction] = program[register[instruction_pointer].value]
+            register[cycle] += one
+            register[memory_value] = memory.get(register[memory_pointer], zero)
+
             # update register according to instruction
             if register[instruction] == F('['):
                 if register[memory_value] == zero:
-                    register[instruction_pointer] = program[instruction_pointer.value + 1]
+                    register[instruction_pointer] = program[register[instruction_pointer].value + 1]
                 else:
                     register[instruction_pointer] += two
-                register[cycle] += one
-                register[instruction] = program[instruction_pointer.value]
+
             elif register[instruction] == F(']'):
                 if register[memory_value] != zero:
-                    register[instruction_pointer] = program[instruction_pointer.value + 1]
+                    register[instruction_pointer] = program[register[instruction_pointer].value + 1]
                 else:
                     register[instruction_pointer] += two
-                register[cycle] += one
-                register[instruction] = program[instruction_pointer.value]
+
             elif register[instruction] == F('<'):
                 register[instruction_pointer] += one
                 register[memory_pointer] -= one
-                register[cycle] += one
-                register[memory_value] = memory.get(register[memory_pointer], zero)
-                register[instruction] = program[instruction_pointer.value]
+
             elif register[instruction] == F('>'):
                 register[instruction_pointer] += one
                 register[memory_pointer] += one
-                register[cycle] += one
-                register[memory_value] = memory.get(register[memory_pointer], zero)
-                register[instruction] = program[instruction_pointer.value]
+
             elif register[instruction] == F('+'):
                 register[instruction_pointer] += one
-                memory[memory_pointer] = memory.get(memory_pointer, zero) + one
-                register[cycle] += one
-                register[memory_value] += one
-                register[instruction] = program[instruction_pointer.value]
+                memory[register[memory_pointer]] = memory.get(register[memory_pointer], zero) + one
+
             elif register[instruction] == F('-'):
                 register[instruction_pointer] += one
-                memory[memory_pointer] = memory.get(memory_pointer, zero) - one
-                register[cycle] += one
-                register[memory_value] -= one
-                register[instruction] = program[instruction_pointer.value]
+                memory[register[memory_pointer]] = memory.get(register[memory_pointer], zero) - one
+
             elif register[instruction] == F('.'):
                 register[instruction_pointer] += one
-                output_data += chr(int(memory[memory_pointer].value % 256))
-                register[cycle] += one
-                register[instruction] = program[instruction_pointer.value]
+                output_data += chr(int(memory[register[memory_pointer]].value % 256))
+
             elif register[instruction] == F(','):
                 register[instruction_pointer] += one
                 char = input_data[input_counter]
                 input_counter += 1
-                memory[memory_pointer] = BaseFieldElement(ord(char), field)
-                register[memory_value] = memory[memory_pointer]
-                register[cycle] += one
-                register[instruction] = program[instruction_pointer.value]
+                memory[register[memory_pointer]] = BaseFieldElement(ord(char), field)
+
             else:
-                assert(False), f"unrecognized instruction at {instruction_pointer}: {program[instruction_pointer].value}"
+                assert(False), f"unrecognized instruction at {register[instruction_pointer].value}: '{chr(register[instruction].value)}'"
 
             # collect values
             trace += [register]
 
-        return input_data, output_data
+        return trace, output_data
+
 
