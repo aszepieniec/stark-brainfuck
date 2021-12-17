@@ -1,4 +1,5 @@
 from algebra import *
+from multivariate import *
 import sys
 
 class Register:
@@ -118,10 +119,10 @@ class VirtualMachine:
             register.current_instruction = program[register.instruction_pointer.value]
             if register.instruction_pointer.value < len(program)-1:
                 register.next_instruction = program[register.instruction_pointer.value+1]
-            else
+            else:
                 register.next_instruction = zero
             register.cycle += one
-            register.memory_value = memory.get(register[memory_pointer], zero)
+            register.memory_value = memory.get(register.memory_pointer, zero)
             if register.memory_value == zero:
                 register.is_zero = one
             else:
@@ -142,29 +143,29 @@ class VirtualMachine:
 
             elif register.current_instruction == F('<'):
                 register.instruction_pointer += one
-                register[memory_pointer] -= one
+                register.memory_pointer -= one
 
             elif register.current_instruction == F('>'):
                 register.instruction_pointer += one
-                register[memory_pointer] += one
+                register.memory_pointer += one
 
             elif register.current_instruction == F('+'):
                 register.instruction_pointer += one
-                memory[register[memory_pointer]] = memory.get(register[memory_pointer], zero) + one
+                memory[register.memory_pointer] = memory.get(register.memory_pointer, zero) + one
 
             elif register.current_instruction == F('-'):
                 register.instruction_pointer += one
-                memory[register[memory_pointer]] = memory.get(register[memory_pointer], zero) - one
+                memory[register.memory_pointer] = memory.get(register.memory_pointer, zero) - one
 
             elif register.current_instruction == F('.'):
                 register.instruction_pointer += one
-                output_data += chr(int(memory[register[memory_pointer]].value % 256))
+                output_data += chr(int(memory[register.memory_pointer].value % 256))
 
             elif register.current_instruction == F(','):
                 register.instruction_pointer += one
                 char = input_data[input_counter]
                 input_counter += 1
-                memory[register[memory_pointer]] = BaseFieldElement(ord(char), field)
+                memory[register.memory_pointer] = BaseFieldElement(ord(char), field)
 
             else:
                 assert(False), f"unrecognized instruction at {register.instruction_pointer.value}: '{chr(register.current_instruction.value)}'"
@@ -174,148 +175,157 @@ class VirtualMachine:
 
         return trace, output_data
 
-        def instruction_transition_constraints( instruction ):
-            # register names
-            cycle = 0
-            instruction_pointer = 1
-            current_instruction = 2
-            next_instruction = 3
-            memory_pointer = 4
-            memory_value = 5
-            is_zero = 6
-            nextt = 7
-
-            # useful algebraic shorthands
-            field = BaseField.main()
-            zero = field.zero()
-            one = field.one()
-            two = BaseFieldElement(2, field)
-            x = MPolynomial.variables(14, field)
-            polynomials = []
-
-            # set constraints
-            polynomials = []
-
-            if instruction == '[':
-                # if memval is zero, jump; otherwise skip one
-                polynomials += [x[memory_value] * (x[instruction_pointer + nextt] - x[instruction_pointer] - two) + x[is_zero] * (x[instruction_pointer + nextt] - x[next_instruction])]
-                # other registers update normally
-                polynomials += [x[cycle + nextt] - x[cycle] + one] # increase cycle count by one
-                #polynomials += [x[instruction_pointer + nextt] - x[instruction_pointer] + one] # increase instruction pointer by one
-                polynomials += [x[memory_pointer + nextt] - x[memory_pointer]] # memory pointer does not change
-                polynomials += [x[memory_value + nextt] - x[memory_value]] # memory value does not change
-                polynomials += [x[is_zero + nextt] - x[is_zero]] # truth of "memval==0" does not change
-
-            elif instruction == ']':
-                # if memval is nonzero, jump; otherwise skip one
-                polynomials += [x[is_zero] * (x[instruction_pointer + nextt] - x[instruction_pointer] - two) + x[memory_value] * (x[instruction_pointer + nextt] - x[next_instruction])]
-                # other registers update normally
-                polynomials += [x[cycle + nextt] - x[cycle] + one] # increase cycle count by one
-                #polynomials += [x[instruction_pointer + nextt] - x[instruction_pointer] + one] # increase instruction pointer by one
-                polynomials += [x[memory_pointer + nextt] - x[memory_pointer]] # memory pointer does not change
-                polynomials += [x[memory_value + nextt] - x[memory_value]] # memory value does not change
-                polynomials += [x[is_zero + nextt] - x[is_zero]] # truth of "memval==0" does not change
-
-            elif instruction == '<':
-                # decrease memory pointer
-                polynomials += [x[memory_pointer + nextt] - x[memory_pointer] + one]
-                # new memory value is unconstrained
-                # but new memval==0 is not
-                polynomials += [x[is_zero + nextt] * (one - x[is_zero + nextt])]
-                polynomials += [x[is_zero + nextt] * x[memory_value + nextt]]
-                # other registers update normally
-                polynomials += [x[cycle + nextt] - x[cycle] + one] # increase cycle count by one
-                polynomials += [x[instruction_pointer + nextt] - x[instruction_pointer] + one] # increase instruction pointer by one
-
-            elif instruction == '>':
-                # decrease memory pointer
-                polynomials += [x[memory_pointer + nextt] - x[memory_pointer] - one]
-                # new memory value is unconstrained
-                # but new memval==0 is not
-                polynomials += [x[is_zero + nextt] * (one - x[is_zero + nextt])]
-                polynomials += [x[is_zero + nextt] * x[memory_value + nextt]]
-                # other registers update normally
-                polynomials += [x[cycle + nextt] - x[cycle] + one] # increase cycle count by one
-                polynomials += [x[instruction_pointer + nextt] - x[instruction_pointer] + one] # increase instruction pointer by one
-
-            elif instruction == '+':
-                # increase memory value
-                polynomials += [x[memory_value + nextt] - x[memory_value] - 1]
-                # re-set memval==0
-                polynomials += [x[is_zero + nextt] * (one - x[is_zero + nextt])]
-                polynomials += [x[is_zero + nextt] * x[memory_value + nextt]]
-                # other registers update normally
-                polynomials += [x[memory_pointer + nextt] - x[memory_pointer]] # memory pointer stays the same
-                polynomials += [x[cycle + nextt] - x[cycle] + one] # increase cycle count by one
-                polynomials += [x[instruction_pointer + nextt] - x[instruction_pointer] + one] # increase instruction pointer by one
-
-            elif instruction == '-':
-                # increase memory value
-                polynomials += [x[memory_value + nextt] - x[memory_value] + 1]
-                # re-set memval==0
-                polynomials += [x[is_zero + nextt] * (one - x[is_zero + nextt])]
-                polynomials += [x[is_zero + nextt] * x[memory_value + nextt]]
-                # other registers update normally
-                polynomials += [x[memory_pointer + nextt] - x[memory_pointer]] # memory pointer stays the same
-                polynomials += [x[cycle + nextt] - x[cycle] + one] # increase cycle count by one
-                polynomials += [x[instruction_pointer + nextt] - x[instruction_pointer] + one] # increase instruction pointer by one
-
-            elif instruction == ',':
-                # new memory value is unconstrained
-                # re-set memval==0
-                polynomials += [x[is_zero + nextt] * (one - x[is_zero + nextt])]
-                polynomials += [x[is_zero + nextt] * x[memory_value + nextt]]
-                # other registers update normally
-                polynomials += [x[memory_pointer + nextt] - x[memory_pointer]] # memory pointer stays the same
-                polynomials += [x[cycle + nextt] - x[cycle] + one] # increase cycle count by one
-                polynomials += [x[instruction_pointer + nextt] - x[instruction_pointer] + one] # increase instruction pointer by one
-
-            elif instruction == '.':
-                # all registers update normally
-                polynomials += [x[memory_value + nextt] - x[memory_value]] # no change in memval
-                polynomials += [x[is_zero + nextt] - x[is_zero]] # no change in memval==0
-                polynomials += [x[memory_pointer + nextt] - x[memory_pointer]] # memory pointer stays the same
-                polynomials += [x[cycle + nextt] - x[cycle] + one] # increase cycle count by one
-                polynomials += [x[instruction_pointer + nextt] - x[instruction_pointer] + one] # increase instruction pointer by one
-
-            else:
-                assert(False), "given instruction not in instruction set"
-
+    def instruction_transition_constraints( instruction ):
+        # register names
+        cycle = 0
+        instruction_pointer = 1
+        current_instruction = 2
+        next_instruction = 3
+        memory_pointer = 4
+        memory_value = 5
+        is_zero = 6
+        nextt = 7
+ 
+        # useful algebraic shorthands
+        field = BaseField.main()
+        zero = MPolynomial.constant(field.zero())
+        one = MPolynomial.constant(field.one())
+        two = MPolynomial.constant(BaseFieldElement(2, field))
+        x = MPolynomial.variables(14, field)
+        polynomials = []
+ 
+        # set constraints
+        polynomials = []
+ 
+        if instruction == '[':
+            # if memval is zero, jump; otherwise skip one
+            polynomials += [x[memory_value] * (x[instruction_pointer + nextt] - x[instruction_pointer] - two) + x[is_zero] * (x[instruction_pointer + nextt] - x[next_instruction])]
+            # other registers update normally
+            polynomials += [x[cycle + nextt] - x[cycle] + one] # increase cycle count by one
+            #polynomials += [x[instruction_pointer + nextt] - x[instruction_pointer] + one] # increase instruction pointer by one
+            polynomials += [x[memory_pointer + nextt] - x[memory_pointer]] # memory pointer does not change
+            polynomials += [x[memory_value + nextt] - x[memory_value]] # memory value does not change
+            polynomials += [x[is_zero + nextt] - x[is_zero]] # truth of "memval==0" does not change
+ 
+        elif instruction == ']':
+            # if memval is nonzero, jump; otherwise skip one
+            polynomials += [x[is_zero] * (x[instruction_pointer + nextt] - x[instruction_pointer] - two) + x[memory_value] * (x[instruction_pointer + nextt] - x[next_instruction])]
+            # other registers update normally
+            polynomials += [x[cycle + nextt] - x[cycle] + one] # increase cycle count by one
+            #polynomials += [x[instruction_pointer + nextt] - x[instruction_pointer] + one] # increase instruction pointer by one
+            polynomials += [x[memory_pointer + nextt] - x[memory_pointer]] # memory pointer does not change
+            polynomials += [x[memory_value + nextt] - x[memory_value]] # memory value does not change
+            polynomials += [x[is_zero + nextt] - x[is_zero]] # truth of "memval==0" does not change
+ 
+        elif instruction == '<':
+            # decrease memory pointer
+            polynomials += [x[memory_pointer + nextt] - x[memory_pointer] + one]
+            # new memory value is unconstrained
+            # but new memval==0 is not
+            polynomials += [x[is_zero + nextt] * (one - x[is_zero + nextt])]
+            polynomials += [x[is_zero + nextt] * x[memory_value + nextt]]
+            # other registers update normally
+            polynomials += [x[cycle + nextt] - x[cycle] + one] # increase cycle count by one
+            polynomials += [x[instruction_pointer + nextt] - x[instruction_pointer] + one] # increase instruction pointer by one
+ 
+        elif instruction == '>':
+            # decrease memory pointer
+            polynomials += [x[memory_pointer + nextt] - x[memory_pointer] - one]
+            # new memory value is unconstrained
+            # but new memval==0 is not
+            polynomials += [x[is_zero + nextt] * (one - x[is_zero + nextt])]
+            polynomials += [x[is_zero + nextt] * x[memory_value + nextt]]
+            # other registers update normally
+            polynomials += [x[cycle + nextt] - x[cycle] + one] # increase cycle count by one
+            polynomials += [x[instruction_pointer + nextt] - x[instruction_pointer] + one] # increase instruction pointer by one
+ 
+        elif instruction == '+':
+            # increase memory value
+            polynomials += [x[memory_value + nextt] - x[memory_value] - one]
+            # re-set memval==0
+            polynomials += [x[is_zero + nextt] * (one - x[is_zero + nextt])]
+            polynomials += [x[is_zero + nextt] * x[memory_value + nextt]]
+            # other registers update normally
+            polynomials += [x[memory_pointer + nextt] - x[memory_pointer]] # memory pointer stays the same
+            polynomials += [x[cycle + nextt] - x[cycle] + one] # increase cycle count by one
+            polynomials += [x[instruction_pointer + nextt] - x[instruction_pointer] + one] # increase instruction pointer by one
+ 
+        elif instruction == '-':
+            # increase memory value
+            polynomials += [x[memory_value + nextt] - x[memory_value] + one]
+            # re-set memval==0
+            polynomials += [x[is_zero + nextt] * (one - x[is_zero + nextt])]
+            polynomials += [x[is_zero + nextt] * x[memory_value + nextt]]
+            # other registers update normally
+            polynomials += [x[memory_pointer + nextt] - x[memory_pointer]] # memory pointer stays the same
+            polynomials += [x[cycle + nextt] - x[cycle] + one] # increase cycle count by one
+            polynomials += [x[instruction_pointer + nextt] - x[instruction_pointer] + one] # increase instruction pointer by one
+ 
+        elif instruction == ',':
+            # new memory value is unconstrained
+            # re-set memval==0
+            polynomials += [x[is_zero + nextt] * (one - x[is_zero + nextt])]
+            polynomials += [x[is_zero + nextt] * x[memory_value + nextt]]
+            # other registers update normally
+            polynomials += [x[memory_pointer + nextt] - x[memory_pointer]] # memory pointer stays the same
+            polynomials += [x[cycle + nextt] - x[cycle] + one] # increase cycle count by one
+            polynomials += [x[instruction_pointer + nextt] - x[instruction_pointer] + one] # increase instruction pointer by one
+ 
+        elif instruction == '.':
+            # all registers update normally
+            polynomials += [x[memory_value + nextt] - x[memory_value]] # no change in memval
+            polynomials += [x[is_zero + nextt] - x[is_zero]] # no change in memval==0
+            polynomials += [x[memory_pointer + nextt] - x[memory_pointer]] # memory pointer stays the same
+            polynomials += [x[cycle + nextt] - x[cycle] + one] # increase cycle count by one
+            polynomials += [x[instruction_pointer + nextt] - x[instruction_pointer] + one] # increase instruction pointer by one
+ 
+        else:
+            assert(False), "given instruction not in instruction set"
+ 
         return polynomials
-                
+                 
+      # returns a polynomial in X, that evaluates to 0 in all instructions except the argument
+    def instruction_picker( X, instruction ):
+        acc = MPolynomial.constant(VirtualMachine.field.one())
+        field = VirtualMachine.field
+        for c in "[]<>+-.,":
+            if c == instruction:
+                pass
+            acc = acc * (X - MPolynomial.constant(BaseFieldElement(ord(c), field)))
+        return acc
 
-        # returns a polynomial in X, that evaluates to 0 in all instructions except the argument
-        def instruction_picker( X, instruction ):
-            acc = X.ring_one()
-            field = X.coefficients().values()[0].field
-            for c in "[]<>+-.,":
-                if c == instruction:
-                    pass
-                acc = acc * (X - MPolynomial({[0]: BaseFieldElement(ord(c), field)}))
-            return acc
+    def processor_transition_constraints( ):
+        # register names
+        cycle = 0
+        instruction_pointer = 1
+        current_instruction = 2
+        next_instruction = 3
+        memory_pointer = 4
+        memory_value = 5
+        is_zero = 6
+        nextt = 7
 
-        def processor_transition_constraints( ):
-            # register names
-            cycle = 0
-            instruction_pointer = 1
-            current_instruction = 2
-            next_instruction = 3
-            memory_pointer = 4
-            memory_value = 5
-            is_zero = 6
-            nextt = 7
+        # build polynomials
+        field = BaseField.main()
+        x = MPolynomial.variables(14, field)
+        polynomials = []
 
-            # build polynomials
-            field = BaseField.main()
-            x = MPolynomial.variables(14, field)
-            polynomials = []
+        airs = []
+        for c in "[]<>+-,.":
+            instruction_vector = VirtualMachine.instruction_transition_constraints(c)
+            instruction_picker = VirtualMachine.instruction_picker(x[current_instruction], c)
+            for instr in instruction_vector:
+                airs += [instruction_picker * instr]
 
-            airs = []
-            for c in "[]<>+-,.":
-                instruction_vector = VirtualMachine.instruction_transition_constraints(c)
-                instruction_picker = VirtualMachine.instruction_picker(x[current_instruction], c)
-                for instr in instruction_vector:
-                    airs += [instruction_picker * instr]
+        return airs
 
-            return airs
+    def processor_boundary_constraints( ):
+        # format: (register, cycle, value)
+        return [(0, 0, VirtualMachine.field.zero()), # cycle
+            (1, 0, VirtualMachine.field.zero()), # instruction pointer
+            #(2, 0, ???), # current instruction
+            #(3, 0, ???), # next instruction
+            (4, 0, VirtualMachine.field.zero()), # memory pointer
+            (5, 0, VirtualMachine.field.zero()), # memory value
+            (6, 0, VirtualMachine.field.one())] # memval==0
 
