@@ -114,7 +114,7 @@ class VirtualMachine:
 
         # prepare tables
         trace = [[register.cycle, register.instruction_pointer, register.current_instruction, register.next_instruction, register.memory_pointer, register.memory_value, register.is_zero]]
-        memory_table = []
+        memory_table = [[register.cycle, register.memory_pointer, register.memory_value]]
         instruction_table = [[BaseFieldElement(i, field), program[i]] for i in range(len(program))] + [[register.instruction_pointer, register.current_instruction]]
         previous_input_value = zero
         input_table = []
@@ -187,11 +187,12 @@ class VirtualMachine:
 
             # collect values to add new rows in execution tables
             trace += [[register.cycle, register.instruction_pointer, register.current_instruction, register.next_instruction, register.memory_pointer, register.memory_value, register.is_zero]]
+            memory_table += [[register.cycle, register.memory_pointer, register.memory_value]]
 
-            if register.current_instruction in [F('+'), F('-'), F('<'), F('>'), F(',')]:
-                memory_table += [[register.cycle, register.memory_pointer, register.memory_value]]
-
-            instruction_table += [[register.instruction_pointer, register.current_instruction]]
+            if register.instruction_pointer.value < len(program):
+                instruction_table += [[register.instruction_pointer, program[register.instruction_pointer.value]]]
+            else:
+                instruction_table += [[register.instruction_pointer, zero]]
 
         # post-process context tables
         memory_table.sort(key = lambda row : row[1].value) # sort by memory address
@@ -199,6 +200,7 @@ class VirtualMachine:
 
         return output_data, trace, instruction_table, memory_table, input_table, output_table
 
+    @staticmethod
     def instruction_transition_constraints( instruction ):
         # register names
         cycle = 0
@@ -309,6 +311,7 @@ class VirtualMachine:
         return polynomials
                  
       # returns a polynomial in X, that evaluates to 0 in all instructions except the argument
+    @staticmethod
     def instruction_picker( X, instruction ):
         acc = MPolynomial.constant(VirtualMachine.field.one())
         field = VirtualMachine.field
@@ -352,15 +355,16 @@ class VirtualMachine:
             (5, 0, VirtualMachine.field.zero()), # memory value
             (6, 0, VirtualMachine.field.one())] # memval==0
 
-    def instruction_transition_constraints( ):
+    def instruction_table_transition_constraints( ):
         # column names
         instruction_pointer = 0
         instruction_value = 1
         nextt = 2
 
         # build polynomials
-        field = Basefield.main()
+        field = BaseField.main()
         x = MPolynomial.variables(4, field)
+        one = MPolynomial.constant(field.one())
         airs = []
         
         # constraints:
@@ -375,7 +379,7 @@ class VirtualMachine:
 
         return airs
 
-    def instruction_boundary_constraints( ):
+    def instruction_table_boundary_constraints( ):
         return [(0, 0, VirtualMachine.field.zero()), # instruction pointer
                #(1, 0, ???), # matching instruction
                ]
@@ -389,8 +393,8 @@ class VirtualMachine:
 
         # build polynomials
         field = BaseField.main()
-        one = field.one()
         x = MPolynomial.variables(6, field)
+        one = MPolynomial.constant(field.one())
         airs = []
 
         # constraints
@@ -414,9 +418,8 @@ class VirtualMachine:
 
     def memory_boundary_constraints( ):
         return [(0, 0, VirtualMachine.field.zero()), # cycle
-               #(1, 0, ???) # current instruction
-               (0, 2, VirtualMachine.field.zero()), # memory pointer
-               (0, 3, VirtualMachine.field.zero()), # memory value
+               (1, 0, VirtualMachine.field.zero()), # memory pointer
+               (2, 0, VirtualMachine.field.zero()), # memory value
                ]
 
     def io_transition_constraints( ):
@@ -427,8 +430,8 @@ class VirtualMachine:
 
         # build polynomials
         field = BaseField.main()
-        one = field.one()
         x = MPolynomial.variables(4, field)
+        one = MPolynomial.constant(field.one())
         airs = []
 
         # constraints
@@ -438,5 +441,5 @@ class VirtualMachine:
         return [x[previous_value + nextt] - x[current_value]]
 
     def io_boundary_constraints( ):
-        return [(0, 1, VirtualMachine.field.zero())]
+        return [(1, 0, VirtualMachine.field.zero())]
 
