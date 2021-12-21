@@ -112,10 +112,21 @@ class VirtualMachine:
         input_counter = 0
         output_data = []
 
-        # main loop
+        # prepare tables
         trace = [[register.cycle, register.instruction_pointer, register.current_instruction, register.next_instruction, register.memory_pointer, register.memory_value, register.is_zero]]
+        memory_table = []
+        instruction_table = [[BaseFieldElement(i, field), program[i]] for i in range(len(program))] + [[register.instruction_pointer, register.current_instruction]]
+        previous_input_value = zero
+        input_table = []
+        previous_output_value = zero
+        output_table = []
+
+        # main loop
         while register.instruction_pointer.value < len(program):
-            # common to all instructions
+            # record changes, to be used if necessary
+            old_memory_value = register.memory_value
+
+            # updates common to all instructions
             register.current_instruction = program[register.instruction_pointer.value]
             if register.instruction_pointer.value < len(program)-1:
                 register.next_instruction = program[register.instruction_pointer.value+1]
@@ -159,6 +170,8 @@ class VirtualMachine:
 
             elif register.current_instruction == F('.'):
                 register.instruction_pointer += one
+                output_table += [[memory[register.memory_pointer], previous_output_value]]
+                previous_output_value = memory[register.memory_pointer]
                 output_data += chr(int(memory[register.memory_pointer].value % 256))
 
             elif register.current_instruction == F(','):
@@ -166,14 +179,25 @@ class VirtualMachine:
                 char = input_data[input_counter]
                 input_counter += 1
                 memory[register.memory_pointer] = BaseFieldElement(ord(char), field)
+                input_table += [[memory[register.memory_pointer], previous_input_element]]
+                previous_input_element = memory[register.memory_pointer]
 
             else:
                 assert(False), f"unrecognized instruction at {register.instruction_pointer.value}: '{chr(register.current_instruction.value)}'"
 
-            # collect values
+            # collect values to add new rows in execution tables
             trace += [[register.cycle, register.instruction_pointer, register.current_instruction, register.next_instruction, register.memory_pointer, register.memory_value, register.is_zero]]
 
-        return trace, output_data
+            if register.current_instruction in [F('+'), F('-'), F('<'), F('>'), F(',')]:
+                memory_table += [[register.cycle, register.memory_pointer, register.memory_value]]
+
+            instruction_table += [[register.instruction_pointer, register.current_instruction]]
+
+        # post-process context tables
+        memory_table.sort(key = lambda row : row[1].value) # sort by memory address
+        instruction_table.sort(key = lambda row : row[0].value) # sort by instruction address
+
+        return output_data, trace, instruction_table, memory_table, input_table, output_table
 
     def instruction_transition_constraints( instruction ):
         # register names
@@ -308,7 +332,6 @@ class VirtualMachine:
         # build polynomials
         field = BaseField.main()
         x = MPolynomial.variables(14, field)
-        polynomials = []
 
         airs = []
         for c in "[]<>+-,.":
@@ -328,4 +351,92 @@ class VirtualMachine:
             (4, 0, VirtualMachine.field.zero()), # memory pointer
             (5, 0, VirtualMachine.field.zero()), # memory value
             (6, 0, VirtualMachine.field.one())] # memval==0
+
+    def instruction_transition_constraints( ):
+        # column names
+        instruction_pointer = 0
+        instruction_value = 1
+        nextt = 2
+
+        # build polynomials
+        field = Basefield.main()
+        x = MPolynomial.variables(4, field)
+        airs = []
+        
+        # constraints:
+        # 1. instruction pointer increases by at most one
+        # (DNF:) <=>. IP* = IP \/ IP* = IP+1
+        airs += [(x[instruction_pointer+nextt] - x[instruction_pointer]) * (x[instruction_pointer+nextt] - x[instruction_pointer] - one)]
+
+        # 2. if the instruction pointer is the same, then the instruction value must be the same also
+        #        <=> IP*=IP => IV*=IV
+        # (DNF:) <=> IP*=/=IP \/ IV*=IV
+        airs += [(x[instruction_pointer+nextt] - x[instruction_pointer] - one) * (x[instruction_value+nextt] - x[instruction_value])]
+
+        return airs
+
+    def instruction_boundary_constraints( ):
+        return [(0, 0, VirtualMachine.field.zero()), # instruction pointer
+               #(1, 0, ???), # matching instruction
+               ]
+
+    def memory_transition_constraints( ):
+        # column names
+        cycle = 0
+        memory_pointer = 1
+        memory_value = 2
+        nextt = 3
+
+        # build polynomials
+        field = BaseField.main()
+        one = field.one()
+        x = MPolynomial.variables(6, field)
+        airs = []
+
+        # constraints
+
+        # 1. memory pointer increases by one or zero
+        # <=>. (MP*=MP+1) \/ (MP*=MP)
+        airs += [(x[memory_pointer + nextt] - x[memory_pointer] - one) * (x[memory_pointer + nextt] - x[memory_pointer])]
+
+        # 2. if memory pointer increases by zero, then memory value can change only if cycle counter increases by one
+        #        <=>. MP*=MP => (MV*=/=MV => CLK*=CLK+1)
+        #        <=>. MP*=/=MP \/ (MV*=/=MV => CLK*=CLK+1)
+        # (DNF:) <=>. MP*=/=MP \/ MV*=MV \/ CLK*=CLK+1
+        airs += [(x[memory_pointer+nextt] - x[memory_pointer] - one) * (x[memory_value + nextt] - x[memory_value]) * (x[cycle+nextt] - x[cycle] - one)]
+
+        # 3. if memory pointer increases by one, then memory value must be set to zero
+        #        <=>. MP*=MP+1 => MV* = 0
+        # (DNF:) <=>. MP*=/=MP+1 \/ MV*=0
+        airs += [(x[memory_pointer + nextt] - x[memory_pointer]) * x[memory_value + nextt]]
+
+        return airs
+
+    def memory_boundary_constraints( ):
+        return [(0, 0, VirtualMachine.field.zero()), # cycle
+               #(1, 0, ???) # current instruction
+               (0, 2, VirtualMachine.field.zero()), # memory pointer
+               (0, 3, VirtualMachine.field.zero()), # memory value
+               ]
+
+    def io_transition_constraints( ):
+        # column names
+        current_value = 0
+        previous_value = 1
+        nextt = 2
+
+        # build polynomials
+        field = BaseField.main()
+        one = field.one()
+        x = MPolynomial.variables(4, field)
+        airs = []
+
+        # constraints
+        
+        # 1. next previous_value is current current_value
+        # <=>. PV* = CV
+        return [x[previous_value + nextt] - x[current_value]]
+
+    def io_boundary_constraints( ):
+        return [(0, 1, VirtualMachine.field.zero())]
 

@@ -16,7 +16,7 @@ def test_simulate( ):
     #program = ">++++++++++[>+++><<-]>+++><<>."
     #expected_output = "!"
     program = VirtualMachine.compile(code)
-    trace, output_data = VirtualMachine.simulate(program)
+    output_data, trace, instruction_table, memory_table, input_table, output_table = VirtualMachine.simulate(program)
     output_data = "".join(od for od in output_data)
     assert(output_data == expected_output), f"output data invalid; given:\"{output_data}\", but should be \"{expected_output}\""
     print(output_data)
