@@ -442,3 +442,153 @@ class VirtualMachine:
     def io_boundary_constraints( ):
         return [(1, 0, VirtualMachine.field.zero())] # column, row, value
 
+
+    def processor_table_extend( processor_table, challenges ):
+        # register names
+        cycle = 0
+        instruction_pointer = 1
+        current_instruction = 2
+        next_instruction = 3
+        memory_pointer = 4
+        memory_value = 5
+        is_zero = 6
+
+        # names for challenges
+        a = challenges[0]
+        b = challenges[1]
+        c = challenges[2]
+        d = challenges[3]
+        e = challenges[4]
+        f = challenges[5]
+        alpha = challenges[6]
+        beta = challenges[7]
+        gamma = challenges[8]
+        delta = challenges[9]
+
+
+        # algebra stuff
+        field = VirtualMachine.field
+        one = field.one()
+
+        # prepare for loop
+        instruction_permutation_running_product = one
+        memory_permutation_running_product = one
+        input_evaluation = zero
+        input_indeterminate = one
+        output_evaluation = zero
+        output_indeterminate = one
+
+        # loop over all rows
+        table_extension = []
+        for row in processor_table:
+            new_row = []
+
+            # next, define the additional columns
+
+            # 1. running product for instruction permutation
+            instruction_permutation_running_product *= alpha - a * row[instruction_pointer] - b * row[current_instruction] - c * row[next_instruction]
+            new_row += [instruction_permutation_running_product]
+
+            # 2. running product for memory access
+            memory_permutation_running_product *= beta - d * row[cycle] - e * row[memory_pointer] - f * row[memory_value]
+            new_row += [memory_permutation_running_product]
+
+            # 3. evaluation for input
+            if row[current_instruction] == BaseFieldElement(ord(','), field):
+                input_evaluation += input_indeterminate * row[memory_value]
+                input_indeterminate *= gamma
+            new_row += [input_indeterminate]
+            new_row += [input_evaluation]
+
+            # 4. evaluation for output
+            if row[current_instruction] == BaseFieldElement(ord('.'), field):
+                output_evaluation += output_indeterminate * row[memory_value]
+                output_indeterminate *= delta
+            new_row += [output_indeterminate]
+            new_row += [output_evaluation]
+
+            table_extension += [new_row]
+
+        return table_extension
+
+    def instruction_table_extend( instruction_table, challenges ):
+
+        # names for challenges
+        a = challenges[0]
+        b = challenges[1]
+        c = challenges[2]
+        d = challenges[3]
+        e = challenges[4]
+        f = challenges[5]
+        alpha = challenges[6]
+        beta = challenges[7]
+        gamma = challenges[8]
+        delta = challenges[9]
+
+        # algebra stuff
+        field = VirtualMachine.field
+        one = field.one()
+
+        # prepare loop
+        extended_instruction_table = []
+        instruction_permutation_running_product = one
+
+        # loop over all rows of table
+        for i in range(len(instruction_table)):
+            row = instruction_table[i]
+            new_row = []
+
+            # match with this:
+            ## 1. running product for instruction permutation
+            #instruction_permutation_running_product *= alpha - a * row[instruction_pointer] - b * row[current_instruction] - c * row[next_instruction]
+            #new_row += [[instruction_permutation_running_product]]
+
+            current_instruction = instruction_table[i][1]
+            if i < len(instruction_table)-1:
+                next_instruction = instruction_table[i+1][1]
+            else:
+                next_instruction = 0
+            instruction_permutation_running_product *= alpha - a * row[0] - b * current_instruction - c * next_instruction
+            new_row += [[instruction_permutation_running_product]]
+
+            extended_instruction_table += [new_row]
+
+        return extended_instruction_table
+
+    def memory_table_extend( memory_table, challenges ):
+        # names for challenges
+        a = challenges[0]
+        b = challenges[1]
+        c = challenges[2]
+        d = challenges[3]
+        e = challenges[4]
+        f = challenges[5]
+        alpha = challenges[6]
+        beta = challenges[7]
+        gamma = challenges[8]
+        delta = challenges[9]
+
+        # algebra stuff
+        field = VirtualMachine.field
+        one = field.one()
+        
+        # prepare loop
+        extended_memory_table = []
+        memory_permutation_running_product = one
+
+        # loop over all rows of table
+        for row in memory_table:
+            new_row = []
+
+            # match with this:
+            ## 2. running product for memory access
+            #memory_permutation_running_product *= beta - d * row[cycle] - e * row[memory_pointer] - f * row[memory_value]
+            #new_row += [[memory_permutation_running_product]]
+            memory_permutation_running_product *= beta - d * row[0] - e * row[1] - f * row[2]
+
+            new_row += [memory_permutation_running_product]
+
+            memory_table_extension += [new_row]
+
+        return memory_table_extension
+
