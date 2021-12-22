@@ -48,21 +48,39 @@ def test_air( ):
     for itc in instruction_transition_constraints:
         for row in range(len(instruction_table)-1):
             point = instruction_table[row] + instruction_table[row+1]
-            assert(itc.evaluate(point).is_zero()), f"instruction transition constraint {i} not satisfied in row {row} where point is {[p.value for p in point]}, and evaluation is {itc.evaluate(point).value}"
+            assert(itc.evaluate(point).is_zero()), f"instruction transition constraint not satisfied in row {row} where point is {[p.value for p in point]}, and evaluation is {itc.evaluate(point).value}"
     
     memory_transition_constraints = VirtualMachine.memory_transition_constraints()
     memory_boundary_constraints = VirtualMachine.memory_boundary_constraints()
 
-    print([m.value for m in memory_table[0]])
-
     for (column, row, value) in memory_boundary_constraints:
         assert(memory_table[row][column] == value), f"memory boundary constraint {(column, row, value.value)} not satisfied"
+
 
     for mtc in memory_transition_constraints:
         for row in range(len(memory_table)-1):
             point = memory_table[row] + memory_table[row+1]
-            assert(mtc.evaluate(point).is_zero()), "memory transition constraint not satisfied"
+            assert(mtc.evaluate(point).is_zero()), f"memory transition constraint not satisfied in row {row}"
 
+    io_transition_constraints = VirtualMachine.io_transition_constraints()
+    io_boundary_constraints = VirtualMachine.io_boundary_constraints()
 
+    for (column, row, value) in io_boundary_constraints:
+        if len(input_table) != 0:
+            assert(input_table[row][column] == value), "io  boundary constraint {column, row, value.value} not satisfied"
+        if len(output_table) != 0:
+            assert(output_table[row][column] == value), "io boundary constraint not satisfied"
+
+    for itc in io_transition_constraints:
+        if len(input_table) != 0:
+            for row in range(len(input_table)-1):
+                point = input_table[row] + input_table[row+1]
+                assert(itc.evaluate(point).is_zero()), "io transition constraint not satisfied"
+        if len(output_table) != 0:
+            for row in range(len(output_table)-1):
+                point = output_table[row] + output_table[row+1]
+                assert(itc.evaluate(point).is_zero()), "io transition constraint not satisfied"
+
+    assert(len(output_table) != 0), "length of output table is zero but should not be"
 
 

@@ -126,20 +126,7 @@ class VirtualMachine:
             # record changes, to be used if necessary
             old_memory_value = register.memory_value
 
-            # updates common to all instructions
-            register.current_instruction = program[register.instruction_pointer.value]
-            if register.instruction_pointer.value < len(program)-1:
-                register.next_instruction = program[register.instruction_pointer.value+1]
-            else:
-                register.next_instruction = zero
-            register.cycle += one
-            register.memory_value = memory.get(register.memory_pointer, zero)
-            if register.memory_value == zero:
-                register.is_zero = one
-            else:
-                register.is_zero = zero
-
-            # update register according to instruction
+            # update pointer registers according to instruction
             if register.current_instruction == F('['):
                 if register.memory_value == zero:
                     register.instruction_pointer = program[register.instruction_pointer.value + 1]
@@ -185,12 +172,24 @@ class VirtualMachine:
             else:
                 assert(False), f"unrecognized instruction at {register.instruction_pointer.value}: '{chr(register.current_instruction.value)}'"
 
+            # update non-pointer registers
+            register.cycle += one
+            if register.instruction_pointer.value < len(program):
+                register.current_instruction = program[register.instruction_pointer.value]
+            else:
+                register.current_instruction = zero
+            if register.instruction_pointer.value < len(program)-1:
+                register.next_instruction = program[register.instruction_pointer.value + 1]
+            else:
+                register.next_instruction = zero
+            register.memory_value = memory.get(register.memory_pointer, zero)
+
             # collect values to add new rows in execution tables
             trace += [[register.cycle, register.instruction_pointer, register.current_instruction, register.next_instruction, register.memory_pointer, register.memory_value, register.is_zero]]
             memory_table += [[register.cycle, register.memory_pointer, register.memory_value]]
 
             if register.instruction_pointer.value < len(program):
-                instruction_table += [[register.instruction_pointer, program[register.instruction_pointer.value]]]
+                instruction_table += [[register.instruction_pointer, register.current_instruction]]
             else:
                 instruction_table += [[register.instruction_pointer, zero]]
 
@@ -441,5 +440,5 @@ class VirtualMachine:
         return [x[previous_value + nextt] - x[current_value]]
 
     def io_boundary_constraints( ):
-        return [(1, 0, VirtualMachine.field.zero())]
+        return [(1, 0, VirtualMachine.field.zero())] # column, row, value
 
