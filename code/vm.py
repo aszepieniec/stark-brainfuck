@@ -309,7 +309,7 @@ class VirtualMachine:
  
         return polynomials
                  
-      # returns a polynomial in X, that evaluates to 0 in all instructions except the argument
+    # returns a polynomial in X, that evaluates to 0 in all instructions except the argument
     @staticmethod
     def instruction_picker( X, instruction ):
         acc = MPolynomial.constant(VirtualMachine.field.one())
@@ -591,4 +591,95 @@ class VirtualMachine:
             memory_table_extension += [new_row]
 
         return memory_table_extension
+
+    def input_table_extend( input_table, challenges ):
+        # names for challenges
+        a = challenges[0]
+        b = challenges[1]
+        c = challenges[2]
+        d = challenges[3]
+        e = challenges[4]
+        f = challenges[5]
+        alpha = challenges[6]
+        beta = challenges[7]
+        gamma = challenges[8]
+        delta = challenges[9]
+
+        # algebra stuff
+        field = VirtualMachine.field
+        zero = field.zero()
+        one = field.one()
+        
+        # prepare loop
+        extended_input_table = []
+        input_running_evaluation = zero
+        input_running_indeterminate = one
+
+        # loop over all rows of table
+        for row in input_table:
+            new_row = []
+
+            # match with this:
+            ## 3. evaluation for input
+            #if row[current_instruction] == BaseFieldElement(ord(','), field):
+            #    input_evaluation += input_indeterminate * row[memory_value]
+            #    input_indeterminate *= gamma
+            #new_row += [input_indeterminate]
+            #new_row += [input_evaluation]
+            
+            input_evaluation += input_indeterminate * row[0]
+            input_indeterminate *= gamma
+
+            new_row += [input_indeterminate]
+            new_row += [input_evaluation]
+
+            extended_input_table += [new_row]
+
+        return extended_input_table
+
+    def output_table_extend( output_table, challenges ):
+        # names for challenges
+        a = challenges[0]
+        b = challenges[1]
+        c = challenges[2]
+        d = challenges[3]
+        e = challenges[4]
+        f = challenges[5]
+        alpha = challenges[6]
+        beta = challenges[7]
+        gamma = challenges[8]
+        delta = challenges[9]
+
+        # algebra stuff
+        field = VirtualMachine.field
+        zero = field.zero()
+        one = field.one()
+        
+        # prepare loop
+        extended_input_table = []
+        output_running_evaluation = zero
+        output_running_indeterminate = one
+
+        # loop over all rows of table
+        for row in output_table:
+            new_row = []
+
+            # match with this:
+            ## 4. evaluation for output
+            #if row[current_instruction] == BaseFieldElement(ord('.'), field):
+            #    output_evaluation += output_indeterminate * row[memory_value]
+            #    output_indeterminate *= delta
+            #new_row += [output_indeterminate]
+            #new_row += [output_evaluation]
+            
+            output_evaluation += output_indeterminate * row[0]
+            output_indeterminate *= gamma
+
+            new_row += [output_indeterminate]
+            new_row += [output_evaluation]
+
+            extended_output_table += [new_row]
+
+        return extended_output_table
+
 
