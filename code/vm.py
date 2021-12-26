@@ -200,6 +200,10 @@ class VirtualMachine:
         return output_data, trace, instruction_table, memory_table, input_table, output_table
 
     @staticmethod
+    def num_challenges( ):
+        return 10
+
+    @staticmethod
     def instruction_transition_constraints( instruction ):
         # register names
         cycle = 0
@@ -320,7 +324,7 @@ class VirtualMachine:
             acc = acc * (X - MPolynomial.constant(BaseFieldElement(ord(c), field)))
         return acc
 
-    def processor_transition_constraints( ):
+    def processor_transition_constraints( challenges=None ):
         # register names
         cycle = 0
         instruction_pointer = 1
@@ -329,11 +333,21 @@ class VirtualMachine:
         memory_pointer = 4
         memory_value = 5
         is_zero = 6
-        nextt = 7
+
+        if challenges == None:
+            nextt = 7
+        else:
+            instruction_permutation = 7
+            memory_permutation = 8
+            input_evaluation = 9
+            input_indeterminate = 10
+            output_evaluation = 11
+            output_indeterminate = 12
+            nextt = 13
 
         # build polynomials
         field = BaseField.main()
-        x = MPolynomial.variables(14, field)
+        x = MPolynomial.variables(2*nextt, field)
 
         airs = []
         for c in "[]<>+-,.":
@@ -342,17 +356,66 @@ class VirtualMachine:
             for instr in instruction_vector:
                 airs += [instruction_picker * instr]
 
+        # if challenges are supplied, include polynomials for extended table
+        if challenges != None:
+            challenges = [MPolynomial.constant(c) for c in challenges]
+
+            # names for challenges
+            a = challenges[0]
+            b = challenges[1]
+            c = challenges[2]
+            d = challenges[3]
+            e = challenges[4]
+            f = challenges[5]
+            alpha = challenges[6]
+            beta = challenges[7]
+            gamma = challenges[8]
+            delta = challenges[9]
+
+            # 1. running product for instruction permutation
+            airs += [x[instruction_permutation] * ( alpha - a * x[instruction_pointer + nextt] - b * x[current_instruction + nextt] - c * x[next_instruction + nextt] ) - x[instruction_permutation + nextt]]
+
+            # 2. running product for memory access
+            airs += [x[memory_permutation] * ( beta - d * x[cycle + nextt] - e * x[memory_pointer + nextt] - f * x[memory_value + nextt] ) - x[memory_permutation + nextt]]
+
+            # 3. evaluation for input
+            selector = x[current_instruction] - MPolynomial.constant(BaseFieldElement(ord(','), field))
+            inverse_selector = MPolynomial.constant(BaseFieldElement(1,field))
+            for c in "[]<>+-.":
+                inverse_selector *= x[current_instruction] - MPolynomial.constant(BaseFieldElement(ord(c), field))
+
+            airs += [inverse_selector * (-x[input_evaluation + nextt] + x[input_evaluation] + x[input_indeterminate+nextt] * x[memory_value+nextt]) + selector * (x[input_evaluation + nextt] - x[input_evaluation])]
+            airs += [inverse_selector * (x[input_indeterminate + nextt] - x[input_indeterminate] * gamma) + selector * (x[input_indeterminate + nextt] - x[input_indeterminate])]
+
+            # 4. evaluation for output
+            selector = x[current_instruction] - MPolynomial.constant(BaseFieldElement(ord('.'), field))
+            inverse_selector = MPolynomial.constant(BaseFieldElement(1,field))
+            for c in "[]<>+-,":
+                inverse_selector *= x[current_instruction] - MPolynomial.constant(BaseFieldElement(ord(c), field))
+
+            airs += [inverse_selector * (-x[output_evaluation + nextt] + x[output_indeterminate + nextt] * x[memory_value + nextt] + x[output_evaluation]) + selector * (x[output_evaluation] - x[output_evaluation + nextt])]
+            airs += [inverse_selector * (x[output_indeterminate + nextt] - delta * x[output_indeterminate]) + selector * (x[output_indeterminate + nextt] - x[output_indeterminate])]
+
         return airs
 
-    def processor_boundary_constraints( ):
+    def processor_boundary_constraints( challenges=None ):
         # format: (register, cycle, value)
-        return [(0, 0, VirtualMachine.field.zero()), # cycle
+        constraints = [(0, 0, VirtualMachine.field.zero()), # cycle
             (1, 0, VirtualMachine.field.zero()), # instruction pointer
             #(2, 0, ???), # current instruction
             #(3, 0, ???), # next instruction
             (4, 0, VirtualMachine.field.zero()), # memory pointer
             (5, 0, VirtualMachine.field.zero()), # memory value
             (6, 0, VirtualMachine.field.one())] # memval==0
+
+        if challenges != None:
+            constraints += [(7, 0, VirtualMachine.field.one()), # instruction permutation
+                            (8, 0, VirtualMachine.field.one()), # memory permutation
+                            (9, 0, VirtualMachine.field.one()), # input indeterminate
+                            (10, 0, VirtualMachine.field.zero()), # input evaluation
+                            (11, 0, VirtualMachine.field.one()), # output indeterminate
+                            (12, 0, VirtualMachine.field.zero())] # output evaluation
+        return constraints
 
     def instruction_table_transition_constraints( ):
         # column names

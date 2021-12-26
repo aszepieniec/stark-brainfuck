@@ -1,4 +1,5 @@
 from vm import *
+import os
 
 def test_vm( ):
     code = "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++."
@@ -83,4 +84,21 @@ def test_air( ):
 
     assert(len(output_table) != 0), "length of output table is zero but should not be"
 
+
+
+    # extend tables, and re-test AIR
+
+    challenges = [VirtualMachine.field.sample(os.urandom(8)) for i in range(VirtualMachine.num_challenges())]
+    processor_table_extension = VirtualMachine.processor_table_extend(trace, challenges)
+
+    processor_transition_constraints = VirtualMachine.processor_transition_constraints(challenges)
+    processor_boundary_constraints = VirtualMachine.processor_boundary_constraints(challenges)
+
+    for (register, cycle, value) in processor_boundary_constraints:
+        assert(trace[cycle][register] == value), f"processor boundary constraint not satisfied at cycle {cycle} and register {register}"
+
+    for mpo in processor_transition_constraints:
+        for clk in range(len(trace)-1):
+            point = trace[clk] + trace[clk+1]
+            assert(mpo.evaluate(point).is_zero()), "processor transition constraint not satisfied"
 
