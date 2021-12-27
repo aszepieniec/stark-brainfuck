@@ -1,14 +1,21 @@
 from aet import *
 
 
-class Processor(Table):
+class ProcessorTable(Table):
     def __init__(self, field):
-        base_width = 7
-        extension_width = 6
-        super(Processor, self).__init__(field, base_width, extension_width)
+        super(ProcessorTable, self).__init__(field, 7)
 
     @staticmethod
-    def instruction_selector(instruction, indeterminate: MPolynomial):
+    def if_instruction(instruction, indeterminate: MPolynomial):
+        '''if_instruction(instr, X)
+        returns a polynomial in X that evaluates to 0 in X=FieldElement(instr)'''
+        field = indeterminate.coefficients.values()[0].field
+        return indeterminate - MPolynomial.constant(BaseFieldElement(ord(instruction), field))
+
+    @staticmethod
+    def ifnot_instruction(instruction, indeterminate: MPolynomial):
+        '''ifnot_instruction(instr, X)
+        returns a polynomial in X that evaluates to 0 in all instructions except for X=FieldElement(instr)'''
         field = indeterminate.coefficients.values()[0].field
         one = MPolynomial.constant(field.one())
         acc = one
@@ -80,6 +87,35 @@ class Processor(Table):
 
         return polynomials
 
+    def transition_constraints_afo_named_variables(self, cycle, instruction_pointer, current_instruction, next_instruction, memory_pointer, memory_value, is_zero, cycle_next, instruction_pointer_next, current_instruction_next, next_instruction_next, memory_pointer_next, memory_value_next, is_zero_next):
+        one = MPolynomial.constant(self.field.one())
+
+        polynomials = [MPolynomial.zero()] * 4
+
+        # instruction-specific polynomials
+        for c in "[]<>+-,.":
+            instr = ProcessorTable.instruction_polynomials(c,
+                                                      cycle,
+                                                      instruction_pointer,
+                                                      current_instruction,
+                                                      next_instruction,
+                                                      memory_pointer,
+                                                      memory_value,
+                                                      is_zero,
+                                                      cycle_next,
+                                                      instruction_pointer_next,
+                                                      memory_value_next)
+            deselector = self.ifnot_instruction(c, current_instruction)
+            for i in range(len(instr)):
+                polynomials[i] += deselector * instr[i]
+
+        # instruction-independent polynomials
+        polynomials += [cycle_next - cycle - one]  # cycle increases by one
+        polynomials += [is_zero * memory_value]  # at least one is zero
+        polynomials += [is_zero * (one - is_zero)]  # 0 or 1
+
+        return polynomials
+
     def transition_constraints(self):
         cycle, \
             instruction_pointer, \
@@ -95,33 +131,8 @@ class Processor(Table):
             memory_pointer_next, \
             memory_value_next, \
             is_zero_next = MPolynomial.variables(14, self.field)
-        one = MPolynomial.constant(self.field.one())
 
-        polynomials = [MPolynomial.zero()] * 4
-
-        # instruction-specific polynomials
-        for c in "[]<>+-,.":
-            instr = Processor.instruction_polynomials(c,
-                                                      cycle,
-                                                      instruction_pointer,
-                                                      current_instruction,
-                                                      next_instruction,
-                                                      memory_pointer,
-                                                      memory_value,
-                                                      is_zero,
-                                                      cycle_next,
-                                                      instruction_pointer_next,
-                                                      memory_value_next)
-            deselector = self.instruction_selector(c, current_instruction)
-            for i in range(len(instr)):
-                polynomials[i] += deselector * instr[i]
-
-        # instruction-independent polynomials
-        polynomials += [cycle_next - cycle - one]  # cycle increases by one
-        polynomials += [is_zero * memory_value]  # at least one is zero
-        polynomials += [is_zero * (one - is_zero)]  # 0 or 1
-
-        return polynomials
+        return self.transition_constraints_afo_named_variables(cycle, instruction_pointer, current_instruction, next_instruction, memory_pointer, memory_value, is_zero, cycle_next, instruction_pointer_next, current_instruction_next, next_instruction_next, memory_pointer_next, memory_value_next, is_zero_next)
 
     def boundary_constraints(self):
         # format: (register, cycle, value)

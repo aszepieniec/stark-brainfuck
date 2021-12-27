@@ -3,20 +3,16 @@ from multivariate import *
 
 
 class Table:
-    def __init__(self, field, base_width, extension_width):
+    def __init__(self, field, width):
         self.field = field
-        self.base_width = base_width
-        self.extension_width = extension_width
+        self.width = width
         self.table = []
 
     def nrows(self):
         return len(self.table)
 
-    def ncols_base(self):
-        return self.base_width
-
-    def ncols_extension(self):
-        return self.extension_width
+    def ncols(self):
+        return self.width
 
     @abstractmethod
     def transition_constraints(self):
@@ -26,18 +22,11 @@ class Table:
     def boundary_constraints(self):
         pass
 
-    @abstractmethod
-    def extended_transition_constraints(self):
-        pass
+    def test(self):
+        for (register, cycle, value) in self.boundary_constraints():
+            assert(self.table[cycle][register] == value), "boundary constraint not satisfied"
 
-    @abstractmethod
-    def extended_boundary_constraints(self):
-        pass
-
-    @abstractmethod
-    def test_base(self):
-        pass
-
-    @abstractmethod
-    def test_extension(self):
-        pass
+        for mpo in self.processor_transition_constraints():
+            for rowidx in range(self.nrows()-1):
+                point = self.table[rowidx] + self.table[rowidx+1]
+                assert(mpo.evaluate(point).is_zero()), "transition constraint not satisfied"
