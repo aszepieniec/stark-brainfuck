@@ -6,7 +6,7 @@ class MemoryTable(Table):
 
     @staticmethod
     def transition_constraints_afo_named_variables( cycle, address, value, cycle_next, address_next, value_next ):
-        field = address.coefficients.values()[0].field
+        field = list(address.dictionary.values())[0].field
         one = MPolynomial.constant(field.one())
 
         polynomials = []

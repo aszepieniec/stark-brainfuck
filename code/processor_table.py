@@ -9,14 +9,14 @@ class ProcessorTable(Table):
     def if_instruction(instruction, indeterminate: MPolynomial):
         '''if_instruction(instr, X)
         returns a polynomial in X that evaluates to 0 in X=FieldElement(instr)'''
-        field = indeterminate.coefficients.values()[0].field
+        field = list(indeterminate.dictionary.values())[0].field
         return indeterminate - MPolynomial.constant(BaseFieldElement(ord(instruction), field))
 
     @staticmethod
     def ifnot_instruction(instruction, indeterminate: MPolynomial):
         '''ifnot_instruction(instr, X)
         returns a polynomial in X that evaluates to 0 in all instructions except for X=FieldElement(instr)'''
-        field = indeterminate.coefficients.values()[0].field
+        field = list(indeterminate.dictionary.values())[0].field
         one = MPolynomial.constant(field.one())
         acc = one
         for c in "[]<>,.+-":
@@ -29,61 +29,61 @@ class ProcessorTable(Table):
     @staticmethod
     def instruction_polynomials(instruction, cycle, instruction_pointer, next_instruction, memory_pointer, memory_value, is_zero, cycle_next, instruction_pointer_next, memory_pointer_next, memory_value_next):
         zero = MPolynomial.zero()
-        field = cycle.coefficients.values()[0].field
+        field = list(cycle.dictionary.values())[0].field
         one = MPolynomial.constant(field.one())
         two = MPolynomial.constant(field.one()+field.one())
         polynomials = [zero] * 3
 
         if instruction == '[':
-            polynomials[1] = memory_value * (instruction_pointer_next - instruction_pointer - two) + \
+            polynomials[0] = memory_value * (instruction_pointer_next - instruction_pointer - two) + \
                 is_zero * (instruction_pointer_next - next_instruction)
-            polynomials[2] = memory_pointer_next - memory_pointer
-            polynomials[3] = memory_value_next - memory_value
+            polynomials[1] = memory_pointer_next - memory_pointer
+            polynomials[2] = memory_value_next - memory_value
 
         elif instruction == ']':
-            polynomials[1] = is_zero * (instruction_pointer_next - instruction_pointer - two) + \
+            polynomials[0] = is_zero * (instruction_pointer_next - instruction_pointer - two) + \
                 memory_value * (instruction_pointer_next - next_instruction)
-            polynomials[2] = memory_pointer_next - memory_pointer
-            polynomials[3] = memory_value_next - memory_value
+            polynomials[1] = memory_pointer_next - memory_pointer
+            polynomials[2] = memory_value_next - memory_value
 
         elif instruction == '<':
-            polynomials[1] = instruction_pointer_next - \
+            polynomials[0] = instruction_pointer_next - \
                 instruction_pointer - one
-            polynomials[2] = memory_pointer_next - memory_pointer + one
+            polynomials[1] = memory_pointer_next - memory_pointer + one
             # memory value, satisfied by permutation argument
-            polynomials[3] = zero
+            polynomials[2] = zero
 
         elif instruction == '>':
-            polynomials[1] = instruction_pointer_next - \
+            polynomials[0] = instruction_pointer_next - \
                 instruction_pointer - one
-            polynomials[2] = memory_pointer_next - memory_pointer - one
+            polynomials[1] = memory_pointer_next - memory_pointer - one
             # memory value, satisfied by permutation argument
-            polynomials[3] = zero
+            polynomials[2] = zero
 
         elif instruction == '+':
-            polynomials[1] = instruction_pointer_next - \
+            polynomials[0] = instruction_pointer_next - \
                 instruction_pointer - one
-            polynomials[2] = memory_pointer_next - memory_pointer
-            polynomials[3] = memory_value_next - memory_value - one
+            polynomials[1] = memory_pointer_next - memory_pointer
+            polynomials[2] = memory_value_next - memory_value - one
 
         elif instruction == '-':
-            polynomials[1] = instruction_pointer_next - \
+            polynomials[0] = instruction_pointer_next - \
                 instruction_pointer - one
-            polynomials[2] = memory_pointer_next - memory_pointer
-            polynomials[3] = memory_value_next - memory_value + one
+            polynomials[1] = memory_pointer_next - memory_pointer
+            polynomials[2] = memory_value_next - memory_value + one
 
         elif instruction == ',':
-            polynomials[1] = instruction_pointer_next - \
+            polynomials[0] = instruction_pointer_next - \
                 instruction_pointer - one
-            polynomials[2] = memory_pointer_next - memory_pointer
+            polynomials[1] = memory_pointer_next - memory_pointer
             # memory value, set by evaluation argument
-            polynomials[3] = zero
+            polynomials[2] = zero
 
         elif instruction == '.':
-            polynomials[1] = instruction_pointer_next - \
+            polynomials[0] = instruction_pointer_next - \
                 instruction_pointer - one
-            polynomials[2] = memory_pointer_next - memory_pointer
-            polynomials[3] = memory_value_next - memory_value
+            polynomials[1] = memory_pointer_next - memory_pointer
+            polynomials[2] = memory_value_next - memory_value
 
         return polynomials
 
@@ -105,7 +105,7 @@ class ProcessorTable(Table):
                                                       cycle_next,
                                                       instruction_pointer_next,
                                                       memory_value_next)
-            deselector = self.ifnot_instruction(c, current_instruction)
+            deselector = self.if_instruction(c, current_instruction)
             for i in range(len(instr)):
                 polynomials[i] += deselector * instr[i]
 
@@ -144,3 +144,5 @@ class ProcessorTable(Table):
                        (4, 0, self.field.zero()),  # memory pointer
                        (5, 0, self.field.zero()),  # memory value
                        (6, 0, self.field.one())]  # memval==0
+
+        return constraints

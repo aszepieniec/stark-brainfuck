@@ -26,7 +26,9 @@ class Table:
         for (register, cycle, value) in self.boundary_constraints():
             assert(self.table[cycle][register] == value), "boundary constraint not satisfied"
 
-        for mpo in self.processor_transition_constraints():
+        transition_constraints = self.transition_constraints()
+        for i in range(len(transition_constraints)):
+            mpo = transition_constraints[i]
             for rowidx in range(self.nrows()-1):
                 point = self.table[rowidx] + self.table[rowidx+1]
-                assert(mpo.evaluate(point).is_zero()), "transition constraint not satisfied"
+                assert(mpo.evaluate(point).is_zero()), f"transition constraint {i} not satisfied in row {rowidx}; point: {[p.value for p in point]}"

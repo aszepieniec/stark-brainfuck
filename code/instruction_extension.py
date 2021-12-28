@@ -12,20 +12,38 @@ class InstructionExtension(InstructionTable):
         self.alpha = challenges[6]
 
         super(InstructionExtension, self).__init__(field)
-        self.width = 2+1
+        self.width = 2+2
 
     def transition_constraints(self):
-        address, instruction, permutation, \
-             address_next, instruction_next, permutation_next = MPolynomial.variables(6, self.field)
+        address, instruction, permutation, subset, \
+             address_next, instruction_next, permutation_next, subset_next = MPolynomial.variables(8, self.field)
         
         polynomials = InstructionExtension.transition_constraints_afo_named_variables(address, instruction, address_next, instruction_next)
-
 
         polynomials += [permutation * \
                             ( self.alpha - self.a * address \
                                 - self.b * instruction \
                                 - self.c * instruction_next ) \
                              - permutation_next]
+
+        ifnewaddress = address_next - address
+        ifoldaddress = address_next - address - MPolynomial.constant(self.field.one())
+
+        polynomials += [ifnewaddress * \
+                            ( \
+                                subset * \
+                                ( \
+                                    self.eta \
+                                    - self.a * address \
+                                    - self.b * instruction \
+                                ) \
+                                - subset_next \
+                            ) \
+                        + ifoldaddress * \
+                            ( \
+                                subset - subset_next
+                            )]
+
         return polynomials
     
     def boundary_constraints(self):

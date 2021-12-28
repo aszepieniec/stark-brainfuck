@@ -1,6 +1,12 @@
 from algebra import *
+from input_table import InputTable
+from instruction_table import InstructionTable
+from memory_table import MemoryTable
 from multivariate import *
 import sys
+from output_table import OutputTable
+
+from processor_table import ProcessorTable
 
 
 class Register:
@@ -116,16 +122,23 @@ class VirtualMachine:
         output_data = []
 
         # prepare tables
-        trace = [[register.cycle, register.instruction_pointer, register.current_instruction,
+        processor_table = ProcessorTable(field)
+        processor_table.table = [[register.cycle, register.instruction_pointer, register.current_instruction,
                   register.next_instruction, register.memory_pointer, register.memory_value, register.is_zero]]
-        memory_table = [
+
+        memory_table = MemoryTable(field)
+        memory_table.table = [
             [register.cycle, register.memory_pointer, register.memory_value]]
-        instruction_table = [[BaseFieldElement(i, field), program[i]] for i in range(
+
+        instruction_table = InstructionTable(field)
+        instruction_table.table = [[BaseFieldElement(i, field), program[i]] for i in range(
             len(program))] + [[register.instruction_pointer, register.current_instruction]]
+
         previous_input_value = zero
-        input_table = []
+        input_table = InputTable(field)
+
         previous_output_value = zero
-        output_table = []
+        output_table = OutputTable(field)
 
         # main loop
         while register.instruction_pointer.value < len(program):
@@ -165,7 +178,7 @@ class VirtualMachine:
 
             elif register.current_instruction == F('.'):
                 register.instruction_pointer += one
-                output_table += [[memory[register.memory_pointer],
+                output_table.table += [[memory[register.memory_pointer],
                                   previous_output_value]]
                 previous_output_value = memory[register.memory_pointer]
                 output_data += chr(
@@ -177,7 +190,7 @@ class VirtualMachine:
                 input_counter += 1
                 memory[register.memory_pointer] = BaseFieldElement(
                     ord(char), field)
-                input_table += [[memory[register.memory_pointer],
+                input_table.table += [[memory[register.memory_pointer],
                                  previous_input_element]]
                 previous_input_element = memory[register.memory_pointer]
 
@@ -198,24 +211,24 @@ class VirtualMachine:
             register.memory_value = memory.get(register.memory_pointer, zero)
 
             # collect values to add new rows in execution tables
-            trace += [[register.cycle, register.instruction_pointer, register.current_instruction,
+            processor_table.table += [[register.cycle, register.instruction_pointer, register.current_instruction,
                        register.next_instruction, register.memory_pointer, register.memory_value, register.is_zero]]
-            memory_table += [[register.cycle,
+            memory_table.table += [[register.cycle,
                               register.memory_pointer, register.memory_value]]
 
             if register.instruction_pointer.value < len(program):
-                instruction_table += [[register.instruction_pointer,
+                instruction_table.table += [[register.instruction_pointer,
                                        register.current_instruction]]
             else:
-                instruction_table += [[register.instruction_pointer, zero]]
+                instruction_table.table += [[register.instruction_pointer, zero]]
 
         # post-process context tables
         # sort by memory address
-        memory_table.sort(key=lambda row: row[1].value)
+        memory_table.table.sort(key=lambda row: row[1].value)
         # sort by instruction address
-        instruction_table.sort(key=lambda row: row[0].value)
+        instruction_table.table.sort(key=lambda row: row[0].value)
 
-        return output_data, trace, instruction_table, memory_table, input_table, output_table
+        return processor_table, instruction_table, memory_table, input_table, output_table
 
     @staticmethod
     def num_challenges():
