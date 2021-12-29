@@ -106,6 +106,7 @@ class VirtualMachine:
 
         return input_data, output_data
 
+    @staticmethod
     def simulate(program, input_data=[]):
         # shorthands
         field = VirtualMachine.field
@@ -200,6 +201,7 @@ class VirtualMachine:
 
             # update non-pointer registers
             register.cycle += one
+
             if register.instruction_pointer.value < len(program):
                 register.current_instruction = program[register.instruction_pointer.value]
             else:
@@ -208,7 +210,12 @@ class VirtualMachine:
                 register.next_instruction = program[register.instruction_pointer.value + 1]
             else:
                 register.next_instruction = zero
+
             register.memory_value = memory.get(register.memory_pointer, zero)
+            if register.memory_value.is_zero():
+                register.is_zero = one
+            else:
+                register.is_zero = zero
 
             # collect values to add new rows in execution tables
             processor_table.table += [[register.cycle, register.instruction_pointer, register.current_instruction,

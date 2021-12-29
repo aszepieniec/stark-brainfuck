@@ -121,3 +121,24 @@ class MPolynomial:
         for i in range(len(polynomial.coefficients)):
             acc = acc + MPolynomial.constant(polynomial.coefficients[i]) * (x^i)
         return acc
+
+    def __str__(self):
+        return " + ".join(str(value) + "*" + "*".join("x" + str(i) + "^" + str(key[i]) for i in range(len(key)) if key[i] != 0) for key, value in self.dictionary.items())
+
+    def partial_evaluate( self, partial_assignment ):
+        field = list(self.dictionary.values())[0].field
+        num_variables = len(list(self.dictionary.keys())[0])
+        variables = MPolynomial.variables(num_variables, field)
+
+        complete_assignment = variables
+        for key, value in partial_assignment.items():
+            complete_assignment[key] = MPolynomial.constant(value)
+
+        polynomial = MPolynomial.zero()
+        for key, value in self.dictionary.items():
+            term = MPolynomial.constant(value)
+            for i in range(num_variables):
+                term *= complete_assignment[i]^key[i]
+            polynomial += term
+        
+        return polynomial

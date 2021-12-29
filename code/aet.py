@@ -31,4 +31,4 @@ class Table:
             mpo = transition_constraints[i]
             for rowidx in range(self.nrows()-1):
                 point = self.table[rowidx] + self.table[rowidx+1]
-                assert(mpo.evaluate(point).is_zero()), f"transition constraint {i} not satisfied in row {rowidx}; point: {[p.value for p in point]}"
+                assert(mpo.evaluate(point).is_zero()), f"transition constraint {i} not satisfied in row {rowidx}; point: {[p.value for p in point]}; polynomial {str(mpo.partial_evaluate({2: point[2]}))} evaluates to {mpo.evaluate(point).value}"

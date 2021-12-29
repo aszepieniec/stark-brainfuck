@@ -20,66 +20,65 @@ class ProcessorTable(Table):
         one = MPolynomial.constant(field.one())
         acc = one
         for c in "[]<>,.+-":
-            if c == instruction:
-                pass
-            acc *= indeterminate - \
-                MPolynomial.constant(BaseFieldElement(ord(instruction), field))
+            if c != instruction:
+                acc *= indeterminate - \
+                    MPolynomial.constant(BaseFieldElement(ord(c), field))
         return acc
 
     @staticmethod
-    def instruction_polynomials(instruction, cycle, instruction_pointer, next_instruction, memory_pointer, memory_value, is_zero, cycle_next, instruction_pointer_next, memory_pointer_next, memory_value_next):
+    def instruction_polynomials(instr, cycle, instruction_pointer, current_instruction, next_instruction, memory_pointer, memory_value, is_zero, cycle_next, instruction_pointer_next, current_instruction_next, next_instruction_next, memory_pointer_next, memory_value_next, is_zero_next):
         zero = MPolynomial.zero()
         field = list(cycle.dictionary.values())[0].field
         one = MPolynomial.constant(field.one())
         two = MPolynomial.constant(field.one()+field.one())
         polynomials = [zero] * 3
 
-        if instruction == '[':
+        if instr == '[':
             polynomials[0] = memory_value * (instruction_pointer_next - instruction_pointer - two) + \
                 is_zero * (instruction_pointer_next - next_instruction)
             polynomials[1] = memory_pointer_next - memory_pointer
             polynomials[2] = memory_value_next - memory_value
 
-        elif instruction == ']':
+        elif instr == ']':
             polynomials[0] = is_zero * (instruction_pointer_next - instruction_pointer - two) + \
                 memory_value * (instruction_pointer_next - next_instruction)
             polynomials[1] = memory_pointer_next - memory_pointer
             polynomials[2] = memory_value_next - memory_value
 
-        elif instruction == '<':
+        elif instr == '<':
             polynomials[0] = instruction_pointer_next - \
                 instruction_pointer - one
             polynomials[1] = memory_pointer_next - memory_pointer + one
             # memory value, satisfied by permutation argument
             polynomials[2] = zero
 
-        elif instruction == '>':
+        elif instr == '>':
             polynomials[0] = instruction_pointer_next - \
                 instruction_pointer - one
             polynomials[1] = memory_pointer_next - memory_pointer - one
             # memory value, satisfied by permutation argument
             polynomials[2] = zero
 
-        elif instruction == '+':
+        elif instr == '+':
             polynomials[0] = instruction_pointer_next - \
                 instruction_pointer - one
             polynomials[1] = memory_pointer_next - memory_pointer
             polynomials[2] = memory_value_next - memory_value - one
 
-        elif instruction == '-':
+        elif instr == '-':
             polynomials[0] = instruction_pointer_next - \
                 instruction_pointer - one
             polynomials[1] = memory_pointer_next - memory_pointer
             polynomials[2] = memory_value_next - memory_value + one
 
-        elif instruction == ',':
+        elif instr == ',':
             polynomials[0] = instruction_pointer_next - \
                 instruction_pointer - one
             polynomials[1] = memory_pointer_next - memory_pointer
             # memory value, set by evaluation argument
             polynomials[2] = zero
 
-        elif instruction == '.':
+        elif instr == '.':
             polynomials[0] = instruction_pointer_next - \
                 instruction_pointer - one
             polynomials[1] = memory_pointer_next - memory_pointer
@@ -90,7 +89,7 @@ class ProcessorTable(Table):
     def transition_constraints_afo_named_variables(self, cycle, instruction_pointer, current_instruction, next_instruction, memory_pointer, memory_value, is_zero, cycle_next, instruction_pointer_next, current_instruction_next, next_instruction_next, memory_pointer_next, memory_value_next, is_zero_next):
         one = MPolynomial.constant(self.field.one())
 
-        polynomials = [MPolynomial.zero()] * 4
+        polynomials = [MPolynomial.zero()] * 3
 
         # instruction-specific polynomials
         for c in "[]<>+-,.":
@@ -104,8 +103,13 @@ class ProcessorTable(Table):
                                                       is_zero,
                                                       cycle_next,
                                                       instruction_pointer_next,
-                                                      memory_value_next)
-            deselector = self.if_instruction(c, current_instruction)
+                                                      current_instruction_next,
+                                                      next_instruction_next,
+                                                      memory_pointer_next,
+                                                      memory_value_next,
+                                                      is_zero_next)
+            deselector = self.ifnot_instruction(c, current_instruction)
+
             for i in range(len(instr)):
                 polynomials[i] += deselector * instr[i]
 
