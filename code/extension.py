@@ -105,4 +105,14 @@ class ExtensionField:
             start += chunk_length
             stop += chunk_length
             coefficients += [element]
-        return ExtensionFieldElement(Polynomial([coefficients]))
+        return ExtensionFieldElement(Polynomial(coefficients), self)
+
+    def lift(self, base_field_element : BaseFieldElement) -> ExtensionFieldElement:
+        return ExtensionFieldElement(Polynomial([base_field_element]), self)
+
+    def __str__(self):
+        return self.polynomial.__str__()
+    
+    def __call__(self, integer):
+        return ExtensionFieldElement(Polynomial([BaseFieldElement(integer,self.modulus.coefficients[0].field)]), self)
+        

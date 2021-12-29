@@ -10,7 +10,7 @@ class ProcessorTable(Table):
         '''if_instruction(instr, X)
         returns a polynomial in X that evaluates to 0 in X=FieldElement(instr)'''
         field = list(indeterminate.dictionary.values())[0].field
-        return indeterminate - MPolynomial.constant(BaseFieldElement(ord(instruction), field))
+        return indeterminate - MPolynomial.constant(field(ord(instruction)))
 
     @staticmethod
     def ifnot_instruction(instruction, indeterminate: MPolynomial):
@@ -22,7 +22,7 @@ class ProcessorTable(Table):
         for c in "[]<>,.+-":
             if c != instruction:
                 acc *= indeterminate - \
-                    MPolynomial.constant(BaseFieldElement(ord(c), field))
+                    MPolynomial.constant(field(ord(c)))
         return acc
 
     @staticmethod

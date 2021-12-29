@@ -1,7 +1,7 @@
 from memory_table import *
 
 class MemoryExtension(MemoryTable):
-    def __init__(self, field, challenges ):
+    def __init__(self, challenges ):
         field = challenges[0].field
 
         # names for challenges

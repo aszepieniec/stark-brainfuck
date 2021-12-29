@@ -131,3 +131,7 @@ class BaseField:
         for b in byte_array:
             acc = (acc << 8) ^ int(b)
         return BaseFieldElement(acc % self.p, self)
+
+    def __call__(self, integer):
+        return BaseFieldElement(integer % self.p, self)
+        

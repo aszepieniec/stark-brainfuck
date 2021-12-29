@@ -1,10 +1,15 @@
 from algebra import *
+from input_extension import InputExtension
 from input_table import InputTable
+from instruction_extension import InstructionExtension
 from instruction_table import InstructionTable
+from memory_extension import MemoryExtension
 from memory_table import MemoryTable
 from multivariate import *
 import sys
+from output_extension import OutputExtension
 from output_table import OutputTable
+from processor_extension import ProcessorExtension
 
 from processor_table import ProcessorTable
 
@@ -602,7 +607,8 @@ class VirtualMachine:
     def io_boundary_constraints():
         return [(1, 0, VirtualMachine.field.zero())]  # column, row, value
 
-    def processor_table_extend(processor_table, challenges):
+    @staticmethod
+    def extend_processor_table(processor_table, challenges):
         # register names
         cycle = 0
         instruction_pointer = 1
@@ -626,8 +632,9 @@ class VirtualMachine:
 
         # algebra stuff
         field = VirtualMachine.field
-        one = field.one()
-        zero = field.zero()
+        xfield = a.field
+        one = xfield.one()
+        zero = xfield.zero()
 
         # prepare for loop
         instruction_permutation_running_product = one
@@ -639,41 +646,48 @@ class VirtualMachine:
 
         # loop over all rows
         table_extension = []
-        for row in processor_table:
+        for row in processor_table.table:
             new_row = []
+
+            # first, copy over existing row
+            new_row = [xfield.lift(nr) for nr in row]
 
             # next, define the additional columns
 
             # 1. running product for instruction permutation
-            instruction_permutation_running_product *= alpha - a * \
-                row[instruction_pointer] - b * \
-                row[current_instruction] - c * row[next_instruction]
             new_row += [instruction_permutation_running_product]
+            instruction_permutation_running_product *= alpha - a * \
+                new_row[instruction_pointer] - b * \
+                new_row[current_instruction] - c * new_row[next_instruction]
 
             # 2. running product for memory access
-            memory_permutation_running_product *= beta - d * \
-                row[cycle] - e * row[memory_pointer] - f * row[memory_value]
             new_row += [memory_permutation_running_product]
+            memory_permutation_running_product *= beta - d * \
+                new_row[cycle] - e * new_row[memory_pointer] - f * new_row[memory_value]
 
             # 3. evaluation for input
             if row[current_instruction] == BaseFieldElement(ord(','), field):
-                input_evaluation += input_indeterminate * row[memory_value]
+                input_evaluation += input_indeterminate * new_row[memory_value]
                 input_indeterminate *= gamma
             new_row += [input_indeterminate]
             new_row += [input_evaluation]
 
             # 4. evaluation for output
             if row[current_instruction] == BaseFieldElement(ord('.'), field):
-                output_evaluation += output_indeterminate * row[memory_value]
+                output_evaluation += output_indeterminate * new_row[memory_value]
                 output_indeterminate *= delta
             new_row += [output_indeterminate]
             new_row += [output_evaluation]
 
             table_extension += [new_row]
 
-        return table_extension
+        extended_processor_table = ProcessorExtension(challenges)
+        extended_processor_table.table = table_extension
 
-    def instruction_table_extend(instruction_table, challenges):
+        return extended_processor_table
+
+    @staticmethod
+    def extend_instruction_table(instruction_table, challenges):
 
         # names for challenges
         a = challenges[0]
@@ -689,36 +703,44 @@ class VirtualMachine:
 
         # algebra stuff
         field = VirtualMachine.field
-        one = field.one()
+        xfield = a.field
+        one = xfield.one()
 
         # prepare loop
-        extended_instruction_table = []
+        table_extension = []
         instruction_permutation_running_product = one
 
         # loop over all rows of table
-        for i in range(len(instruction_table)):
-            row = instruction_table[i]
+        for i in range(len(instruction_table.table)):
+            row = instruction_table.table[i]
             new_row = []
+
+            # first, copy over existing row
+            new_row = [xfield.lift(nr) for nr in row]
 
             # match with this:
             # 1. running product for instruction permutation
             #instruction_permutation_running_product *= alpha - a * row[instruction_pointer] - b * row[current_instruction] - c * row[next_instruction]
             #new_row += [[instruction_permutation_running_product]]
 
-            current_instruction = instruction_table[i][1]
-            if i < len(instruction_table)-1:
-                next_instruction = instruction_table[i+1][1]
+            current_instruction = instruction_table.table[i][1]
+            if i < len(instruction_table.table)-1:
+                next_instruction = instruction_table.table[i+1][1]
             else:
-                next_instruction = 0
+                next_instruction = field.zero()
             instruction_permutation_running_product *= alpha - a * \
-                row[0] - b * current_instruction - c * next_instruction
+                new_row[0] - b * xfield.lift(current_instruction) - c * xfield.lift(next_instruction)
             new_row += [[instruction_permutation_running_product]]
 
-            extended_instruction_table += [new_row]
+            table_extension += [new_row]
+
+        extended_instruction_table = InstructionExtension(challenges)
+        extended_instruction_table.table = table_extension
 
         return extended_instruction_table
 
-    def memory_table_extend(memory_table, challenges):
+    @staticmethod
+    def extend_memory_table(memory_table, challenges):
         # names for challenges
         a = challenges[0]
         b = challenges[1]
@@ -733,30 +755,38 @@ class VirtualMachine:
 
         # algebra stuff
         field = VirtualMachine.field
-        one = field.one()
+        xfield = a.field
+        one = xfield.one()
 
         # prepare loop
-        extended_memory_table = []
+        table_extension = []
         memory_permutation_running_product = one
 
         # loop over all rows of table
-        for row in memory_table:
+        for row in memory_table.table:
             new_row = []
+
+            # first, copy over existing row
+            new_row = [xfield.lift(nr) for nr in row]
 
             # match with this:
             # 2. running product for memory access
             #memory_permutation_running_product *= beta - d * row[cycle] - e * row[memory_pointer] - f * row[memory_value]
             #new_row += [[memory_permutation_running_product]]
             memory_permutation_running_product *= beta - \
-                d * row[0] - e * row[1] - f * row[2]
+                d * new_row[0] - e * new_row[1] - f * new_row[2]
 
             new_row += [memory_permutation_running_product]
 
-            extended_memory_table += [new_row]
+            table_extension += [new_row]
+
+        extended_memory_table = MemoryExtension(challenges)
+        extended_memory_table.table = table_extension
 
         return extended_memory_table
 
-    def input_table_extend(input_table, challenges):
+    @staticmethod
+    def extend_input_table(input_table, challenges):
         # names for challenges
         a = challenges[0]
         b = challenges[1]
@@ -771,17 +801,21 @@ class VirtualMachine:
 
         # algebra stuff
         field = VirtualMachine.field
-        zero = field.zero()
-        one = field.one()
+        xfield = a.field
+        zero = xfield.zero()
+        one = xfield.one()
 
         # prepare loop
-        extended_input_table = []
+        table_extension = []
         input_running_evaluation = zero
         input_running_indeterminate = one
 
         # loop over all rows of table
-        for row in input_table:
+        for row in input_table.table:
             new_row = []
+
+            # first, copy over existing row
+            new_row = [xfield.lift(nr) for nr in row]
 
             # match with this:
             # 3. evaluation for input
@@ -791,17 +825,21 @@ class VirtualMachine:
             #new_row += [input_indeterminate]
             #new_row += [input_evaluation]
 
-            input_running_evaluation += input_running_indeterminate * row[0]
+            input_running_evaluation += input_running_indeterminate * new_row[0]
             input_running_indeterminate *= gamma
 
             new_row += [input_running_indeterminate]
             new_row += [input_running_evaluation]
 
-            extended_input_table += [new_row]
+            table_extension += [new_row]
+
+        extended_input_table = InputExtension(challenges)
+        extended_input_table.table = table_extension
 
         return extended_input_table
 
-    def output_table_extend(output_table, challenges):
+    @staticmethod
+    def extend_output_table(output_table, challenges):
         # names for challenges
         a = challenges[0]
         b = challenges[1]
@@ -816,17 +854,21 @@ class VirtualMachine:
 
         # algebra stuff
         field = VirtualMachine.field
-        zero = field.zero()
-        one = field.one()
+        xfield = a.field
+        zero = xfield.zero()
+        one = xfield.one()
 
         # prepare loop
-        extended_output_table = []
+        table_extension = []
         output_running_evaluation = zero
         output_running_indeterminate = one
 
         # loop over all rows of table
-        for row in output_table:
+        for row in output_table.table:
             new_row = []
+
+            # first, copy over existing row
+            new_row = [xfield.lift(nr) for nr in row]
 
             # match with this:
             # 4. evaluation for output
@@ -836,12 +878,15 @@ class VirtualMachine:
             #new_row += [output_indeterminate]
             #new_row += [output_evaluation]
 
-            output_running_evaluation += output_running_indeterminate * row[0]
+            output_running_evaluation += output_running_indeterminate * new_row[0]
             output_running_indeterminate *= gamma
 
             new_row += [output_running_indeterminate]
             new_row += [output_running_evaluation]
 
-            extended_output_table += [new_row]
+            table_extension += [new_row]
+
+        extended_output_table = OutputExtension(challenges)
+        extended_output_table.table = table_extension
 
         return extended_output_table

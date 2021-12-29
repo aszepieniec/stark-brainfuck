@@ -20,7 +20,7 @@ class ProcessorExtension(ProcessorTable):
         super(ProcessorExtension, self).__init__(field)
         self.width = 7 + 6
 
-    def transition_constraints(self, challenges):
+    def transition_constraints(self):
         # names for variables
         cycle, \
             instruction_pointer, \

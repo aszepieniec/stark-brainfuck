@@ -24,11 +24,11 @@ class Table:
 
     def test(self):
         for (register, cycle, value) in self.boundary_constraints():
-            assert(self.table[cycle][register] == value), "boundary constraint not satisfied"
+            assert(self.table[cycle][register] == value), f"boundary constraint {(register, cycle, str(value))} not satisfied; value is {str(self.table[cycle][register])}"
 
         transition_constraints = self.transition_constraints()
         for i in range(len(transition_constraints)):
             mpo = transition_constraints[i]
             for rowidx in range(self.nrows()-1):
                 point = self.table[rowidx] + self.table[rowidx+1]
-                assert(mpo.evaluate(point).is_zero()), f"transition constraint {i} not satisfied in row {rowidx}; point: {[p.value for p in point]}; polynomial {str(mpo.partial_evaluate({2: point[2]}))} evaluates to {mpo.evaluate(point).value}"
+                assert(mpo.evaluate(point).is_zero()), f"transition constraint {i} not satisfied in row {rowidx}; point: {[str(p) for p in point]}; polynomial {str(mpo.partial_evaluate({2: point[2]}))} evaluates to {str(mpo.evaluate(point))}"

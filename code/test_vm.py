@@ -1,3 +1,4 @@
+from extension import ExtensionField
 from vm import *
 import os
 
@@ -35,5 +36,16 @@ def test_air( ):
     output_table.test()
 
     # extend tables, and re-test AIR
+    challenges = [ExtensionField.main().sample(os.urandom(24)) for i in range(VirtualMachine.num_challenges())]
 
+    processor_extension = VirtualMachine.extend_processor_table(processor_table, challenges)
+    instruction_extension = VirtualMachine.extend_instruction_table(instruction_table, challenges)
+    memory_extension = VirtualMachine.extend_memory_table(memory_table, challenges)
+    input_extension = VirtualMachine.extend_input_table(input_table, challenges)
+    output_extension = VirtualMachine.extend_output_table(output_table, challenges)
 
+    processor_extension.test()
+    instruction_extension.test()
+    memory_extension.test()
+    input_extension.test()
+    output_extension.test()
