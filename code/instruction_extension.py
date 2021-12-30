@@ -47,6 +47,9 @@ class InstructionExtension(InstructionTable):
         return polynomials
     
     def boundary_constraints(self):
-        # format: (column, row, value)
-        return [(0, 0, BaseFieldElement(0, self.field)), # count starts at zero
-                (2, 0, BaseFieldElement(1, self.field))] # running product starts at one
+        # format: (cycle, polynomial)
+        x = MPolynomial.variables(self.width, self.field)
+        one = MPolynomial.constant(self.field.one())
+        zero = MPolynomial.zero()
+        return [(0, x[0] - zero), # count starts at zero
+                (0, x[2] - one)] # running product starts at one

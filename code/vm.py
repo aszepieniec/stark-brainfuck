@@ -661,23 +661,23 @@ class VirtualMachine:
                 new_row[current_instruction] - c * new_row[next_instruction]
 
             # 2. running product for memory access
-            new_row += [memory_permutation_running_product]
             memory_permutation_running_product *= beta - d * \
                 new_row[cycle] - e * new_row[memory_pointer] - f * new_row[memory_value]
+            new_row += [memory_permutation_running_product]
 
             # 3. evaluation for input
-            if row[current_instruction] == BaseFieldElement(ord(','), field):
-                input_evaluation += input_indeterminate * new_row[memory_value]
-                input_indeterminate *= gamma
             new_row += [input_indeterminate]
             new_row += [input_evaluation]
+            if row[current_instruction] == BaseFieldElement(ord(','), field):
+                input_indeterminate *= gamma
+                input_evaluation += input_indeterminate * new_row[memory_value]
 
             # 4. evaluation for output
+            new_row += [output_indeterminate]
+            new_row += [output_evaluation]
             if row[current_instruction] == BaseFieldElement(ord('.'), field):
                 output_evaluation += output_indeterminate * new_row[memory_value]
                 output_indeterminate *= delta
-            new_row += [output_indeterminate]
-            new_row += [output_evaluation]
 
             table_extension += [new_row]
 

@@ -4,7 +4,7 @@ from algebra import *
 
 class ExtensionFieldElement:
     def __init__(self, polynomial, field):
-        self.polynomial = polynomial
+        self.polynomial = Polynomial(polynomial.coefficients[:polynomial.degree()+1])
         self.field = field
 
     def __add__(self, right):

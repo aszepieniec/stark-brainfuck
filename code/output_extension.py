@@ -23,6 +23,9 @@ class OutputExtension(OutputTable):
         return polynomials
     
     def boundary_constraints(self):
-        # format: (column, row, value)
-        return [(1, 0, BaseFieldElement(1, self.field)), # indeterminate
-                (2, 0, BaseFieldElement(0, self.field))] # evaluation
+        # format: (cycle, polynomial)
+        x = MPolynomial.variables(self.width, self.field)
+        one = MPolynomial.constant(self.field.one())
+        zero = MPolynomial.zero()
+        return [(0, x[1] - one), # indeterminate
+                (0, x[2] - zero)] # evaluation

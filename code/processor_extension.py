@@ -51,6 +51,7 @@ class ProcessorExtension(ProcessorTable):
 
         # base AIR polynomials
         polynomials = self.transition_constraints_afo_named_variables(cycle, instruction_pointer, current_instruction, next_instruction, memory_pointer, memory_value, is_zero, cycle_next, instruction_pointer_next, current_instruction_next, next_instruction_next, memory_pointer_next, memory_value_next, is_zero_next)
+        print("Have", len(polynomials), "transition constraint polynomials for the base table")
 
         # extension AIR polynomials
         # running product for instruction permutation
@@ -61,15 +62,15 @@ class ProcessorExtension(ProcessorTable):
                              - instruction_permutation_next]
         # running product for memory permutation
         polynomials += [memory_permutation * \
-                            ( self.beta - self.d * memory_pointer_next \
-                                - self.e * memory_value_next ) \
+                            ( self.beta - self.d * cycle_next \
+                                - self.e * memory_pointer_next  - self.f * memory_value_next ) \
                              - memory_permutation_next]
         # running evaluation for input 
-        polynomials += [input_indeterminate_next - input_indeterminate * self.gamma * self.if_instruction(',', current_instruction) - input_indeterminate * self.ifnot_instruction(',', current_instruction)]
-        polynomials += [input_evaluation + input_indeterminate * memory_value * self.if_instruction(',', current_instruction) - input_evaluation_next]
+        polynomials += [(input_indeterminate_next - input_indeterminate * self.gamma) * self.ifnot_instruction(',', current_instruction) + (input_indeterminate_next - input_indeterminate) * self.if_instruction(',', current_instruction)]
+        polynomials += [(input_evaluation_next - input_evaluation - input_indeterminate * memory_value) * self.ifnot_instruction(',', current_instruction) + (input_evaluation_next - input_evaluation) * self.if_instruction(',', current_instruction)]
         # running evaluation for output
-        polynomials += [output_indeterminate_next - output_indeterminate * self.delta * self.if_instruction('.', current_instruction) - output_indeterminate * self.ifnot_instruction('.', current_instruction)]
-        polynomials += [output_evaluation + output_indeterminate * memory_value * self.if_instruction('.', current_instruction) - output_evaluation_next]
+        polynomials += [(output_indeterminate_next - output_indeterminate * self.delta) * self.ifnot_instruction('.', current_instruction) + (output_indeterminate_next - output_indeterminate) * self.if_instruction('.', current_instruction)]
+        polynomials += [(output_evaluation_next - output_evaluation - output_indeterminate * memory_value) * self.ifnot_instruction('.', current_instruction) + (output_evaluation_next - output_evaluation) * self.if_instruction('.', current_instruction)]
 
         return polynomials
 
@@ -87,7 +88,7 @@ class ProcessorExtension(ProcessorTable):
                        (0, x[5] - zero),  # memory value
                        (0, x[6] - one),   # memval==0
                        (0, x[7] - one),   # running product for instruction permutation
-                       (0, x[8] - one),   # running product for memory permutation
+                       (0, x[8] - self.beta + self.d * x[0] + self.e * x[4] + self.f * x[5]),   # running product for memory permutation
                        (0, x[9] - one),   # running power for input
                        (0, x[10] - zero), # running evaluation for input
                        (0, x[11] - one),  # running power for output

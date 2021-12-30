@@ -28,8 +28,12 @@ class MemoryExtension(MemoryTable):
         return polynomials
     
     def boundary_constraints(self):
-        return [(0, 0, self.field.zero()),  # cycle
-                (1, 0, self.field.zero()),  # memory pointer
-                (2, 0, self.field.zero()),  # memory value
-                (3, 0, self.field.one()),   # permutation
+        # format: (cycle, polynomial)
+        x = MPolynomial.variables(self.width, self.field)
+        one = MPolynomial.constant(self.field.one())
+        zero = MPolynomial.zero()
+        return [(0, x[0] - zero),  # cycle
+                (0, x[1] - zero),  # memory pointer
+                (0, x[2] - zero),  # memory value
+                (0, x[3] - one),   # permutation
                 ]
