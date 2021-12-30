@@ -20,5 +20,8 @@ class InstructionTable(Table):
         return InstructionTable.transition_constraints_afo_named_variables(address, instruction, address_next, instruction_next)
 
     def boundary_constraints( self ):
-        # format: (column, row, value)
-        return [(0, 0, BaseFieldElement(0, self.field))] # count starts at zero
+        # format: (cycle, polynomial)
+        x = MPolynomial.variables(self.width, self.field)
+        one = MPolynomial.constant(self.field.one())
+        zero = MPolynomial.zero()
+        return [(0, x[0]-zero)] # count starts at zero

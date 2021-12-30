@@ -74,20 +74,23 @@ class ProcessorExtension(ProcessorTable):
         return polynomials
 
     def boundary_constraints(self):
-        # format: (register, cycle, value)
-        constraints = [(0, 0, self.field.zero()),  # cycle
+        # format: (cycle, polynomial)
+        x = MPolynomial.variables(self.width, self.field)
+        one = MPolynomial.constant(self.field.one())
+        zero = MPolynomial.zero()
+        constraints = [(0, x[0] - zero),  # cycle
                        # instruction pointer
-                       (1, 0, self.field.zero()),
-                       # (2, 0, ???), # current instruction
-                       # (3, 0, ???), # next instruction
-                       (4, 0, self.field.zero()),  # memory pointer
-                       (5, 0, self.field.zero()),  # memory value
-                       (6, 0, self.field.one()),   # memval==0
-                       (7, 0, self.field.one()),   # running product for instruction permutation
-                       (8, 0, self.field.one()),   # running product for memory permutation
-                       (9, 0, self.field.one()),   # running power for input
-                       (10, 0, self.field.zero()), # running evaluation for input
-                       (11, 0, self.field.one()),  # running power for output
-                       (12, 0, self.field.zero())  # running evaluation for output
+                       (0, x[1] - zero),
+                       # (0, x[2] - ??), # current instruction
+                       # (0, x[3] - ??), # next instruction
+                       (0, x[4] - zero),  # memory pointer
+                       (0, x[5] - zero),  # memory value
+                       (0, x[6] - one),   # memval==0
+                       (0, x[7] - one),   # running product for instruction permutation
+                       (0, x[8] - one),   # running product for memory permutation
+                       (0, x[9] - one),   # running power for input
+                       (0, x[10] - zero), # running evaluation for input
+                       (0, x[11] - one),  # running power for output
+                       (0, x[12] - zero)  # running evaluation for output
                        ]
         return constraints

@@ -23,8 +23,10 @@ class Table:
         pass
 
     def test(self):
-        for (register, cycle, value) in self.boundary_constraints():
-            assert(self.table[cycle][register] == value), f"boundary constraint {(register, cycle, str(value))} not satisfied; value is {str(self.table[cycle][register])}"
+        for i in range(len(self.boundary_constraints())):
+            cycle, mpo = self.boundary_constraints()[i]
+            point = self.table[cycle]
+            assert(mpo.evaluate(point).is_zero()), f"boundary constraint {i} not satisfied; point: {[str(p) for p in point]}; polynomial {str(mpo)} evaluates to {str(mpo.evaluate(point))}"
 
         transition_constraints = self.transition_constraints()
         for i in range(len(transition_constraints)):

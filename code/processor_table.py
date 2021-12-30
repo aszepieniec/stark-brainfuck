@@ -139,14 +139,17 @@ class ProcessorTable(Table):
         return self.transition_constraints_afo_named_variables(cycle, instruction_pointer, current_instruction, next_instruction, memory_pointer, memory_value, is_zero, cycle_next, instruction_pointer_next, current_instruction_next, next_instruction_next, memory_pointer_next, memory_value_next, is_zero_next)
 
     def boundary_constraints(self):
-        # format: (register, cycle, value)
-        constraints = [(0, 0, self.field.zero()),  # cycle
+        # format: (cycle, polynomial)
+        x = MPolynomial.variables(self.width, self.field)
+        one = MPolynomial.constant(self.field.one())
+        zero = MPolynomial.zero()
+        constraints = [(0, x[0] - zero),  # cycle
                        # instruction pointer
-                       (1, 0, self.field.zero()),
-                       # (2, 0, ???), # current instruction
-                       # (3, 0, ???), # next instruction
-                       (4, 0, self.field.zero()),  # memory pointer
-                       (5, 0, self.field.zero()),  # memory value
-                       (6, 0, self.field.one())]  # memval==0
+                       (0, x[1] - zero),
+                       # (0, ???), # current instruction
+                       # (0, ???), # next instruction
+                       (0, x[4] - zero),  # memory pointer
+                       (0, x[5] - zero),  # memory value
+                       (0, x[6] - one)]  # memval==0
 
         return constraints
