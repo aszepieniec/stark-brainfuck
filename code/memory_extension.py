@@ -21,8 +21,9 @@ class MemoryExtension(MemoryTable):
         polynomials = MemoryTable.transition_constraints_afo_named_variables(cycle, address, value, cycle_next, address_next, value_next)
 
         polynomials += [permutation * \
-                            ( self.beta - self.d * address_next \
-                                 - self.e * value_next ) \
+                            ( self.beta - self.d * cycle \
+                                - self.e * address \
+                                 - self.f * value ) \
                          - permutation_next]
 
         return polynomials

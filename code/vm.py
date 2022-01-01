@@ -140,17 +140,12 @@ class VirtualMachine:
         instruction_table.table = [[BaseFieldElement(i, field), program[i]] for i in range(
             len(program))] + [[register.instruction_pointer, register.current_instruction]]
 
-        previous_input_value = zero
         input_table = InputTable(field)
 
-        previous_output_value = zero
         output_table = OutputTable(field)
 
         # main loop
         while register.instruction_pointer.value < len(program):
-            # record changes, to be used if necessary
-            old_memory_value = register.memory_value
-
             # update pointer registers according to instruction
             if register.current_instruction == F('['):
                 if register.memory_value == zero:
@@ -184,9 +179,7 @@ class VirtualMachine:
 
             elif register.current_instruction == F('.'):
                 register.instruction_pointer += one
-                output_table.table += [[memory[register.memory_pointer],
-                                  previous_output_value]]
-                previous_output_value = memory[register.memory_pointer]
+                output_table.table += [[memory[register.memory_pointer]]]
                 output_data += chr(
                     int(memory[register.memory_pointer].value % 256))
 
@@ -196,9 +189,7 @@ class VirtualMachine:
                 input_counter += 1
                 memory[register.memory_pointer] = BaseFieldElement(
                     ord(char), field)
-                input_table.table += [[memory[register.memory_pointer],
-                                 previous_input_element]]
-                previous_input_element = memory[register.memory_pointer]
+                input_table.table += [[memory[register.memory_pointer]]]
 
             else:
                 assert(
@@ -244,7 +235,7 @@ class VirtualMachine:
 
     @staticmethod
     def num_challenges():
-        return 10
+        return 11
 
     @staticmethod
     def instruction_transition_constraints(instruction):
@@ -700,6 +691,7 @@ class VirtualMachine:
         beta = challenges[7]
         gamma = challenges[8]
         delta = challenges[9]
+        eta = challenges[10]
 
         # algebra stuff
         field = VirtualMachine.field
@@ -709,6 +701,7 @@ class VirtualMachine:
         # prepare loop
         table_extension = []
         instruction_permutation_running_product = one
+        subset_running_product = one
 
         # loop over all rows of table
         for i in range(len(instruction_table.table)):
@@ -723,6 +716,7 @@ class VirtualMachine:
             #instruction_permutation_running_product *= alpha - a * row[instruction_pointer] - b * row[current_instruction] - c * row[next_instruction]
             #new_row += [[instruction_permutation_running_product]]
 
+            new_row += [instruction_permutation_running_product]
             current_instruction = instruction_table.table[i][1]
             if i < len(instruction_table.table)-1:
                 next_instruction = instruction_table.table[i+1][1]
@@ -730,7 +724,17 @@ class VirtualMachine:
                 next_instruction = field.zero()
             instruction_permutation_running_product *= alpha - a * \
                 new_row[0] - b * xfield.lift(current_instruction) - c * xfield.lift(next_instruction)
-            new_row += [[instruction_permutation_running_product]]
+
+            # match with this
+
+            # ifnewaddress = address_next - address
+            # ifoldaddress = address_next - address - MPolynomial.constant(self.field.one())
+
+            # polynomials += [ifnewaddress *  ( subset * ( self.eta - self.a * address - self.b * instruction ) - subset_next ) \
+            #                 + ifoldaddress * ( subset - subset_next ) ]
+            new_row += [subset_running_product]
+            if i < len(instruction_table.table) - 1 and instruction_table.table[i+1][0] != instruction_table.table[i][0]:
+                subset_running_product *= eta - a * xfield.lift(instruction_table.table[i][0]) - b * xfield.lift(instruction_table.table[i][1])
 
             table_extension += [new_row]
 
@@ -771,12 +775,10 @@ class VirtualMachine:
 
             # match with this:
             # 2. running product for memory access
-            #memory_permutation_running_product *= beta - d * row[cycle] - e * row[memory_pointer] - f * row[memory_value]
-            #new_row += [[memory_permutation_running_product]]
-            memory_permutation_running_product *= beta - \
-                d * new_row[0] - e * new_row[1] - f * new_row[2]
 
             new_row += [memory_permutation_running_product]
+            memory_permutation_running_product *= beta - \
+                d * new_row[0] - e * new_row[1] - f * new_row[2]
 
             table_extension += [new_row]
 
@@ -825,11 +827,11 @@ class VirtualMachine:
             #new_row += [input_indeterminate]
             #new_row += [input_evaluation]
 
-            input_running_evaluation += input_running_indeterminate * new_row[0]
-            input_running_indeterminate *= gamma
-
             new_row += [input_running_indeterminate]
             new_row += [input_running_evaluation]
+
+            input_running_evaluation += input_running_indeterminate * new_row[0]
+            input_running_indeterminate *= gamma
 
             table_extension += [new_row]
 
@@ -878,11 +880,11 @@ class VirtualMachine:
             #new_row += [output_indeterminate]
             #new_row += [output_evaluation]
 
-            output_running_evaluation += output_running_indeterminate * new_row[0]
-            output_running_indeterminate *= gamma
-
             new_row += [output_running_indeterminate]
             new_row += [output_running_evaluation]
+
+            output_running_evaluation += output_running_indeterminate * new_row[0]
+            output_running_indeterminate *= delta
 
             table_extension += [new_row]
 

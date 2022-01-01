@@ -10,9 +10,10 @@ class InstructionExtension(InstructionTable):
         self.b = challenges[1]
         self.c = challenges[2]
         self.alpha = challenges[6]
+        self.eta = challenges[10]
 
         super(InstructionExtension, self).__init__(field)
-        self.width = 2+2
+        self.width = 2+1+1
 
     def transition_constraints(self):
         address, instruction, permutation, subset, \
@@ -51,5 +52,5 @@ class InstructionExtension(InstructionTable):
         x = MPolynomial.variables(self.width, self.field)
         one = MPolynomial.constant(self.field.one())
         zero = MPolynomial.zero()
-        return [(0, x[0] - zero), # count starts at zero
-                (0, x[2] - one)] # running product starts at one
+        return [(0, x[0] - zero), # address starts at zero
+                (0, x[2] - one)] # running product starts at alpha - a * addr - b * instr - c * instr_next

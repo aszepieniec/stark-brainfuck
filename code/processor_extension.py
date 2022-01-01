@@ -51,7 +51,6 @@ class ProcessorExtension(ProcessorTable):
 
         # base AIR polynomials
         polynomials = self.transition_constraints_afo_named_variables(cycle, instruction_pointer, current_instruction, next_instruction, memory_pointer, memory_value, is_zero, cycle_next, instruction_pointer_next, current_instruction_next, next_instruction_next, memory_pointer_next, memory_value_next, is_zero_next)
-        print("Have", len(polynomials), "transition constraint polynomials for the base table")
 
         # extension AIR polynomials
         # running product for instruction permutation
