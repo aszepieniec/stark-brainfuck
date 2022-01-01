@@ -18,7 +18,7 @@ class MPolynomial:
 
     def __add__( self, other ):
         dictionary = dict()
-        num_variables = max([len(k) for k in self.dictionary.keys()] + [len(k) for k in other.dictionary.keys()])
+        num_variables = max([0] + [len(k) for k in self.dictionary.keys()] + [len(k) for k in other.dictionary.keys()])
         for k, v in self.dictionary.items():
             pad = list(k) + [0] * (num_variables - len(k))
             pad = tuple(pad)
@@ -97,6 +97,7 @@ class MPolynomial:
         acc = point[0].field.zero()
         for k, v in self.dictionary.items():
             prod = v
+            assert(len(point) == len(k)), f"number of elements in point {len(point)} does not match with number of variables {len(k)}"
             for i in range(len(k)):
                 prod = prod * (point[i]^k[i])
             acc = acc + prod
