@@ -1,8 +1,8 @@
 from aet import *
 
-class InputTable(Table):
+class IOTable(Table):
     def __init__(self, field):
-        super(InputTable, self).__init__(field, 1)
+        super(IOTable, self).__init__(field, 1)
 
     def transition_constraints(self):
         return []

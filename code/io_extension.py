@@ -1,13 +1,13 @@
-from input_table import *
+from io_table import *
 
-class InputExtension(InputTable):
+class IOExtension(IOTable):
     def __init__(self, gamma):
         field = gamma.field
 
         # names for challenges
         self.gamma = MPolynomial.constant(gamma)
 
-        super(InputExtension, self).__init__(field)
+        super(IOExtension, self).__init__(field)
         self.width = 1+2
 
     @staticmethod
@@ -46,7 +46,7 @@ class InputExtension(InputTable):
 
             table_extension += [new_row]
 
-        extended_input_table = InputExtension(gamma)
+        extended_input_table = IOExtension(gamma)
         extended_input_table.table = table_extension
 
         return extended_input_table

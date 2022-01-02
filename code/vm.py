@@ -1,15 +1,9 @@
 from algebra import *
-from input_extension import InputExtension
-from input_table import InputTable
-from instruction_extension import InstructionExtension
+from io_table import IOTable
 from instruction_table import InstructionTable
-from memory_extension import MemoryExtension
 from memory_table import MemoryTable
 from multivariate import *
 import sys
-from output_extension import OutputExtension
-from output_table import OutputTable
-from processor_extension import ProcessorExtension
 
 from processor_table import ProcessorTable
 
@@ -140,9 +134,9 @@ class VirtualMachine:
         instruction_table.table = [[BaseFieldElement(i, field), program[i]] for i in range(
             len(program))] + [[register.instruction_pointer, register.current_instruction]]
 
-        input_table = InputTable(field)
+        input_table = IOTable(field)
 
-        output_table = OutputTable(field)
+        output_table = IOTable(field)
 
         # main loop
         while register.instruction_pointer.value < len(program):

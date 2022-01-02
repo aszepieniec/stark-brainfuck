@@ -1,4 +1,8 @@
 from extension import ExtensionField
+from instruction_extension import InstructionExtension
+from io_extension import IOExtension
+from memory_extension import MemoryExtension
+from processor_extension import ProcessorExtension
 from vm import *
 import os
 
@@ -41,8 +45,8 @@ def test_air( ):
     processor_extension = ProcessorExtension.extend(processor_table, a, b, c, d, e, f, alpha, beta, gamma, delta)
     instruction_extension = InstructionExtension.extend(instruction_table, a, b, c, alpha, eta)
     memory_extension = MemoryExtension.extend(memory_table, d, e, f, beta)
-    input_extension = InputExtension.extend(input_table, gamma)
-    output_extension = OutputExtension.extend(output_table, delta)
+    input_extension = IOExtension.extend(input_table, gamma)
+    output_extension = IOExtension.extend(output_table, delta)
 
     processor_extension.test()
     instruction_extension.test()
