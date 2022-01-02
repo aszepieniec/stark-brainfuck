@@ -1,36 +1,22 @@
 from memory_table import *
 
 class MemoryExtension(MemoryTable):
-    def __init__(self, challenges ):
-        field = challenges[0].field
+    def __init__(self, d, e, f, beta ):
+        field = d.field
 
-        # names for challenges
-        challenges = [MPolynomial.constant(c) for c in challenges]
-
-        self.d = challenges[3]
-        self.e = challenges[4]
-        self.f = challenges[5]
-        self.beta = challenges[7]
+        self.d = MPolynomial.constant(d)
+        self.e = MPolynomial.constant(e)
+        self.f = MPolynomial.constant(f)
+        self.beta = MPolynomial.constant(beta)
 
         super(MemoryTable,self).__init__(field,3+1)
 
     @staticmethod
-    def extend( memory_table, challenges ):
-        # names for challenges
-        a = challenges[0]
-        b = challenges[1]
-        c = challenges[2]
-        d = challenges[3]
-        e = challenges[4]
-        f = challenges[5]
-        alpha = challenges[6]
-        beta = challenges[7]
-        gamma = challenges[8]
-        delta = challenges[9]
+    def extend( memory_table, d, e, f, beta ):
 
         # algebra stuff
         field = memory_table.field
-        xfield = a.field
+        xfield = d.field
         one = xfield.one()
 
         # prepare loop
@@ -53,7 +39,7 @@ class MemoryExtension(MemoryTable):
 
             table_extension += [new_row]
 
-        extended_memory_table = MemoryExtension(challenges)
+        extended_memory_table = MemoryExtension(d, e, f, beta)
         extended_memory_table.table = table_extension
 
         return extended_memory_table

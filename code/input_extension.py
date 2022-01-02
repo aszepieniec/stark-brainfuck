@@ -1,33 +1,20 @@
 from input_table import *
 
 class InputExtension(InputTable):
-    def __init__(self, challenges):
-        field = challenges[0].field
+    def __init__(self, gamma):
+        field = gamma.field
 
         # names for challenges
-        challenges = [MPolynomial.constant(c) for c in challenges]
-        self.gamma = challenges[8]
+        self.gamma = MPolynomial.constant(gamma)
 
         super(InputExtension, self).__init__(field)
         self.width = 1+2
 
     @staticmethod
-    def extend(input_table, challenges):
-        # names for challenges
-        a = challenges[0]
-        b = challenges[1]
-        c = challenges[2]
-        d = challenges[3]
-        e = challenges[4]
-        f = challenges[5]
-        alpha = challenges[6]
-        beta = challenges[7]
-        gamma = challenges[8]
-        delta = challenges[9]
+    def extend(input_table, gamma):
 
         # algebra stuff
-        field = input_table.field
-        xfield = a.field
+        xfield = gamma.field
         zero = xfield.zero()
         one = xfield.one()
 
@@ -59,7 +46,7 @@ class InputExtension(InputTable):
 
             table_extension += [new_row]
 
-        extended_input_table = InputExtension(challenges)
+        extended_input_table = InputExtension(gamma)
         extended_input_table.table = table_extension
 
         return extended_input_table

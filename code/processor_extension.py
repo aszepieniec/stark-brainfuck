@@ -1,27 +1,26 @@
 from processor_table import *
 
 class ProcessorExtension(ProcessorTable):
-    def __init__(self, challenges):
-        field = challenges[0].field
+    def __init__(self, a, b, c, d, e, f, alpha, beta, gamma, delta):
+        field = a.field
 
         # names for challenges
-        challenges = [MPolynomial.constant(c) for c in challenges]
-        self.a = challenges[0]
-        self.b = challenges[1]
-        self.c = challenges[2]
-        self.d = challenges[3]
-        self.e = challenges[4]
-        self.f = challenges[5]
-        self.alpha = challenges[6]
-        self.beta = challenges[7]
-        self.gamma = challenges[8]
-        self.delta = challenges[9]
+        self.a = MPolynomial.constant(a)
+        self.b = MPolynomial.constant(b)
+        self.c = MPolynomial.constant(c)
+        self.d = MPolynomial.constant(d)
+        self.e = MPolynomial.constant(e)
+        self.f = MPolynomial.constant(f)
+        self.alpha = MPolynomial.constant(alpha)
+        self.beta = MPolynomial.constant(beta)
+        self.gamma = MPolynomial.constant(gamma)
+        self.delta = MPolynomial.constant(delta)
 
         super(ProcessorExtension, self).__init__(field)
         self.width = 7 + 6
 
     @staticmethod
-    def extend( processor_table, challenges):
+    def extend( processor_table, a, b, c, d, e, f, alpha, beta, gamma, delta):
         # register names
         cycle = 0
         instruction_pointer = 1
@@ -30,18 +29,6 @@ class ProcessorExtension(ProcessorTable):
         memory_pointer = 4
         memory_value = 5
         is_zero = 6
-
-        # names for challenges
-        a = challenges[0]
-        b = challenges[1]
-        c = challenges[2]
-        d = challenges[3]
-        e = challenges[4]
-        f = challenges[5]
-        alpha = challenges[6]
-        beta = challenges[7]
-        gamma = challenges[8]
-        delta = challenges[9]
 
         # algebra stuff
         field = processor_table.field
@@ -94,7 +81,7 @@ class ProcessorExtension(ProcessorTable):
 
             table_extension += [new_row]
 
-        extended_processor_table = ProcessorExtension(challenges)
+        extended_processor_table = ProcessorExtension(a, b, c, d, e, f, alpha, beta, gamma, delta)
         extended_processor_table.table = table_extension
 
         return extended_processor_table

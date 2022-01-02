@@ -1,33 +1,20 @@
 from output_table import *
 
 class OutputExtension(OutputTable):
-    def __init__(self, challenges):
-        field = challenges[0].field
+    def __init__(self, delta):
+        field = delta.field
 
         # names for challenges
-        challenges = [MPolynomial.constant(c) for c in challenges]
-        self.delta = challenges[9]
+        self.delta = MPolynomial.constant(delta)
 
         super(OutputExtension, self).__init__(field)
         self.width = 1+2
 
     @staticmethod
-    def extend(output_table, challenges):
-        # names for challenges
-        a = challenges[0]
-        b = challenges[1]
-        c = challenges[2]
-        d = challenges[3]
-        e = challenges[4]
-        f = challenges[5]
-        alpha = challenges[6]
-        beta = challenges[7]
-        gamma = challenges[8]
-        delta = challenges[9]
+    def extend(output_table, delta):
 
         # algebra stuff
-        field = output_table.field
-        xfield = a.field
+        xfield = delta.field
         zero = xfield.zero()
         one = xfield.one()
 
@@ -59,7 +46,7 @@ class OutputExtension(OutputTable):
 
             table_extension += [new_row]
 
-        extended_output_table = OutputExtension(challenges)
+        extended_output_table = OutputExtension(delta)
         extended_output_table.table = table_extension
 
         return extended_output_table

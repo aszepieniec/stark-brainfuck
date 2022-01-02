@@ -1,35 +1,21 @@
 from instruction_table import *
 
 class InstructionExtension(InstructionTable):
-    def __init__( self, challenges ):
-        field = challenges[0].field
+    def __init__( self, a, b, c, alpha, eta ):
+        field = a.field
 
         # names for challenges
-        challenges = [MPolynomial.constant(c) for c in challenges]
-        self.a = challenges[0]
-        self.b = challenges[1]
-        self.c = challenges[2]
-        self.alpha = challenges[6]
-        self.eta = challenges[10]
+        self.a = MPolynomial.constant(a)
+        self.b = MPolynomial.constant(b)
+        self.c = MPolynomial.constant(c)
+        self.alpha = MPolynomial.constant(alpha)
+        self.eta = MPolynomial.constant(eta)
 
         super(InstructionExtension, self).__init__(field)
         self.width = 2+1+1
     
     @staticmethod
-    def extend( instruction_table, challenges):
-
-        # names for challenges
-        a = challenges[0]
-        b = challenges[1]
-        c = challenges[2]
-        d = challenges[3]
-        e = challenges[4]
-        f = challenges[5]
-        alpha = challenges[6]
-        beta = challenges[7]
-        gamma = challenges[8]
-        delta = challenges[9]
-        eta = challenges[10]
+    def extend( instruction_table, a, b, c, alpha, eta):
 
         # algebra stuff
         field = instruction_table.field
@@ -76,7 +62,7 @@ class InstructionExtension(InstructionTable):
 
             table_extension += [new_row]
 
-        extended_instruction_table = InstructionExtension(challenges)
+        extended_instruction_table = InstructionExtension(a, b, c, alpha, eta)
         extended_instruction_table.table = table_extension
 
         return extended_instruction_table
