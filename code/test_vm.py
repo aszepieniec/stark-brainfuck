@@ -31,25 +31,39 @@ def test_air( ):
     code = "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++."
     expected_output = "Hello World!\n"
     program = VirtualMachine.compile(code)
+
+    # populate AETs
     processor_table, instruction_table, memory_table, input_table, output_table = VirtualMachine.simulate(program)
 
+    # test AETs against AIR
     processor_table.test()
     instruction_table.test()
     memory_table.test()
     input_table.test()
     output_table.test()
 
-    # extend tables, and re-test AIR
+    # get challenges
     a, b, c, d, e, f, alpha, beta, gamma, delta, eta = [ExtensionField.main().sample(os.urandom(24)) for i in range(VirtualMachine.num_challenges())]
 
+    # extend tables
     processor_extension = ProcessorExtension.extend(processor_table, a, b, c, d, e, f, alpha, beta, gamma, delta)
     instruction_extension = InstructionExtension.extend(instruction_table, a, b, c, alpha, eta)
     memory_extension = MemoryExtension.extend(memory_table, d, e, f, beta)
     input_extension = IOExtension.extend(input_table, gamma)
     output_extension = IOExtension.extend(output_table, delta)
 
+    # re-test AIR
     processor_extension.test()
     instruction_extension.test()
     memory_extension.test()
     input_extension.test()
     output_extension.test()
+
+    # test relations
+    assert(processor_extension.instruction_terminal() == instruction_extension.permutaton_terminal())
+    assert(instruction_extension.evaluation_terminal() == VirtualMachine.evaluation_terminal(program, eta))
+    assert(processor_extension.memory_terminal() == memory_extension.permutation_polynomial())
+    assert(processor_extension.input_terminal() == VirtualMachine.evaluation_terminal(input_table.table, gamma))
+    assert(processor_extension.output_terminal() == VirtualMachine.evaluation_terminal(output_table.table, delta))
+
+    

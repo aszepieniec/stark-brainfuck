@@ -591,3 +591,12 @@ class VirtualMachine:
 
     def io_boundary_constraints():
         return [(1, 0, VirtualMachine.field.zero())]  # column, row, value
+
+    @staticmethod
+    def evaluation_terminal( table, alpha ):
+        xfield = alpha.field
+        acc = xfield.zero()
+        for t in table:
+            acc = alpha * acc + t
+        return acc
+        

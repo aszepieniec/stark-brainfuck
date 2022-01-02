@@ -160,3 +160,8 @@ class ProcessorExtension(ProcessorTable):
                        (0, x[12] - zero)  # running evaluation for output
                        ]
         return constraints
+
+    def instruction_terminal( self ):
+    def memory_terminal( self ):
+    def input_terminal( self ):
+    def output_terminal( self ):
