@@ -20,6 +20,85 @@ class ProcessorExtension(ProcessorTable):
         super(ProcessorExtension, self).__init__(field)
         self.width = 7 + 6
 
+    @staticmethod
+    def extend( processor_table, challenges):
+        # register names
+        cycle = 0
+        instruction_pointer = 1
+        current_instruction = 2
+        next_instruction = 3
+        memory_pointer = 4
+        memory_value = 5
+        is_zero = 6
+
+        # names for challenges
+        a = challenges[0]
+        b = challenges[1]
+        c = challenges[2]
+        d = challenges[3]
+        e = challenges[4]
+        f = challenges[5]
+        alpha = challenges[6]
+        beta = challenges[7]
+        gamma = challenges[8]
+        delta = challenges[9]
+
+        # algebra stuff
+        field = processor_table.field
+        xfield = a.field
+        one = xfield.one()
+        zero = xfield.zero()
+
+        # prepare for loop
+        instruction_permutation_running_product = one
+        memory_permutation_running_product = one
+        input_evaluation = zero
+        input_indeterminate = one
+        output_evaluation = zero
+        output_indeterminate = one
+
+        # loop over all rows
+        table_extension = []
+        for row in processor_table.table:
+            new_row = []
+
+            # first, copy over existing row
+            new_row = [xfield.lift(nr) for nr in row]
+
+            # next, define the additional columns
+
+            # 1. running product for instruction permutation
+            new_row += [instruction_permutation_running_product]
+            instruction_permutation_running_product *= alpha - a * \
+                new_row[instruction_pointer] - b * \
+                new_row[current_instruction] - c * new_row[next_instruction]
+
+            # 2. running product for memory access
+            memory_permutation_running_product *= beta - d * \
+                new_row[cycle] - e * new_row[memory_pointer] - f * new_row[memory_value]
+            new_row += [memory_permutation_running_product]
+
+            # 3. evaluation for input
+            new_row += [input_indeterminate]
+            new_row += [input_evaluation]
+            if row[current_instruction] == BaseFieldElement(ord(','), field):
+                input_indeterminate *= gamma
+                input_evaluation += input_indeterminate * new_row[memory_value]
+
+            # 4. evaluation for output
+            new_row += [output_indeterminate]
+            new_row += [output_evaluation]
+            if row[current_instruction] == BaseFieldElement(ord('.'), field):
+                output_evaluation += output_indeterminate * new_row[memory_value]
+                output_indeterminate *= delta
+
+            table_extension += [new_row]
+
+        extended_processor_table = ProcessorExtension(challenges)
+        extended_processor_table.table = table_extension
+
+        return extended_processor_table
+
     def transition_constraints(self):
         # names for variables
         cycle, \

@@ -38,11 +38,11 @@ def test_air( ):
     # extend tables, and re-test AIR
     challenges = [ExtensionField.main().sample(os.urandom(24)) for i in range(VirtualMachine.num_challenges())]
 
-    processor_extension = VirtualMachine.extend_processor_table(processor_table, challenges)
-    instruction_extension = VirtualMachine.extend_instruction_table(instruction_table, challenges)
-    memory_extension = VirtualMachine.extend_memory_table(memory_table, challenges)
-    input_extension = VirtualMachine.extend_input_table(input_table, challenges)
-    output_extension = VirtualMachine.extend_output_table(output_table, challenges)
+    processor_extension = ProcessorExtension.extend(processor_table, challenges)
+    instruction_extension = InstructionExtension.extend(instruction_table, challenges)
+    memory_extension = MemoryExtension.extend(memory_table, challenges)
+    input_extension = InputExtension.extend(input_table, challenges)
+    output_extension = OutputExtension.extend(output_table, challenges)
 
     processor_extension.test()
     instruction_extension.test()

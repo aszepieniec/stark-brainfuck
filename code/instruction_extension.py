@@ -14,6 +14,72 @@ class InstructionExtension(InstructionTable):
 
         super(InstructionExtension, self).__init__(field)
         self.width = 2+1+1
+    
+    @staticmethod
+    def extend( instruction_table, challenges):
+
+        # names for challenges
+        a = challenges[0]
+        b = challenges[1]
+        c = challenges[2]
+        d = challenges[3]
+        e = challenges[4]
+        f = challenges[5]
+        alpha = challenges[6]
+        beta = challenges[7]
+        gamma = challenges[8]
+        delta = challenges[9]
+        eta = challenges[10]
+
+        # algebra stuff
+        field = instruction_table.field
+        xfield = a.field
+        one = xfield.one()
+
+        # prepare loop
+        table_extension = []
+        instruction_permutation_running_product = one
+        subset_running_product = one
+
+        # loop over all rows of table
+        for i in range(len(instruction_table.table)):
+            row = instruction_table.table[i]
+            new_row = []
+
+            # first, copy over existing row
+            new_row = [xfield.lift(nr) for nr in row]
+
+            # match with this:
+            # 1. running product for instruction permutation
+            #instruction_permutation_running_product *= alpha - a * row[instruction_pointer] - b * row[current_instruction] - c * row[next_instruction]
+            #new_row += [[instruction_permutation_running_product]]
+
+            new_row += [instruction_permutation_running_product]
+            current_instruction = instruction_table.table[i][1]
+            if i < len(instruction_table.table)-1:
+                next_instruction = instruction_table.table[i+1][1]
+            else:
+                next_instruction = field.zero()
+            instruction_permutation_running_product *= alpha - a * \
+                new_row[0] - b * xfield.lift(current_instruction) - c * xfield.lift(next_instruction)
+
+            # match with this
+
+            # ifnewaddress = address_next - address
+            # ifoldaddress = address_next - address - MPolynomial.constant(self.field.one())
+
+            # polynomials += [ifnewaddress *  ( subset * ( self.eta - self.a * address - self.b * instruction ) - subset_next ) \
+            #                 + ifoldaddress * ( subset - subset_next ) ]
+            new_row += [subset_running_product]
+            if i < len(instruction_table.table) - 1 and instruction_table.table[i+1][0] != instruction_table.table[i][0]:
+                subset_running_product *= eta - a * xfield.lift(instruction_table.table[i][0]) - b * xfield.lift(instruction_table.table[i][1])
+
+            table_extension += [new_row]
+
+        extended_instruction_table = InstructionExtension(challenges)
+        extended_instruction_table.table = table_extension
+
+        return extended_instruction_table
 
     def transition_constraints(self):
         address, instruction, permutation, subset, \
