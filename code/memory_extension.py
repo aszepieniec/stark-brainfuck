@@ -1,18 +1,22 @@
 from memory_table import *
 
+
 class MemoryExtension(MemoryTable):
-    def __init__(self, d, e, f, beta ):
+    def __init__(self, d, e, f, beta):
         field = d.field
+
+        # terminal values (placeholder)
+        self.permutation_terminal = field.zero()
 
         self.d = MPolynomial.constant(d)
         self.e = MPolynomial.constant(e)
         self.f = MPolynomial.constant(f)
         self.beta = MPolynomial.constant(beta)
 
-        super(MemoryTable,self).__init__(field,3+1)
+        super(MemoryTable, self).__init__(field, 3+1)
 
     @staticmethod
-    def extend( memory_table, d, e, f, beta ):
+    def extend(memory_table, d, e, f, beta):
 
         # algebra stuff
         field = memory_table.field
@@ -42,22 +46,26 @@ class MemoryExtension(MemoryTable):
         extended_memory_table = MemoryExtension(d, e, f, beta)
         extended_memory_table.table = table_extension
 
+        extended_memory_table.permutation_terminal = memory_permutation_running_product
+
         return extended_memory_table
-    
+
     def transition_constraints(self):
         cycle, address, value, permutation, \
-            cycle_next, address_next, value_next, permutation_next = MPolynomial.variables(8, self.field)
-            
-        polynomials = MemoryTable.transition_constraints_afo_named_variables(cycle, address, value, cycle_next, address_next, value_next)
+            cycle_next, address_next, value_next, permutation_next = MPolynomial.variables(
+                8, self.field)
 
-        polynomials += [permutation * \
-                            ( self.beta - self.d * cycle \
-                                - self.e * address \
-                                 - self.f * value ) \
-                         - permutation_next]
+        polynomials = MemoryTable.transition_constraints_afo_named_variables(
+            cycle, address, value, cycle_next, address_next, value_next)
+
+        polynomials += [permutation *
+                        (self.beta - self.d * cycle
+                         - self.e * address
+                         - self.f * value)
+                        - permutation_next]
 
         return polynomials
-    
+
     def boundary_constraints(self):
         # format: (cycle, polynomial)
         x = MPolynomial.variables(self.width, self.field)

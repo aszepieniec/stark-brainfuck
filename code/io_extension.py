@@ -1,5 +1,6 @@
 from io_table import *
 
+
 class IOExtension(IOTable):
     def __init__(self, gamma):
         field = gamma.field
@@ -37,7 +38,8 @@ class IOExtension(IOTable):
 
             new_row += [input_running_evaluation]
 
-            input_running_evaluation = input_running_evaluation * gamma + new_row[0]
+            input_running_evaluation = input_running_evaluation * \
+                gamma + new_row[0]
 
             table_extension += [new_row]
 
@@ -48,16 +50,16 @@ class IOExtension(IOTable):
 
     def transition_constraints(self):
         input_, evaluation, \
-            input_next, evaluation_next = MPolynomial.variables(6, self.field)
-        
+            input_next, evaluation_next = MPolynomial.variables(4, self.field)
+
         polynomials = []
 
         polynomials += [evaluation * self.gamma + input_ - evaluation_next]
 
         return polynomials
-    
+
     def boundary_constraints(self):
         # format: (cycle, polynomial)
         x = MPolynomial.variables(self.width, self.field)
         zero = MPolynomial.zero()
-        return [(0, x[1] - zero)] # evaluation
+        return [(0, x[1] - zero)]  # evaluation
