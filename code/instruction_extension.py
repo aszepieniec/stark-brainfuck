@@ -2,12 +2,13 @@ from instruction_table import *
 
 
 class InstructionExtension(InstructionTable):
-    # names for columns
+    # name columns
     address = 0
-    instruction = 1
+    current_instruction = 1
+    next_instruction = 2
 
-    permutation = 2
-    evaluation = 3
+    permutation = 3
+    evaluation = 4
 
     def __init__(self, a, b, c, alpha, eta):
         field = a.field
@@ -24,7 +25,7 @@ class InstructionExtension(InstructionTable):
         self.eta = MPolynomial.constant(eta)
 
         super(InstructionExtension, self).__init__(field)
-        self.width = 2+1+1
+        self.width = 3+1+1
 
     @staticmethod
     def extend(instruction_table, program, a, b, c, alpha, eta):
@@ -33,11 +34,13 @@ class InstructionExtension(InstructionTable):
         field = instruction_table.field
         xfield = a.field
         one = xfield.one()
+        zero = xfield.zero()
 
         # prepare loop
         table_extension = []
-        instruction_permutation_running_product = one
-        subset_running_product = one
+        permutation_running_product = one
+        evaluation_running_sum = zero
+        previous_address = -one
 
         # loop over all rows of table
         for i in range(len(instruction_table.table)):
@@ -47,59 +50,44 @@ class InstructionExtension(InstructionTable):
             # first, copy over existing row
             new_row = [xfield.lift(nr) for nr in row]
 
-            # match with this:
-            # 1. running product for instruction permutation
-            #instruction_permutation_running_product *= alpha - a * row[instruction_pointer] - b * row[current_instruction] - c * row[next_instruction]
-            #new_row += [[instruction_permutation_running_product]]
-
-            new_row += [instruction_permutation_running_product]
-            current_instruction = new_row[InstructionExtension.instruction]
-            index = row[InstructionExtension.address].value+1
-
-            if index < len(program):
-                next_instruction = xfield.lift(program[index])
-            else:
-                next_instruction = xfield.zero()
-            instruction_permutation_running_product *= alpha - \
+            # permutation argument
+            new_row += [permutation_running_product]
+            permutation_running_product *= alpha - \
                 a * new_row[InstructionExtension.address] - \
-                b * current_instruction - \
-                c * next_instruction
+                b * new_row[InstructionExtension.current_instruction] - \
+                c * new_row[InstructionExtension.next_instruction]
 
-            # match with this
-
-            # ifnewaddress = address_next - address
-            # ifoldaddress = address_next - address - MPolynomial.constant(self.field.one())
-
-            # polynomials += [ifnewaddress *  ( subset * ( self.eta - self.a * address - self.b * instruction ) - subset_next ) \
-            #                 + ifoldaddress * ( subset - subset_next ) ]
-            new_row += [subset_running_product]
-            if i < len(instruction_table.table) - 1 and instruction_table.table[i+1][0] != instruction_table.table[i][0]:
-                subset_running_product *= eta - a * \
-                    xfield.lift(
-                        instruction_table.table[i][0]) - b * xfield.lift(instruction_table.table[i][1])
+            # evaluation argument
+            if new_row[InstructionExtension.address] != previous_address:
+                evaluation_running_sum = eta * evaluation_running_sum + \
+                    a * new_row[InstructionExtension.address] + \
+                    b * new_row[InstructionExtension.current_instruction] + \
+                    c * new_row[InstructionExtension.next_instruction]
+            new_row += [evaluation_running_sum]
+            previous_address = new_row[InstructionExtension.address]
 
             table_extension += [new_row]
 
         extended_instruction_table = InstructionExtension(a, b, c, alpha, eta)
         extended_instruction_table.table = table_extension
 
-        extended_instruction_table.permutation_terminal = instruction_permutation_running_product
-        extended_instruction_table.evaluation_terminal = subset_running_product
+        extended_instruction_table.permutation_terminal = permutation_running_product
+        extended_instruction_table.evaluation_terminal = evaluation_running_sum
 
         return extended_instruction_table
 
     def transition_constraints(self):
-        address, instruction, permutation, subset, \
-            address_next, instruction_next, permutation_next, subset_next = MPolynomial.variables(
-                8, self.field)
+        address, current_instruction, next_instruction, permutation, evaluation, \
+            address_next, current_instruction_next, next_instruction_next, permutation_next, evaluation_next = MPolynomial.variables(
+                2*self.width, self.field)
 
         polynomials = InstructionExtension.transition_constraints_afo_named_variables(
-            address, instruction, address_next, instruction_next)
+            address, current_instruction, next_instruction, address_next, current_instruction_next, next_instruction_next)
 
         polynomials += [permutation *
                         (self.alpha - self.a * address
-                         - self.b * instruction
-                                - self.c * instruction_next)
+                         - self.b * current_instruction
+                                - self.c * next_instruction)
                         - permutation_next]
 
         ifnewaddress = address_next - address
@@ -108,17 +96,15 @@ class InstructionExtension(InstructionTable):
 
         polynomials += [ifnewaddress *
                         (
-                            subset *
-                            (
-                                self.eta
-                                - self.a * address
-                                - self.b * instruction
-                            )
-                            - subset_next
+                            evaluation * self.eta
+                            + self.a * address_next
+                            + self.b * current_instruction_next
+                            + self.c * next_instruction_next
+                            - evaluation_next
                         )
                         + ifoldaddress *
                         (
-                            subset - subset_next
+                            evaluation - evaluation_next
                         )]
 
         return polynomials
@@ -129,4 +115,5 @@ class InstructionExtension(InstructionTable):
         one = MPolynomial.constant(self.field.one())
         zero = MPolynomial.zero()
         return [(0, x[self.address] - zero),  # address starts at zero
-                (0, x[self.permutation] - one)]  # running product starts at alpha - a * addr - b * instr - c * instr_next
+                (0, x[self.permutation] - one),  # running product starts at 1
+                (0, x[self.evaluation] - self.a * x[self.address] - self.b * x[self.current_instruction] - self.c * x[self.next_instruction])]
