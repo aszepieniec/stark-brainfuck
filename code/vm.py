@@ -117,18 +117,21 @@ class VirtualMachine:
         # initial state
         register = Register()
         register.current_instruction = program[0]
+        # Programs shorter than two instructions aren't valid programs.
+        register.next_instruction = program[1]
         memory = dict()  # field elements to field elements
         input_counter = 0
         output_data = []
 
         # prepare tables
         processor_table = ProcessorTable(field)
-        processor_table.table = [[register.cycle, register.instruction_pointer, register.current_instruction,
-                                  register.next_instruction, register.memory_pointer, register.memory_value, register.is_zero]]
+        processor_table.table = []
+        # [register.cycle, register.instruction_pointer, register.current_instruction,
+        #                           register.next_instruction, register.memory_pointer, register.memory_value, register.is_zero]]
 
         memory_table = MemoryTable(field)
-        memory_table.table = [
-            [register.cycle, register.memory_pointer, register.memory_value]]
+        memory_table.table = []
+        # [register.cycle, register.memory_pointer, register.memory_value]]
 
         instruction_table = InstructionTable(field)
         # instruction_table.table = [[register.instruction_pointer,
@@ -144,6 +147,23 @@ class VirtualMachine:
 
         # main loop
         while register.instruction_pointer.value < len(program):
+            # collect values to add new rows in execution tables
+            processor_table.table += [[register.cycle,
+                                       register.instruction_pointer,
+                                       register.current_instruction,
+                                       register.next_instruction,
+                                       register.memory_pointer,
+                                       register.memory_value,
+                                       register.is_zero]]
+
+            memory_table.table += [[register.cycle,
+                                    register.memory_pointer,
+                                    register.memory_value]]
+
+            instruction_table.table += [[register.instruction_pointer,
+                                         register.current_instruction,
+                                         register.next_instruction]]
+
             # update pointer registers according to instruction
             if register.current_instruction == F('['):
                 if register.memory_value == zero:
@@ -211,23 +231,6 @@ class VirtualMachine:
             else:
                 register.is_zero = zero
 
-            # collect values to add new rows in execution tables
-            processor_table.table += [[register.cycle,
-                                       register.instruction_pointer,
-                                       register.current_instruction,
-                                       register.next_instruction,
-                                       register.memory_pointer,
-                                       register.memory_value,
-                                       register.is_zero]]
-
-            memory_table.table += [[register.cycle,
-                                    register.memory_pointer,
-                                    register.memory_value]]
-
-            instruction_table.table += [[register.instruction_pointer,
-                                         register.current_instruction,
-                                         register.next_instruction]]
-
         # post-process context tables
         # sort by memory address
         memory_table.table.sort(key=lambda row: row[1].value)
@@ -245,5 +248,38 @@ class VirtualMachine:
         xfield = alpha.field
         acc = xfield.zero()
         for t in table:
-            acc = alpha * acc + t
+            acc = alpha * acc + xfield.lift(t[0])
         return acc
+
+    @staticmethod
+    def program_evaluation(program, a, b, c, eta):
+        field = program[0].field
+        xfield = a.field
+        running_sum = xfield.zero()
+        previous_address = -xfield.one()
+        padded_program = [xfield.lift(p)
+                          for p in program] + [xfield.zero()]
+        for i in range(len(padded_program)-1):
+            address = xfield.lift(BaseFieldElement(i, field))
+            current_instruction = padded_program[i]
+            next_instruction = padded_program[i+1]
+            if previous_address != address:
+                running_sum = running_sum * eta + a * address + \
+                    b * current_instruction + c * next_instruction
+            previous_address = address
+        return running_sum
+
+    @staticmethod
+    def program_permutation_cofactor(program, a, b, c, alpha):
+        field = program[0].field
+        xfield = a.field
+        running_product = xfield.one()
+        padded_program = [xfield.lift(p)
+                          for p in program] + [xfield.zero()]
+        for i in range(len(padded_program)-1):
+            address = xfield.lift(BaseFieldElement(i, field))
+            current_instruction = padded_program[i]
+            next_instruction = padded_program[i+1]
+            running_product *= alpha - a * address - b * \
+                current_instruction - c * next_instruction
+        return running_product

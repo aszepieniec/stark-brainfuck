@@ -67,9 +67,9 @@ class ProcessorExtension(ProcessorTable):
 
             # 1. running product for instruction permutation
             new_row += [instruction_permutation_running_product]
-            instruction_permutation_running_product *= alpha - a * \
-                new_row[ProcessorExtension.instruction_pointer] - b * \
-                new_row[ProcessorExtension.current_instruction] - \
+            instruction_permutation_running_product *= alpha - \
+                a * new_row[ProcessorExtension.instruction_pointer] - \
+                b * new_row[ProcessorExtension.current_instruction] - \
                 c * new_row[ProcessorExtension.next_instruction]
 
             # 2. running product for memory access

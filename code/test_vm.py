@@ -70,13 +70,18 @@ def test_air():
     output_extension.test()
 
     # test relations
-    assert(processor_extension.instruction_permutation_terminal ==
-           instruction_extension.permutation_terminal), f"instruction permutation argument fails: processor - {str(processor_extension.instruction_permutation_terminal)} versus instruction - {str(instruction_extension.permutation_terminal)}"
+    assert(processor_extension.instruction_permutation_terminal
+           * VirtualMachine.program_permutation_cofactor(program, a, b, c, alpha)
+           == instruction_extension.permutation_terminal), f"instruction permutation argument fails: processor - {str(processor_extension.instruction_permutation_terminal)} versus instruction - {str(instruction_extension.permutation_terminal)}"
+
     assert(instruction_extension.evaluation_terminal ==
-           VirtualMachine.evaluation_terminal(program, eta))
+           VirtualMachine.program_evaluation(program, a, b, c, eta)), f"instruction table evaluation terminal = {instruction_extension.evaluation_terminal} =/= program evaluation = {VirtualMachine.program_evaluation(program, a, b, c, eta)}"
+
     assert(processor_extension.memory_permutation_terminal ==
-           memory_extension.permutation_terminal)
+           memory_extension.permutation_terminal), f"processor memory permutation terminal == {processor_extension.memory_permutation_terminal} =/= memory extension permutation terminal == {memory_extension.permutation_terminal}"
+
     assert(processor_extension.input_evaluation_terminal ==
-           VirtualMachine.evaluation_terminal(input_table.table, gamma))
+           VirtualMachine.evaluation_terminal(input_table.table, gamma)), f"processor input evaluation == {processor_extension.input_evaluation_terminal} =/= locally computed input evaluation == {VirtualMachine.evaluation_terminal(input_table.table, gamma)}"
+
     assert(processor_extension.output_evaluation_terminal ==
-           VirtualMachine.evaluation_terminal(output_table.table, delta))
+           VirtualMachine.evaluation_terminal(output_table.table, delta)), f"processor output evaluation == {processor_extension.output_evaluation_terminal} =/= locally computed output evaluation == {VirtualMachine.evaluation_terminal(output_table.table, gamma)}"
