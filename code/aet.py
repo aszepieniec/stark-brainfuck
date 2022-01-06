@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from multivariate import *
-
+from ntt import *
+import os
 
 class Table:
     def __init__(self, field, width):
@@ -41,3 +42,15 @@ class Table:
                        0])), f"point has {len(point)} elements but mpo has {len(list(mpo.dictionary.keys())[0])} variables .."
                 assert(mpo.evaluate(point).is_zero(
                 )), f"TRNASITION constraint {i} not satisfied in row {rowidx}; point: {[str(p) for p in point]}; polynomial {str(mpo.partial_evaluate({2: point[2]}))} evaluates to {str(mpo.evaluate(point))}"
+
+    def interpolate( self, offset, omega, order, num_randomizers ):
+        polynomials = []
+        omicron_domain = [self.omicron^i for i in range(order)]
+        randomizer_coset = [(self.generator^2) * (self.omega^i) for i in range(0, num_randomizers)]
+        for i in range(self.width):
+            trace = [self.table[j][i] for j in range(0,len(self.table))]
+            randomizers = [self.field.sample(os.urandom(8)) for j in range(self.num_randomizers)]
+            polynomials += [fast_interpolate(omicron_domain[:len(self.table)] + randomizer_coset, trace + randomizers, self.omicron, self.omicron_domain_length)]
+        return polynomials
+
+        
