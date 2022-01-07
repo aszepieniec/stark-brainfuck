@@ -19,18 +19,12 @@ def test_vm():
     print(output_data)
 
 
-def test_simulate():
-    code = "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++."
-    expected_output = "Hello World!\n"
-    #program = ">++++++++++[>+++><<-]>+++><<>."
-    #expected_output = "!"
+def test_states():
+    code = (">>[++-]<")
     program = VirtualMachine.compile(code)
-    output_data, trace, instruction_table, memory_table, input_table, output_table = VirtualMachine.simulate(
+    processor_table, instruction_table, memory_table, input_table, output_table = VirtualMachine.simulate(
         program)
-    output_data = "".join(od for od in output_data)
-    assert(output_data ==
-           expected_output), f"output data invalid; given:\"{output_data}\", but should be \"{expected_output}\""
-    print(output_data)
+    print("hello, workd")
 
 
 def test_air():

@@ -46,7 +46,7 @@ class VirtualMachine:
                 stack += [len(program)-1]
             elif symbol == ']':
                 program += [BaseFieldElement(stack[-1]+1, field)]
-                program[stack[-1]] = BaseFieldElement(len(program)+1, field)
+                program[stack[-1]] = BaseFieldElement(len(program), field)
                 stack = stack[:-1]
         return program
 
@@ -146,7 +146,10 @@ class VirtualMachine:
         output_table = IOTable(field)
 
         # main loop
+        # print("program: " + ",".join(str(p.value) for p in program))
         while register.instruction_pointer.value < len(program):
+            # print("|", register.cycle.value, "|", register.instruction_pointer.value, "|",
+            #   register.current_instruction.value, "|", register.next_instruction.value, "|")
             # collect values to add new rows in execution tables
             processor_table.table += [[register.cycle,
                                        register.instruction_pointer,
@@ -230,6 +233,10 @@ class VirtualMachine:
                 register.is_zero = one
             else:
                 register.is_zero = zero
+
+            # print("|", register.cycle.value, "|", register.instruction_pointer.value, "|",
+            #       register.current_instruction.value, "|", register.next_instruction.value, "|")
+            # print("---------------")
 
         # post-process context tables
         # sort by memory address
