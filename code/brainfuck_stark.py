@@ -1,4 +1,8 @@
 from fri import *
+from instruction_extension import InstructionExtension
+from memory_extension import MemoryExtension
+from processor_extension import ProcessorExtension
+from io_extension import IOExtension
 from univariate import *
 from multivariate import *
 from ntt import *
@@ -84,9 +88,9 @@ class BrainfuckStark:
         fri_domain_length = (tqd_roundup+1) * self.expansion_factor
 
         # compute generators
-        self.generator = self.field.generator()
-        self.omega = self.field.primitive_nth_root(fri_domain_length)
-        self.omicron = self.field.primitive_nth_root(
+        generator = self.field.generator()
+        omega = self.field.primitive_nth_root(fri_domain_length)
+        omicron = self.field.primitive_nth_root(
             rounded_trace_length)
 
         # check numbers for sanity
@@ -100,7 +104,7 @@ class BrainfuckStark:
         # print(fri_domain_length)
 
         # instantiate helper objects
-        fri = Fri(self.generator, self.omega, fri_domain_length,
+        fri = Fri(generator, omega, fri_domain_length,
                   self.expansion_factor, self.num_colinearity_checks)
 
         if proof_stream == None:
@@ -110,19 +114,92 @@ class BrainfuckStark:
         randomizer_coset = [(self.generator ^ 2) * (self.omega ^ i)
                             for i in range(0, self.num_randomizers)]
         omicron_domain = [self.omicron ^
-                          i for i in range(self.omicron_domain_length)]
+                          i for i in range(rounded_trace_length)]
         processor_polynomials = processor_table.interpolate(
-            self.generator ^ 2, self.omega, self.omicron_domain_length, self.num_randomizers)
+            self.generator ^ 2, self.omicron, rounded_trace_length, self.num_randomizers)
         instruction_polynomials = instruction_table.interpolate(
-            self.generator ^ 2, self.omega, self.omicron_domain_length, self.num_randomizers)
+            self.generator ^ 2, self.omicron, rounded_trace_length, self.num_randomizers)
         memory_polynomials = memory_table.interpolate(
-            self.generator ^ 2, self.omega, self.omicron_domain_length, self.num_randomizers)
+            self.generator ^ 2, self.omicron, rounded_trace_length, self.num_randomizers)
         input_polynomials = input_table.interpolate(
-            self.generator ^ 2, self.omega, self.omicron_domain_length, self.num_randomizers)
+            self.generator ^ 2, self.omicron, rounded_trace_length, self.num_randomizers)
         output_polynomials = output_table.interpolate(
-            self.generator ^ 2, self.omega, self.omicron_domain_length, self.num_randomizers)
+            self.generator ^ 2, self.omicron, rounded_trace_length, self.num_randomizers)
 
-        # ...
+        # commit
+        base_root = fri.batch_commit(
+            processor_polynomials + instruction_polynomials + memory_polynomials + input_polynomials + output_polynomials)
+        proof_stream.push(base_root)
+
+        # get coefficients for table extensions
+        a, b, c, d, e, f, alpha, beta, gamma, delta, eta = proof_stream.prover_fiat_shamir(
+            num_bytes=self.vm.num_challenges() * 3 * 9)
+
+        # extend tables
+        processor_extension = ProcessorExtension.extend(
+            processor_table, a, b, c, d, e, f, alpha, beta, gamma, delta)
+        instruction_extension = InstructionExtension.extend(
+            instruction_table, a, b, c, alpha, eta)
+        memory_extension = MemoryExtension.extend(memory_table, d, e, f, beta)
+        input_extension = IOExtension.extend(input_table, gamma)
+        output_extension = IOExtension.extend(output_table, delta)
+
+        # get terminal values
+        processor_instruction_permutation_terminal = processor_extension.instruction_permutation_terminal
+        processor_memory_permutation_terminal = processor_extension.memory_permutation_terminal
+        processor_input_evaluation_terminal = processor_extension.input_evaluation_terminal
+        processor_output_evaluation_terminal = processor_extension.output_evaluation_terminal
+        instruction_evaluation_terminal = instruction_extension.evaluation_terminal
+
+        # send terminals
+        proof_stream.push(processor_instruction_permutation_terminal)
+        proof_stream.push(processor_memory_permutation_terminal)
+        proof_stream.push(processor_input_evaluation_terminal)
+        proof_stream.push(processor_output_evaluation_terminal)
+        proof_stream.push(instruction_evaluation_terminal)
+
+        # interpolate extension columns
+        processor_extension_polynomials = processor_extension.interpolate_extension(
+            self.generator ^ 2, omicron, rounded_trace_length, self.num_randomizers)
+        instruction_extension_polynomials = instruction_extension.interpolate_extension(
+            self.generator ^ 2, omicron, rounded_trace_length, self.num_randomizers)
+        memory_extension_polynomials = memory_extension.interpolate_extension(
+            self.generator ^ 2, omicron, rounded_trace_length, self.num_randomizers)
+        input_extension_polynomials = input_extension.interpolate_extension(
+            self.generator ^ 2, omicron, rounded_trace_length, self.num_randomizers)
+        output_extension_polynomials = output_extension.interpolate_extension(
+            self.generator ^ 2, omicron, rounded_trace_length, self.num_randomizers)
+
+        # commit to extension polynomials
+        extension_root = fri.batch_commit(processor_extension_polynomials + instruction_extension_polynomials +
+                                          memory_extension_polynomials + input_extension_polynomials + output_extension_polynomials)
+        proof_stream.push(extension_root)
+
+        # gather polynomials derived from generalized AIR constraints relating to ...
+        polynomials = []
+        # ... boundary ...
+        polynomials += processor_extension.boundary_quotients()
+        polynomials += instruction_extension.boundary_quotients()
+        polynomials += memory_extension.boundary_quotients()
+        polynomials += input_extension.boundary_quotients()
+        polynomials += output_extension.boundary_quotients()
+        # ... transitions ...
+        polynomials += processor_extension.transition_quotients()
+        polynomials += instruction_extension.transition_quotients()
+        polynomials += memory_extension.transition_quotients()
+        polynomials += input_extension.transition_quotients()
+        polynomials += output_extension.transition_quotients()
+        # ... terminal values ...
+        polynomials += processor_extension.terminal_quotients()
+        polynomials += instruction_extension.terminal_quotients()
+        polynomials += memory_extension.terminal_quotients()
+        polynomials += input_extension.terminal_quotients()
+        polynomials += output_extension.terminal_quotients()
+        # ... and equal initial values
+        polynomials += (processor_extension_polynomials[0] -
+                        instruction_extension_polynomials[0]) / (X - omicron)
+        polynomials += (processor_extension_polynomials[1] -
+                        memory_extension_polynomials[0]) / (X - omicron)
 
         # subtract boundary interpolants and divide out boundary zerofiers
         boundary_quotients = []
