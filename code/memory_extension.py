@@ -5,6 +5,11 @@ class MemoryExtension(MemoryTable):
     def __init__(self, d, e, f, beta):
         field = d.field
 
+        cycle = 0
+        memory_pointer = 1
+        memory_value = 2
+        permutation = 3
+
         # terminal values (placeholder)
         self.permutation_terminal = field.zero()
 
