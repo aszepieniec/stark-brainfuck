@@ -12,7 +12,7 @@ class IOExtension(IOTable):
         self.width = 1+1
 
     @staticmethod
-    def extend(input_table, gamma):
+    def extend(io_table, gamma):
 
         # algebra stuff
         xfield = gamma.field
@@ -21,32 +21,24 @@ class IOExtension(IOTable):
 
         # prepare loop
         table_extension = []
-        input_running_evaluation = zero
+        io_running_evaluation = zero
 
         # loop over all rows of table
-        for row in input_table.table:
-            new_row = []
-
-            # first, copy over existing row
+        for i in range(len(io_table.table)):
+            row = io_table.table[i]
             new_row = [xfield.lift(nr) for nr in row]
 
-            # match with this:
-            # 3. evaluation for input
-            # if row[current_instruction] == BaseFieldElement(ord(','), field):
-            #    input_evaluation += input_evaluation * gamma + row[io_value]
-            #new_row += [input_evaluation]
+            new_row += [io_running_evaluation]
 
-            new_row += [input_running_evaluation]
-
-            input_running_evaluation = input_running_evaluation * \
+            io_running_evaluation = io_running_evaluation * \
                 gamma + new_row[0]
 
             table_extension += [new_row]
 
-        extended_input_table = IOExtension(gamma)
-        extended_input_table.table = table_extension
+        extended_io_table = IOExtension(gamma)
+        extended_io_table.table = table_extension
 
-        return extended_input_table
+        return extended_io_table
 
     def transition_constraints(self):
         input_, evaluation, \

@@ -11,11 +11,11 @@ class InstructionExtension(InstructionTable):
     evaluation = 4
 
     def __init__(self, a, b, c, alpha, eta):
-        field = a.field
+        self.xfield = a.field
 
         # terminal values (placeholders)
-        self.permutation_terminal = field.zero()
-        self.evaluation_terminal = field.zero()
+        self.permutation_terminal = self.xfield.zero()
+        self.evaluation_terminal = self.xfield.zero()
 
         # names for challenges
         self.a = MPolynomial.constant(a)
@@ -24,7 +24,7 @@ class InstructionExtension(InstructionTable):
         self.alpha = MPolynomial.constant(alpha)
         self.eta = MPolynomial.constant(eta)
 
-        super(InstructionExtension, self).__init__(field)
+        super(InstructionExtension, self).__init__(self.xfield)
         self.width = 3+1+1
 
     @staticmethod
@@ -52,10 +52,12 @@ class InstructionExtension(InstructionTable):
 
             # permutation argument
             new_row += [permutation_running_product]
-            permutation_running_product *= alpha - \
-                a * new_row[InstructionExtension.address] - \
-                b * new_row[InstructionExtension.current_instruction] - \
-                c * new_row[InstructionExtension.next_instruction]
+            if not new_row[InstructionExtension.current_instruction].is_zero():
+                permutation_running_product *= alpha - \
+                    a * new_row[InstructionExtension.address] - \
+                    b * new_row[InstructionExtension.current_instruction] - \
+                    c * new_row[InstructionExtension.next_instruction]
+                # print("%i:" % i, permutation_running_product)
 
             # evaluation argument
             if new_row[InstructionExtension.address] != previous_address:
@@ -64,6 +66,7 @@ class InstructionExtension(InstructionTable):
                     b * new_row[InstructionExtension.current_instruction] + \
                     c * new_row[InstructionExtension.next_instruction]
             new_row += [evaluation_running_sum]
+
             previous_address = new_row[InstructionExtension.address]
 
             table_extension += [new_row]
@@ -84,11 +87,14 @@ class InstructionExtension(InstructionTable):
         polynomials = InstructionExtension.transition_constraints_afo_named_variables(
             address, current_instruction, next_instruction, address_next, current_instruction_next, next_instruction_next)
 
-        polynomials += [permutation *
-                        (self.alpha - self.a * address
-                         - self.b * current_instruction
-                                - self.c * next_instruction)
-                        - permutation_next]
+        assert(len(polynomials) == 3), f"expected to inherit 3 polynomials from ancestor but got {len(polynomials)}"
+
+        polynomials += [(permutation * \
+                            ( self.alpha \
+                                - self.a * address  \
+                                - self.b * current_instruction \
+                                - self.c * next_instruction ) \
+                        - permutation_next) * current_instruction]
 
         ifnewaddress = address_next - address
         ifoldaddress = address_next - address - \

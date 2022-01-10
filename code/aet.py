@@ -41,7 +41,7 @@ class Table:
                 assert(len(point) == len(list(mpo.dictionary.keys())[
                        0])), f"point has {len(point)} elements but mpo has {len(list(mpo.dictionary.keys())[0])} variables .."
                 assert(mpo.evaluate(point).is_zero(
-                )), f"TRNASITION constraint {i} not satisfied in row {rowidx}; point: {[str(p) for p in point]}; polynomial {str(mpo.partial_evaluate({2: point[2]}))} evaluates to {str(mpo.evaluate(point))}"
+                )), f"TRNASITION constraint {i} not satisfied in row {rowidx}; point: {[str(p) for p in point]}; polynomial {str(mpo.partial_evaluate({1: point[1]}))} evaluates to {str(mpo.evaluate(point))}"
 
     def interpolate( self, offset, omega, order, num_randomizers ):
         polynomials = []

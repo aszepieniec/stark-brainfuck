@@ -2,13 +2,13 @@ from memory_table import *
 
 
 class MemoryExtension(MemoryTable):
+    cycle = 0
+    memory_pointer = 1
+    memory_value = 2
+    permutation = 3
+
     def __init__(self, d, e, f, beta):
         field = d.field
-
-        cycle = 0
-        memory_pointer = 1
-        memory_value = 2
-        permutation = 3
 
         # terminal values (placeholder)
         self.permutation_terminal = field.zero()
@@ -33,18 +33,15 @@ class MemoryExtension(MemoryTable):
         memory_permutation_running_product = one
 
         # loop over all rows of table
-        for row in memory_table.table:
-            new_row = []
-
-            # first, copy over existing row
+        for i in range(len(memory_table.table)):
+            row = memory_table.table[i]
             new_row = [xfield.lift(nr) for nr in row]
 
-            # match with this:
-            # 2. running product for memory access
-
             new_row += [memory_permutation_running_product]
-            memory_permutation_running_product *= beta - \
-                d * new_row[0] - e * new_row[1] - f * new_row[2]
+            memory_permutation_running_product *= beta \
+                - d * new_row[MemoryExtension.cycle] \
+                - e * new_row[MemoryExtension.address] \
+                - f * new_row[MemoryExtension.value]
 
             table_extension += [new_row]
 
@@ -76,8 +73,8 @@ class MemoryExtension(MemoryTable):
         x = MPolynomial.variables(self.width, self.field)
         one = MPolynomial.constant(self.field.one())
         zero = MPolynomial.zero()
-        return [(0, x[0] - zero),  # cycle
-                (0, x[1] - zero),  # memory pointer
-                (0, x[2] - zero),  # memory value
-                (0, x[3] - one),   # permutation
+        return [(0, x[MemoryExtension.cycle] - zero),  # cycle
+                (0, x[MemoryExtension.address] - zero),  # memory pointer
+                (0, x[MemoryExtension.value] - zero),  # memory value
+                (0, x[MemoryExtension.permutation] - one),   # permutation
                 ]

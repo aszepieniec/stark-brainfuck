@@ -1,8 +1,26 @@
 from aet import *
+from processor_table import ProcessorTable
 
 class MemoryTable(Table):
+    # name columns
+    cycle = 0
+    address = 1
+    value = 2
+
     def __init__(self, field):
         super(MemoryTable, self).__init__(field, 3)
+
+    def pad( self, padded_processor_table ):
+        current_cycle = max(row[MemoryTable.cycle].value for row in self.table)
+        while len(self.table) & (len(self.table)-1):
+            current_cycle += 1
+            new_row = [self.field.zero()] * self.width
+            new_row[MemoryTable.cycle] = padded_processor_table.table[current_cycle][ProcessorTable.cycle]
+            new_row[MemoryTable.address] = padded_processor_table.table[current_cycle][ProcessorTable.memory_pointer]
+            new_row[MemoryTable.value] = padded_processor_table.table[current_cycle][ProcessorTable.memory_value]
+            self.table += [new_row]
+
+        self.table.sort(key=lambda r: r[1].value)
 
     @staticmethod
     def transition_constraints_afo_named_variables( cycle, address, value, cycle_next, address_next, value_next ):
@@ -11,7 +29,7 @@ class MemoryTable(Table):
 
         polynomials = []
 
-        # 1. memory pointer increases by one or zero
+        # 1. memory pointer increases by one, zero, or minus one
         # <=>. (MP*=MP+1) \/ (MP*=MP)
         polynomials += [(address_next - address - one)
                  * (address_next - address)]
@@ -41,7 +59,7 @@ class MemoryTable(Table):
         x = MPolynomial.variables(self.width, self.field)
         one = MPolynomial.constant(self.field.one())
         zero = MPolynomial.zero()
-        return [(0, x[0]),  # cycle
-                (0, x[1]),  # memory pointer
-                (0, x[2]),  # memory value
+        return [(0, x[MemoryTable.cycle]),
+                (0, x[MemoryTable.address]),
+                (0, x[MemoryTable.value]), 
                 ]

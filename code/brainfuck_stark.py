@@ -80,7 +80,7 @@ class BrainfuckStark:
         randomized_trace_length = rounded_trace_length + self.num_randomizers
 
         # compute fri domain length
-        air_degree = 8  # TODO verify me
+        air_degree = 10  # TODO verify me
         tp_degree = air_degree * (randomized_trace_length - 1)
         tq_degree = tp_degree - (rounded_trace_length - 1)
         max_degree = BrainfuckStark.roundup_npo2(

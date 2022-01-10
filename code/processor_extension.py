@@ -57,8 +57,8 @@ class ProcessorExtension(ProcessorTable):
 
         # loop over all rows
         table_extension = []
-        for row in processor_table.table:
-            new_row = []
+        for i in range(len(processor_table.table)):
+            row = processor_table.table[i]
 
             # first, copy over existing row
             new_row = [xfield.lift(nr) for nr in row]
@@ -67,16 +67,19 @@ class ProcessorExtension(ProcessorTable):
 
             # 1. running product for instruction permutation
             new_row += [instruction_permutation_running_product]
-            instruction_permutation_running_product *= alpha - \
-                a * new_row[ProcessorExtension.instruction_pointer] - \
-                b * new_row[ProcessorExtension.current_instruction] - \
-                c * new_row[ProcessorExtension.next_instruction]
+            if not new_row[ProcessorExtension.current_instruction].is_zero():
+                instruction_permutation_running_product *= alpha - \
+                    a * new_row[ProcessorExtension.instruction_pointer] - \
+                    b * new_row[ProcessorExtension.current_instruction] - \
+                    c * new_row[ProcessorExtension.next_instruction]
+                # print("%i." % i, instruction_permutation_running_product)
 
             # 2. running product for memory access
             new_row += [memory_permutation_running_product]
-            memory_permutation_running_product *= beta - d * \
-                new_row[ProcessorExtension.cycle] - e * new_row[ProcessorExtension.memory_pointer] - \
-                f * new_row[ProcessorExtension.memory_value]
+            memory_permutation_running_product *= beta \
+                - d * new_row[ProcessorExtension.cycle] \
+                - e * new_row[ProcessorExtension.memory_pointer] \
+                - f * new_row[ProcessorExtension.memory_value]
 
             # 3. evaluation for input
             new_row += [input_evaluation_running_evaluation]
@@ -138,11 +141,11 @@ class ProcessorExtension(ProcessorTable):
 
         # extension AIR polynomials
         # running product for instruction permutation
-        polynomials += [instruction_permutation *
+        polynomials += [(instruction_permutation *
                         (self.alpha - self.a * instruction_pointer
                          - self.b * current_instruction
                                 - self.c * next_instruction)
-                        - instruction_permutation_next]
+                        - instruction_permutation_next) * current_instruction]
         # running product for memory permutation
         polynomials += [memory_permutation *
                         (self.beta - self.d * cycle
@@ -150,10 +153,10 @@ class ProcessorExtension(ProcessorTable):
                         - memory_permutation_next]
         # running evaluation for input
         polynomials += [(input_evaluation_next - input_evaluation * self.gamma - memory_value) * self.ifnot_instruction(
-            ',', current_instruction) + (input_evaluation_next - input_evaluation) * self.if_instruction(',', current_instruction)]
+            ',', current_instruction) * current_instruction + (input_evaluation_next - input_evaluation) * self.if_instruction(',', current_instruction)]
         # running evaluation for output
         polynomials += [(output_evaluation_next - output_evaluation * self.delta - memory_value) * self.ifnot_instruction(
-            '.', current_instruction) + (output_evaluation_next - output_evaluation) * self.if_instruction('.', current_instruction)]
+            '.', current_instruction) * current_instruction + (output_evaluation_next - output_evaluation) * self.if_instruction('.', current_instruction)]
 
         return polynomials
 
