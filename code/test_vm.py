@@ -1,4 +1,4 @@
-from extension import ExtensionField
+from extension_field import ExtensionField
 from instruction_extension import InstructionExtension
 from io_extension import IOExtension
 from memory_extension import MemoryExtension
@@ -49,6 +49,21 @@ def test_air():
     input_table.test()
     output_table.test()
 
+def test_pad():
+    code = "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++."
+    # code = "+[>+[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>."
+    # code = "+[>++>+>+>->>+[>]>]>>."
+    # code = "++++++++[>++++>+>+>->>+-]>>."
+    # code = "+[-]+++++"
+    # code = "+><->+->+>"
+    # code = "+[->]+"
+
+    program = VirtualMachine.compile(code)
+
+    # populate AETs
+    processor_table, instruction_table, memory_table, input_table, output_table = VirtualMachine.simulate(
+        program)
+
     # pad tables to length 2^k
     processor_table.pad()
     instruction_table.pad()
@@ -62,6 +77,28 @@ def test_air():
     memory_table.test()
     # input_table.test()
     # output_table.test()
+
+def test_extend():
+    code = "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++."
+    # code = "+[>+[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>."
+    # code = "+[>++>+>+>->>+[>]>]>>."
+    # code = "++++++++[>++++>+>+>->>+-]>>."
+    # code = "+[-]+++++"
+    # code = "+><->+->+>"
+    # code = "+[->]+"
+
+    program = VirtualMachine.compile(code)
+
+    # populate AETs
+    processor_table, instruction_table, memory_table, input_table, output_table = VirtualMachine.simulate(
+        program)
+
+    # pad tables to length 2^k
+    processor_table.pad()
+    instruction_table.pad()
+    memory_table.pad(processor_table)
+    # input_table.pad()
+    # output_table.pad()
 
     # get challenges
     a, b, c, d, e, f, alpha, beta, gamma, delta, eta = [ExtensionField.main(

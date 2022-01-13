@@ -1,3 +1,4 @@
+from extension_field import ExtensionField
 from fri import *
 from instruction_extension import InstructionExtension
 from memory_extension import MemoryExtension
@@ -16,6 +17,7 @@ class BrainfuckStark:
     def __init__(self):
         # set parameters
         self.field = BaseField.main()
+        self.xfield = ExtensionField.main()
         self.expansion_factor = 16
         self.num_colinearity_checks = 40
         self.security_level = 160
@@ -78,6 +80,17 @@ class BrainfuckStark:
         rounded_trace_length = BrainfuckStark.roundup_npo2(
             original_trace_length)
         randomized_trace_length = rounded_trace_length + self.num_randomizers
+
+        # infer table lengths (=# rows)
+        log_cycles = 1
+        while (1 << log_cycles) < rounded_trace_length:
+            log_cycles += 1
+        log_input = 1
+        while (1 << log_input) < len(input_table.table):
+            log_input += 1
+        log_output = 1
+        while (1 << log_output) < len(output_table.table):
+            log_output += 1
 
         # compute fri domain length
         air_degree = 10  # TODO verify me
@@ -160,16 +173,16 @@ class BrainfuckStark:
         proof_stream.push(instruction_evaluation_terminal)
 
         # interpolate extension columns
-        processor_extension_polynomials = processor_extension.interpolate_extension(
-            self.generator ^ 2, omicron, rounded_trace_length, self.num_randomizers)
-        instruction_extension_polynomials = instruction_extension.interpolate_extension(
-            self.generator ^ 2, omicron, rounded_trace_length, self.num_randomizers)
-        memory_extension_polynomials = memory_extension.interpolate_extension(
-            self.generator ^ 2, omicron, rounded_trace_length, self.num_randomizers)
-        input_extension_polynomials = input_extension.interpolate_extension(
-            self.generator ^ 2, omicron, rounded_trace_length, self.num_randomizers)
-        output_extension_polynomials = output_extension.interpolate_extension(
-            self.generator ^ 2, omicron, rounded_trace_length, self.num_randomizers)
+        processor_extension_polynomials = processor_extension.interpolate(
+            randomizer_offset, omicron, rounded_trace_length, self.num_randomizers)
+        instruction_extension_polynomials = instruction_extension.interpolate(
+            randomizer_offset, omicron, rounded_trace_length, self.num_randomizers)
+        memory_extension_polynomials = memory_extension.interpolate(
+            randomizer_offset, omicron, rounded_trace_length, self.num_randomizers)
+        input_extension_polynomials = input_extension.interpolate(
+            randomizer_offset, omicron, rounded_trace_length, self.num_randomizers)
+        output_extension_polynomials = output_extension.interpolate(
+            randomizer_offset, omicron, rounded_trace_length, self.num_randomizers)
 
         # commit to extension polynomials
         extension_codewords = [fast_coset_evaluate(p, generator, omega, fri_domain_length)
@@ -187,40 +200,40 @@ class BrainfuckStark:
         extension_polynomials += memory_extension.boundary_quotients()
         extension_polynomials += input_extension.boundary_quotients()
         extension_polynomials += output_extension.boundary_quotients()
-        extension_degree_bounds += processor_extension.boundary_quotient_degree_bounds()
-        extension_degree_bounds += instruction_extension.boundary_quotient_degree_bounds()
-        extension_degree_bounds += memory_extension.boundary_quotient_degree_bounds()
-        extension_degree_bounds += input_extension.boundary_quotient_degree_bounds()
-        extension_degree_bounds += output_extension.boundary_quotient_degree_bounds()
+        extension_degree_bounds += ProcessorExtension.boundary_quotient_degree_bounds(log_cycles)
+        extension_degree_bounds += InstructionExtension.boundary_quotient_degree_bounds(log_cycles)
+        extension_degree_bounds += MemoryExtension.boundary_quotient_degree_bounds(log_cycles)
+        extension_degree_bounds += IOExtension.boundary_quotient_degree_bounds(log_input)
+        extension_degree_bounds += IOExtension.boundary_quotient_degree_bounds(log_output)
         # ... transitions ...
         extension_polynomials += processor_extension.transition_quotients()
         extension_polynomials += instruction_extension.transition_quotients()
         extension_polynomials += memory_extension.transition_quotients()
         extension_polynomials += input_extension.transition_quotients()
         extension_polynomials += output_extension.transition_quotients()
-        extension_degree_bounds += processor_extension.transition_quotient_degree_bounds()
-        extension_degree_bounds += instruction_extension.transition_quotient_degree_bounds()
-        extension_degree_bounds += memory_extension.transition_quotient_degree_bounds()
-        extension_degree_bounds += input_extension.transition_quotient_degree_bounds()
-        extension_degree_bounds += output_extension.transition_quotient_degree_bounds()
+        extension_degree_bounds += ProcessorExtension.transition_quotient_degree_bounds(log_cycles, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta])
+        extension_degree_bounds += InstructionExtension.transition_quotient_degree_bounds(log_cycles, challenges=[a, b, c, alpha, eta])
+        extension_degree_bounds += MemoryExtension.transition_quotient_degree_bounds(log_cycles, challenges=[d, e, f, beta])
+        extension_degree_bounds += IOExtension.transition_quotient_degree_bounds(log_input, challenges=[gamma])
+        extension_degree_bounds += IOExtension.transition_quotient_degree_bounds(log_output, challenges=[delta])
         # ... terminal values ...
-        extension_polynomials += processor_extension.terminal_quotients()
-        extension_polynomials += instruction_extension.terminal_quotients()
-        extension_polynomials += memory_extension.terminal_quotients()
-        extension_polynomials += input_extension.terminal_quotients()
-        extension_polynomials += output_extension.terminal_quotients()
-        extension_degree_bounds += processor_extension.terminal_quotient_degree_bounds()
-        extension_degree_bounds += instruction_extension.terminal_quotient_degree_bounds()
-        extension_degree_bounds += memory_extension.terminal_quotient_degree_bounds()
-        extension_degree_bounds += input_extension.terminal_quotient_degree_bounds()
-        extension_degree_bounds += output_extension.terminal_quotient_degree_bounds()
+        extension_polynomials += processor_extension.terminal_quotients(challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[processor_extension.instruction_permutation_terminal])
+        extension_polynomials += instruction_extension.terminal_quotients(challenges=[a, b, c, alpha, eta], terminals=[instruction_extension.permutation_terminal, instruction_extension.evaluation_terminal])
+        extension_polynomials += memory_extension.terminal_quotients(challenges=[d, e, f, beta], terminals=[memory_extension.permutation_terminal])
+        extension_polynomials += input_extension.terminal_quotients(challenges=[gamma], terminals=[input_extension.evaluation_terminal])
+        extension_polynomials += output_extension.terminal_quotients(challenges=[delta], terminals=[output_extension.evaluation_terminal])
+        extension_degree_bounds += ProcessorExtension.terminal_quotient_degree_bounds(log_cycles, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[processor_extension.instruction_permutation_terminal])
+        extension_degree_bounds += InstructionExtension.terminal_quotient_degree_bounds(log_cycles, challenges=[a, b, c, alpha, eta], terminals=[instruction_extension.permutation_terminal, instruction_extension.evaluation_terminal])
+        extension_degree_bounds += MemoryExtension.terminal_quotient_degree_bounds(log_cycles, challenges=[d, e, f, beta],  terminals=[memory_extension.permutation_terminal])
+        extension_degree_bounds += IOExtension.terminal_quotient_degree_bounds(log_cycles, challenges=[gamma], terminals=[input_extension.evaluation_terminal])
+        extension_degree_bounds += IOExtension.terminal_quotient_degree_bounds(log_cycles, challenges=[delta], terminals=[output_extension.evaluation_terminal])
         # ... and equal initial values
-        X = Polynomial([self.field.zero(), self.field.one()])
+        X = Polynomial([self.xfield.zero(), self.xfield.one()])
         extension_polynomials += [(processor_extension_polynomials[ProcessorExtension.instruction_permutation] -
-                        instruction_extension_polynomials[InstructionExtension.permutation]) / (X - omicron)]
+                        instruction_extension_polynomials[InstructionExtension.permutation]) / (X - self.xfield.one())]
         extension_polynomials += [(processor_extension_polynomials[ProcessorExtension.memory_permutation] -
-                        memory_extension_polynomials[MemoryExtension.permutation]) / (X - omicron)]
-        extension_degree_bounds += [randomized_trace_length + self.num_randomizers - 2] * 2
+                        memory_extension_polynomials[MemoryExtension.permutation]) / (X - self.xfield.one())]
+        extension_degree_bounds += [(1 << log_cycles) - 2] * 2
         # (don't need to subtract equal values for the io evaluations because they're not randomized)
 
         # sample randomizer polynomial

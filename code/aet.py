@@ -15,13 +15,15 @@ class Table:
     def ncols(self):
         return self.width
 
-    @abstractmethod
-    def transition_constraints(self):
-        pass
+    # @abstractmethod
+    # @staticmethod
+    # def transition_constraints():
+    #     pass
 
-    @abstractmethod
-    def boundary_constraints(self):
-        pass
+    # @abstractmethod
+    # @staticmethod
+    # def boundary_constraints():
+    #     pass
 
     def test(self):
         for i in range(len(self.boundary_constraints())):
@@ -43,14 +45,26 @@ class Table:
                 assert(mpo.evaluate(point).is_zero(
                 )), f"TRNASITION constraint {i} not satisfied in row {rowidx}; point: {[str(p) for p in point]}; polynomial {str(mpo.partial_evaluate({1: point[1]}))} evaluates to {str(mpo.evaluate(point))}"
 
-    def interpolate( self, offset, omega, order, num_randomizers ):
-        polynomials = []
-        omicron_domain = [self.omicron^i for i in range(order)]
-        randomizer_coset = [(self.generator^2) * (self.omega^i) for i in range(0, num_randomizers)]
-        for i in range(self.width):
-            trace = [self.table[j][i] for j in range(0,len(self.table))]
-            randomizers = [self.field.sample(os.urandom(8)) for j in range(self.num_randomizers)]
-            polynomials += [fast_interpolate(omicron_domain[:len(self.table)] + randomizer_coset, trace + randomizers, self.omicron, self.omicron_domain_length)]
-        return polynomials
+    def interpolate( self, omega, order, num_randomizers ):
+        return self.interpolate_columns(omega, order, num_randomizers, columns=range(self.width))
 
-        
+    def interpolate_columns( self, omega, order, num_randomizers, columns ):
+        num_rows = len(self.table)
+        self.domain_length = 1
+        self.omicron = omega
+        while self.domain_length < num_rows + num_randomizers:
+            self.domain_length = self.domain_length << 1
+        while order > self.domain_length:
+            self.omicron = self.omicron^2
+            order = order / 2
+
+        polynomials = []
+        for i in columns:
+            trace = [self.field.sample(os.urandom(8)) for j in range(self.domain_length)]
+            for j in range(num_rows):
+                trace[2*j] = self.table[i][j]
+            polynomials += [intt(self.omicron, trace)]
+
+        self.polynomials = polynomials
+
+        return polynomials

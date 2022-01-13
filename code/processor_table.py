@@ -112,8 +112,10 @@ class ProcessorTable(Table):
 
         return polynomials
 
-    def transition_constraints_afo_named_variables(self, cycle, instruction_pointer, current_instruction, next_instruction, memory_pointer, memory_value, is_zero, cycle_next, instruction_pointer_next, current_instruction_next, next_instruction_next, memory_pointer_next, memory_value_next, is_zero_next):
-        one = MPolynomial.constant(self.field.one())
+    @staticmethod
+    def transition_constraints_afo_named_variables(cycle, instruction_pointer, current_instruction, next_instruction, memory_pointer, memory_value, is_zero, cycle_next, instruction_pointer_next, current_instruction_next, next_instruction_next, memory_pointer_next, memory_value_next, is_zero_next):
+        field = list(cycle.dictionary.values())[0].field
+        one = MPolynomial.constant(field.one())
 
         polynomials = [MPolynomial.zero()] * 3
 
@@ -134,7 +136,7 @@ class ProcessorTable(Table):
                                                       memory_pointer_next,
                                                       memory_value_next,
                                                       is_zero_next)
-            deselector = self.ifnot_instruction(c, current_instruction)
+            deselector = ProcessorTable.ifnot_instruction(c, current_instruction)
 
             for i in range(len(instr)):
                 polynomials[i] += deselector * instr[i]

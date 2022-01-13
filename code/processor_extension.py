@@ -1,7 +1,8 @@
 from processor_table import *
+from table_extension import TableExtension
 
 
-class ProcessorExtension(ProcessorTable):
+class ProcessorExtension(TableExtension):
 
     # names for columns
     cycle = 0
@@ -18,6 +19,7 @@ class ProcessorExtension(ProcessorTable):
     output_evaluation = 10
 
     def __init__(self, a, b, c, d, e, f, alpha, beta, gamma, delta):
+        super(ProcessorExtension,self).__init__(a.field, 7, 11)
         field = a.field
 
         # terminal values (placeholders)
@@ -37,8 +39,8 @@ class ProcessorExtension(ProcessorTable):
         self.beta = MPolynomial.constant(beta)
         self.gamma = MPolynomial.constant(gamma)
         self.delta = MPolynomial.constant(delta)
+        self.challenges = [a, b, c, d, e, f, alpha, beta, gamma, delta]
 
-        super(ProcessorExtension, self).__init__(field)
         self.width = 7 + 4
 
     @staticmethod
@@ -104,10 +106,11 @@ class ProcessorExtension(ProcessorTable):
         extended_processor_table.memory_permutation_terminal = memory_permutation_running_product
         extended_processor_table.input_evaluation_terminal = input_evaluation_running_evaluation
         extended_processor_table.output_evaluation_terminal = output_evaluation_running_evaluation
+        extended_processor_table.terminals = [instruction_permutation_running_product, memory_permutation_running_product, input_evaluation_running_evaluation, output_evaluation_running_evaluation]
 
         return extended_processor_table
 
-    def transition_constraints(self):
+    def transition_constraints_ext(self, challenges):
         # names for variables
         cycle, \
             instruction_pointer, \
@@ -133,7 +136,7 @@ class ProcessorExtension(ProcessorTable):
             output_evaluation_next = MPolynomial.variables(22, self.field)
 
         # base AIR polynomials
-        polynomials = self.transition_constraints_afo_named_variables(cycle, instruction_pointer, current_instruction, next_instruction, memory_pointer, memory_value,
+        polynomials = ProcessorTable.transition_constraints_afo_named_variables(cycle, instruction_pointer, current_instruction, next_instruction, memory_pointer, memory_value,
                                                                       is_zero, cycle_next, instruction_pointer_next, current_instruction_next, next_instruction_next, memory_pointer_next, memory_value_next, is_zero_next)
 
         assert(len(polynomials) ==
@@ -152,15 +155,15 @@ class ProcessorExtension(ProcessorTable):
                          - self.e * memory_pointer - self.f * memory_value)
                         - memory_permutation_next]
         # running evaluation for input
-        polynomials += [(input_evaluation_next - input_evaluation * self.gamma - memory_value) * self.ifnot_instruction(
-            ',', current_instruction) * current_instruction + (input_evaluation_next - input_evaluation) * self.if_instruction(',', current_instruction)]
+        polynomials += [(input_evaluation_next - input_evaluation * self.gamma - memory_value) * ProcessorTable.ifnot_instruction(
+            ',', current_instruction) * current_instruction + (input_evaluation_next - input_evaluation) * ProcessorTable.if_instruction(',', current_instruction)]
         # running evaluation for output
-        polynomials += [(output_evaluation_next - output_evaluation * self.delta - memory_value) * self.ifnot_instruction(
-            '.', current_instruction) * current_instruction + (output_evaluation_next - output_evaluation) * self.if_instruction('.', current_instruction)]
+        polynomials += [(output_evaluation_next - output_evaluation * self.delta - memory_value) * ProcessorTable.ifnot_instruction(
+            '.', current_instruction) * current_instruction + (output_evaluation_next - output_evaluation) * ProcessorTable.if_instruction('.', current_instruction)]
 
         return polynomials
 
-    def boundary_constraints(self):
+    def boundary_constraints_ext(self):
         # format: (cycle, polynomial)
         x = MPolynomial.variables(self.width, self.field)
         one = MPolynomial.constant(self.field.one())
@@ -178,3 +181,42 @@ class ProcessorExtension(ProcessorTable):
                        (0, x[self.output_evaluation] - zero)
                        ]
         return constraints
+
+    def interpolate_extension( self, omega, order, num_randomizers ):
+        return self.interpolate_columns(omega, order, num_randomizers, range(ProcessorTable.is_zero, self.width))
+    
+    def terminal_constraints_ext(self, challenges, terminals):
+        a, b, c, d, e, f, alpha, beta, gamma, delta = [MPolynomial.constant(c) for c in challenges]
+        x = MPolynomial.variables(self.width, self.field)
+        airs = []
+
+        # running product for instruction permutation
+        # polynomials += [(instruction_permutation *
+        #                 (self.alpha
+        #                   - self.a * instruction_pointer
+        #                   - self.b * current_instruction
+        #                   - self.c * next_instruction)
+        #                 - instruction_permutation_next) * current_instruction]
+        airs += [x[ProcessorTable.current_instruction]]
+
+        # running product for memory permutation
+        # polynomials += [memory_permutation *
+        #                 (self.beta - self.d * cycle
+        #                  - self.e * memory_pointer - self.f * memory_value)
+        #                 - memory_permutation_next]
+        airs += [MPolynomial.constant(terminals[1]) - x[ProcessorExtension.memory_permutation] * (beta - d * x[ProcessorTable.cycle] - e * x[ProcessorTable.memory_pointer] - f * x[ProcessorTable.memory_value])]
+
+
+        # running evaluation for input
+        # polynomials += [(input_evaluation_next \
+        #                   - input_evaluation * self.gamma \
+        #                   - memory_value) * ProcessorTable.ifnot_instruction(',', current_instruction) * current_instruction \
+        #               + (input_evaluation_next - input_evaluation) * ProcessorTable.if_instruction(',', current_instruction)]
+        airs += [MPolynomial.constant(terminals[2]) - x[ProcessorExtension.input_evaluation]]
+
+        # running evaluation for output
+        # polynomials += [(output_evaluation_next - output_evaluation * self.delta - memory_value) * ProcessorTable.ifnot_instruction(
+        #     '.', current_instruction) * current_instruction + (output_evaluation_next - output_evaluation) * ProcessorTable.if_instruction('.', current_instruction)]
+        airs += [MPolynomial.constant(terminals[3]) - x[ProcessorExtension.output_evaluation]]
+        
+        return airs

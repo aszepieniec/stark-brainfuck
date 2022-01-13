@@ -1,7 +1,8 @@
 from instruction_table import *
+from table_extension import TableExtension
 
 
-class InstructionExtension(InstructionTable):
+class InstructionExtension(TableExtension):
     # name columns
     address = 0
     current_instruction = 1
@@ -11,11 +12,11 @@ class InstructionExtension(InstructionTable):
     evaluation = 4
 
     def __init__(self, a, b, c, alpha, eta):
-        self.xfield = a.field
+        super(InstructionExtension, self).__init__(a.field, 3, 5)
 
         # terminal values (placeholders)
-        self.permutation_terminal = self.xfield.zero()
-        self.evaluation_terminal = self.xfield.zero()
+        self.permutation_terminal = self.field.zero()
+        self.evaluation_terminal = self.field.zero()
 
         # names for challenges
         self.a = MPolynomial.constant(a)
@@ -23,13 +24,10 @@ class InstructionExtension(InstructionTable):
         self.c = MPolynomial.constant(c)
         self.alpha = MPolynomial.constant(alpha)
         self.eta = MPolynomial.constant(eta)
-
-        super(InstructionExtension, self).__init__(self.xfield)
-        self.width = 3+1+1
+        self.challenges = [a, b, c, alpha, eta]
 
     @staticmethod
     def extend(instruction_table, program, a, b, c, alpha, eta):
-
         # algebra stuff
         field = instruction_table.field
         xfield = a.field
@@ -76,24 +74,26 @@ class InstructionExtension(InstructionTable):
 
         extended_instruction_table.permutation_terminal = permutation_running_product
         extended_instruction_table.evaluation_terminal = evaluation_running_sum
+        extended_instruction_table.terminals = [permutation_running_product, evaluation_running_sum]
 
         return extended_instruction_table
 
-    def transition_constraints(self):
+    def transition_constraints_ext(self, challenges):
+        a, b, c, alpha, eta = [MPolynomial.constant(c) for c in challenges]
         address, current_instruction, next_instruction, permutation, evaluation, \
             address_next, current_instruction_next, next_instruction_next, permutation_next, evaluation_next = MPolynomial.variables(
                 2*self.width, self.field)
 
-        polynomials = InstructionExtension.transition_constraints_afo_named_variables(
+        polynomials = InstructionTable.transition_constraints_afo_named_variables(
             address, current_instruction, next_instruction, address_next, current_instruction_next, next_instruction_next)
 
         assert(len(polynomials) == 3), f"expected to inherit 3 polynomials from ancestor but got {len(polynomials)}"
 
         polynomials += [(permutation * \
-                            ( self.alpha \
-                                - self.a * address  \
-                                - self.b * current_instruction \
-                                - self.c * next_instruction ) \
+                            ( alpha \
+                                - a * address  \
+                                - b * current_instruction \
+                                - c * next_instruction ) \
                         - permutation_next) * current_instruction]
 
         ifnewaddress = address_next - address
@@ -102,10 +102,10 @@ class InstructionExtension(InstructionTable):
 
         polynomials += [ifnewaddress *
                         (
-                            evaluation * self.eta
-                            + self.a * address_next
-                            + self.b * current_instruction_next
-                            + self.c * next_instruction_next
+                            evaluation * eta
+                            + a * address_next
+                            + b * current_instruction_next
+                            + c * next_instruction_next
                             - evaluation_next
                         )
                         + ifoldaddress *
@@ -115,7 +115,7 @@ class InstructionExtension(InstructionTable):
 
         return polynomials
 
-    def boundary_constraints(self):
+    def boundary_constraints_ext(self):
         # format: (cycle, polynomial)
         x = MPolynomial.variables(self.width, self.field)
         one = MPolynomial.constant(self.field.one())
@@ -123,3 +123,37 @@ class InstructionExtension(InstructionTable):
         return [(0, x[self.address] - zero),  # address starts at zero
                 (0, x[self.permutation] - one),  # running product starts at 1
                 (0, x[self.evaluation] - self.a * x[self.address] - self.b * x[self.current_instruction] - self.c * x[self.next_instruction])]
+
+    def terminal_constraints_ext(self, challenges, terminals):
+        a, b, c, alpha, eta = challenges
+        permutation_terminal, evaluation_terminal = terminals
+        x = MPolynomial.variables(self.width, a.field)
+        one = MPolynomial.constant(a.field.one())
+        zero = MPolynomial.zero()
+
+        constraints = []
+
+
+        # polynomials += [(permutation * \
+        #                     ( alpha \
+        #                         - a * address  \
+        #                         - b * current_instruction \
+        #                         - c * next_instruction ) \
+        #                 - permutation_next) * current_instruction]
+        constraints += [x[InstructionExtension.current_instruction]]
+
+        # polynomials += [ifnewaddress *
+        #         (
+        #             evaluation * eta
+        #             + a * address_next
+        #             + b * current_instruction_next
+        #             + c * next_instruction_next
+        #             - evaluation_next
+        #         )
+        #         + ifoldaddress *
+        #         (
+        #             evaluation - evaluation_next
+        #         )]
+        constraints += [x[InstructionExtension.evaluation] - MPolynomial.constant(evaluation_terminal)]
+
+        return constraints

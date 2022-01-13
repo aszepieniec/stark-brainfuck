@@ -4,8 +4,8 @@ from processor_table import ProcessorTable
 class MemoryTable(Table):
     # name columns
     cycle = 0
-    address = 1
-    value = 2
+    memory_pointer = 1
+    memory_value = 2
 
     def __init__(self, field):
         super(MemoryTable, self).__init__(field, 3)
@@ -16,8 +16,8 @@ class MemoryTable(Table):
             current_cycle += 1
             new_row = [self.field.zero()] * self.width
             new_row[MemoryTable.cycle] = padded_processor_table.table[current_cycle][ProcessorTable.cycle]
-            new_row[MemoryTable.address] = padded_processor_table.table[current_cycle][ProcessorTable.memory_pointer]
-            new_row[MemoryTable.value] = padded_processor_table.table[current_cycle][ProcessorTable.memory_value]
+            new_row[MemoryTable.memory_pointer] = padded_processor_table.table[current_cycle][ProcessorTable.memory_pointer]
+            new_row[MemoryTable.memory_value] = padded_processor_table.table[current_cycle][ProcessorTable.memory_value]
             self.table += [new_row]
 
         self.table.sort(key=lambda r: r[1].value)
@@ -60,6 +60,6 @@ class MemoryTable(Table):
         one = MPolynomial.constant(self.field.one())
         zero = MPolynomial.zero()
         return [(0, x[MemoryTable.cycle]),
-                (0, x[MemoryTable.address]),
-                (0, x[MemoryTable.value]), 
+                (0, x[MemoryTable.memory_pointer]),
+                (0, x[MemoryTable.memory_value]), 
                 ]
