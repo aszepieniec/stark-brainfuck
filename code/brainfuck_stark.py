@@ -1,9 +1,13 @@
 from extension_field import ExtensionField
 from fri import *
 from instruction_extension import InstructionExtension
+from instruction_table import InstructionTable
+from io_table import IOTable
 from memory_extension import MemoryExtension
+from memory_table import MemoryTable
 from processor_extension import ProcessorExtension
 from io_extension import IOExtension
+from processor_table import ProcessorTable
 from univariate import *
 from multivariate import *
 from ntt import *
@@ -82,9 +86,9 @@ class BrainfuckStark:
         randomized_trace_length = rounded_trace_length + self.num_randomizers
 
         # infer table lengths (=# rows)
-        log_cycles = 1
-        while (1 << log_cycles) < rounded_trace_length:
-            log_cycles += 1
+        log_time = 1
+        while (1 << log_time) < rounded_trace_length:
+            log_time += 1
         log_input = 1
         while (1 << log_input) < len(input_table.table):
             log_input += 1
@@ -106,16 +110,6 @@ class BrainfuckStark:
         omicron = self.field.primitive_nth_root(
             rounded_trace_length)
 
-        # check numbers for sanity
-        # print(original_trace_length)
-        # print(rounded_trace_length)
-        # print(randomized_trace_length)
-        # print(air_degree)
-        # print(tp_degree)
-        # print(tq_degree)
-        # print(tqd_roundup)
-        # print(fri_domain_length)
-
         # instantiate helper objects
         fri = Fri(generator, omega, fri_domain_length,
                   self.expansion_factor, self.num_colinearity_checks)
@@ -126,23 +120,32 @@ class BrainfuckStark:
         # interpolate with randomization
         randomizer_offset = self.generator^2
         processor_polynomials = processor_table.interpolate(
-            randomizer_offset, omicron, rounded_trace_length, self.num_randomizers)
+            omega, fri_domain_length, self.num_randomizers)
         instruction_polynomials = instruction_table.interpolate(
-            randomizer_offset, omicron, rounded_trace_length, self.num_randomizers)
+            omega, fri_domain_length, self.num_randomizers)
         memory_polynomials = memory_table.interpolate(
-            randomizer_offset, omicron, rounded_trace_length, self.num_randomizers)
+            omega, fri_domain_length, self.num_randomizers)
         input_polynomials = input_table.interpolate(
-            randomizer_offset, omicron, rounded_trace_length, self.num_randomizers)
+            omega, fri_domain_length, self.num_randomizers)
         output_polynomials = output_table.interpolate(
-            randomizer_offset, omicron, rounded_trace_length, self.num_randomizers)
+            omega, fri_domain_length, self.num_randomizers)
 
         base_polynomials = processor_polynomials + instruction_polynomials + memory_polynomials + input_polynomials + output_polynomials
-        base_degree_bounds = [rounded_trace_length + self.num_randomizers - 1] * len(base_polynomials)
+        base_degree_bound = 1
+        while base_degree_bound < rounded_trace_length + self.num_randomizers:
+            base_degree_bound =  base_degree_bound << 1
+        base_degree_bound -= 1
+        base_degree_bounds = [base_degree_bound] * len(base_polynomials)
+
+        # sample randomizer polynomial
+        randomizer_polynomial = Polynomial([self.xfield.sample(os.urandom(
+            3*9)) for i in range(max_degree+1)])
+        randomizer_codeword = fast_coset_evaluate(randomizer_polynomial, self.generator, omega, fri_domain_length)
 
         # commit
         base_codewords = [fast_coset_evaluate(p, self.generator, self.omega, self.fri_domain_length) 
             for p in ([processor_polynomials] + [instruction_polynomials] + [memory_polynomials] + [input_polynomials] + [output_polynomials])]
-        zipped_codeword = zip(base_codewords)
+        zipped_codeword = zip(base_codewords + [randomizer_codeword])
         base_tree = SaltedMerkle(zipped_codeword)
         proof_stream.push(base_tree.root())
 
@@ -174,15 +177,15 @@ class BrainfuckStark:
 
         # interpolate extension columns
         processor_extension_polynomials = processor_extension.interpolate(
-            randomizer_offset, omicron, rounded_trace_length, self.num_randomizers)
+            randomizer_offset, omega, fri_domain_length, self.num_randomizers)
         instruction_extension_polynomials = instruction_extension.interpolate(
-            randomizer_offset, omicron, rounded_trace_length, self.num_randomizers)
+            randomizer_offset, omega, fri_domain_length, self.num_randomizers)
         memory_extension_polynomials = memory_extension.interpolate(
-            randomizer_offset, omicron, rounded_trace_length, self.num_randomizers)
+            randomizer_offset, omega, fri_domain_length, self.num_randomizers)
         input_extension_polynomials = input_extension.interpolate(
-            randomizer_offset, omicron, rounded_trace_length, self.num_randomizers)
+            randomizer_offset, omega, fri_domain_length, self.num_randomizers)
         output_extension_polynomials = output_extension.interpolate(
-            randomizer_offset, omicron, rounded_trace_length, self.num_randomizers)
+            randomizer_offset, omega, fri_domain_length, self.num_randomizers)
 
         # commit to extension polynomials
         extension_codewords = [fast_coset_evaluate(p, generator, omega, fri_domain_length)
@@ -200,9 +203,9 @@ class BrainfuckStark:
         extension_polynomials += memory_extension.boundary_quotients()
         extension_polynomials += input_extension.boundary_quotients()
         extension_polynomials += output_extension.boundary_quotients()
-        extension_degree_bounds += ProcessorExtension.boundary_quotient_degree_bounds(log_cycles)
-        extension_degree_bounds += InstructionExtension.boundary_quotient_degree_bounds(log_cycles)
-        extension_degree_bounds += MemoryExtension.boundary_quotient_degree_bounds(log_cycles)
+        extension_degree_bounds += ProcessorExtension.boundary_quotient_degree_bounds(log_time)
+        extension_degree_bounds += InstructionExtension.boundary_quotient_degree_bounds(log_time)
+        extension_degree_bounds += MemoryExtension.boundary_quotient_degree_bounds(log_time)
         extension_degree_bounds += IOExtension.boundary_quotient_degree_bounds(log_input)
         extension_degree_bounds += IOExtension.boundary_quotient_degree_bounds(log_output)
         # ... transitions ...
@@ -211,9 +214,9 @@ class BrainfuckStark:
         extension_polynomials += memory_extension.transition_quotients()
         extension_polynomials += input_extension.transition_quotients()
         extension_polynomials += output_extension.transition_quotients()
-        extension_degree_bounds += ProcessorExtension.transition_quotient_degree_bounds(log_cycles, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta])
-        extension_degree_bounds += InstructionExtension.transition_quotient_degree_bounds(log_cycles, challenges=[a, b, c, alpha, eta])
-        extension_degree_bounds += MemoryExtension.transition_quotient_degree_bounds(log_cycles, challenges=[d, e, f, beta])
+        extension_degree_bounds += ProcessorExtension.transition_quotient_degree_bounds(log_time, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta])
+        extension_degree_bounds += InstructionExtension.transition_quotient_degree_bounds(log_time, challenges=[a, b, c, alpha, eta])
+        extension_degree_bounds += MemoryExtension.transition_quotient_degree_bounds(log_time, challenges=[d, e, f, beta])
         extension_degree_bounds += IOExtension.transition_quotient_degree_bounds(log_input, challenges=[gamma])
         extension_degree_bounds += IOExtension.transition_quotient_degree_bounds(log_output, challenges=[delta])
         # ... terminal values ...
@@ -222,29 +225,34 @@ class BrainfuckStark:
         extension_polynomials += memory_extension.terminal_quotients(challenges=[d, e, f, beta], terminals=[memory_extension.permutation_terminal])
         extension_polynomials += input_extension.terminal_quotients(challenges=[gamma], terminals=[input_extension.evaluation_terminal])
         extension_polynomials += output_extension.terminal_quotients(challenges=[delta], terminals=[output_extension.evaluation_terminal])
-        extension_degree_bounds += ProcessorExtension.terminal_quotient_degree_bounds(log_cycles, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[processor_extension.instruction_permutation_terminal])
-        extension_degree_bounds += InstructionExtension.terminal_quotient_degree_bounds(log_cycles, challenges=[a, b, c, alpha, eta], terminals=[instruction_extension.permutation_terminal, instruction_extension.evaluation_terminal])
-        extension_degree_bounds += MemoryExtension.terminal_quotient_degree_bounds(log_cycles, challenges=[d, e, f, beta],  terminals=[memory_extension.permutation_terminal])
-        extension_degree_bounds += IOExtension.terminal_quotient_degree_bounds(log_cycles, challenges=[gamma], terminals=[input_extension.evaluation_terminal])
-        extension_degree_bounds += IOExtension.terminal_quotient_degree_bounds(log_cycles, challenges=[delta], terminals=[output_extension.evaluation_terminal])
+        extension_degree_bounds += ProcessorExtension.terminal_quotient_degree_bounds(log_time, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[processor_extension.instruction_permutation_terminal])
+        extension_degree_bounds += InstructionExtension.terminal_quotient_degree_bounds(log_time, challenges=[a, b, c, alpha, eta], terminals=[instruction_extension.permutation_terminal, instruction_extension.evaluation_terminal])
+        extension_degree_bounds += MemoryExtension.terminal_quotient_degree_bounds(log_time, challenges=[d, e, f, beta],  terminals=[memory_extension.permutation_terminal])
+        extension_degree_bounds += IOExtension.terminal_quotient_degree_bounds(log_time, challenges=[gamma], terminals=[input_extension.evaluation_terminal])
+        extension_degree_bounds += IOExtension.terminal_quotient_degree_bounds(log_time, challenges=[delta], terminals=[output_extension.evaluation_terminal])
         # ... and equal initial values
         X = Polynomial([self.xfield.zero(), self.xfield.one()])
         extension_polynomials += [(processor_extension_polynomials[ProcessorExtension.instruction_permutation] -
                         instruction_extension_polynomials[InstructionExtension.permutation]) / (X - self.xfield.one())]
         extension_polynomials += [(processor_extension_polynomials[ProcessorExtension.memory_permutation] -
                         memory_extension_polynomials[MemoryExtension.permutation]) / (X - self.xfield.one())]
-        extension_degree_bounds += [(1 << log_cycles) - 2] * 2
+        extension_degree_bounds += [(1 << log_time) - 2] * 2
         # (don't need to subtract equal values for the io evaluations because they're not randomized)
 
-        # sample randomizer polynomial
-        randomizer_polynomial = Polynomial([self.xfield.sample(os.urandom(
-            3*9)) for i in range(max_degree+1)])
-        randomizer_codeword = fast_coset_evaluate(randomizer_polynomial, self.generator, omega, fri_domain_length)
+        # send terminals
+        proof_stream.push(processor_extension.instruction_permutation_terminal)
+        proof_stream.push(processor_extension.memory_permutation_terminal)
+        proof_stream.push(processor_extension.input_evaluation_terminal)
+        proof_stream.push(processor_extension.output_evaluation_terminal)
+        proof_stream.push(instruction_extension.evaluation)
 
         # get weights for nonlinear combination
         #  - 1 randomizer
-        #  - 2 for every other polynomial
-        weights = self.sample_weights(2*len(extension_polynomials) + 1, proof_stream.prover_fiat_shamir())
+        #  - 2 for every other polynomial (base and extension)
+        num_base_polynomials = ProcessorTable(self.field).width + InstructionTable(self.field).width + MemoryTable(self.field).width + IOTable(self.field).width * 2
+        num_extension_polynomials = ProcessorExtension(self.field).width + InstructionExtension(self.field).width + MemoryExtension(self.field).width + IOExtension(self.field).width * 2 - num_base_polynomials
+        num_randomizer_polynomials = 1
+        weights = self.sample_weights(2*num_base_polynomials + 2*num_extension_polynomials + num_randomizer_polynomials, proof_stream.prover_fiat_shamir())
 
         assert(all(p.degree() <= max_degree for p in extension_polynomials)), "transition quotient degrees do not match with expectation"
 
@@ -275,141 +283,173 @@ class BrainfuckStark:
         # process indices
         duplicated_indices = [i for i in indices] + \
             [(i + self.expansion_factor) %
-             self.fri.domain_length for i in indices]
+             fri.domain_length for i in indices]
         quadrupled_indices = [i for i in duplicated_indices] + [
             (i + (fri.domain_length // 2)) % fri.domain_length for i in duplicated_indices]
         quadrupled_indices.sort()
 
-        # open indicated positions in all the codewords and in both trees
-        for c in base_codewords + extension_codewords + [randomizer_codeword]:
-            for i in quadrupled_indices:
-                proof_stream.push(c[i])
-        paths = [base_tree.open(qi for qi in quadrupled_indices)]
-        proof_stream.push(paths)
+        # open indicated leafs in both trees
+        for i in quadrupled_indices:
+            proof_stream.push(base_tree.leafs[i])
+            proof_stream.push(extension_tree.leafs[i])
+        
+        # authenticate indicated leafs in both trees
+        for i in quadrupled_indices:
+            proof_stream.push(base_tree.open(i))
+            proof_stream.push(extension_tree.open(i))
 
         # the final proof is just the serialized stream
         return proof_stream.serialize()
 
-    def verify(self, proof, transition_constraints, boundary, transition_zerofier_root, proof_stream=None):
-        H = blake2b
+    def verify(self, proof, log_time, program, input_symbols, output_symbols, proof_stream=None):
+         # infer details about computation
+        rounded_trace_length = 1 << log_time
+        randomized_trace_length = rounded_trace_length + self.num_randomizers
+        base_degree_bound = 1
+        while base_degree_bound < rounded_trace_length + self.num_randomizers:
+            base_degree_bound =  base_degree_bound << 1
+        base_degree_bound -= 1
 
-        # infer trace length from boundary conditions
-        original_trace_length = 1 + max(c for c, r, v in boundary)
-        randomized_trace_length = original_trace_length + self.num_randomizers
+        # infer table lengths (=# rows)
+        log_input = 1
+        while (1 << log_input) < len(input_symbols):
+            log_input += 1
+        log_output = 1
+        while (1 << log_output) < len(output_symbols):
+            log_output += 1
+
+        # compute fri domain length
+        air_degree = 10  # TODO verify me
+        tp_degree = air_degree * (randomized_trace_length - 1)
+        tq_degree = tp_degree - (rounded_trace_length - 1)
+        max_degree = BrainfuckStark.roundup_npo2(
+            tq_degree + 1) - 1  # The max degree bound provable by FRI
+        fri_domain_length = (max_degree+1) * self.expansion_factor
+
+        # compute generators
+        generator = self.field.generator()
+        omega = self.field.primitive_nth_root(fri_domain_length)
+        omicron = self.field.primitive_nth_root(
+            rounded_trace_length)
+
+        # instantiate helper objects
+        fri = Fri(generator, omega, fri_domain_length,
+                  self.expansion_factor, self.num_colinearity_checks)
 
         # deserialize with right proof stream
         if proof_stream == None:
             proof_stream = ProofStream()
         proof_stream = proof_stream.deserialize(proof)
 
-        # get Merkle roots of boundary quotient codewords
-        boundary_quotient_roots = []
-        for s in range(self.num_registers):
-            boundary_quotient_roots = boundary_quotient_roots + \
-                [proof_stream.pull()]
+        # get Merkle root of base tables
+        base_root = proof_stream.pull()
 
-        # get Merkle root of randomizer polynomial
-        randomizer_root = proof_stream.pull()
+        # get coefficients for table extensions
+        a, b, c, d, e, f, alpha, beta, gamma, delta, eta = self.sample_weights(11, proof_stream.verifier_fiat_shamir())
+
+        # get terminals
+        processor_instruction_permutation_terminal = proof_stream.pull()
+        processor_memory_permutation_terminal = proof_stream.pull()
+        processor_input_evaluation_terminal = proof_stream.pull()
+        processor_output_evaluation_terminal = proof_stream.pull()
+        instruction_evaluation_terminal = proof_stream.pull()
+
+        # get root of table extensions
+        extension_root = proof_stream.pull()
+
+        # get terminal values
+        processor_instruction_permutation_terminal = proof_stream.pull()
+        processor_memory_permutation = proof_stream.pull()
+        processor_input_evaluation_terminal = proof_stream.pull()
+        processor_output_evaluation_terminal = proof_stream.pull()
+        instruction_evaluation_terminal = proof_stream.pull()
 
         # get weights for nonlinear combination
-        weights = self.sample_weights(1 + 2*len(transition_constraints) + 2*len(
-            self.boundary_interpolants(boundary)), proof_stream.verifier_fiat_shamir())
+        num_base_polynomials = ProcessorTable(self.field).width + InstructionTable(self.field).width + MemoryTable(self.field).width + IOTable(self.field).width * 2
+        num_extension_polynomials = ProcessorExtension(self.field).width + InstructionExtension(self.field).width + MemoryExtension(self.field).width + IOExtension(self.field).width * 2 - num_base_polynomials
+        num_randomizer_polynomials = 1
+        weights = self.sample_weights(2*num_base_polynomials + 2*num_extension_polynomials + num_randomizer_polynomials, proof_stream.verifier_fiat_shamir())
 
         # verify low degree of combination polynomial
         polynomial_values = []
-        verifier_accepts = self.fri.verify(proof_stream, polynomial_values)
+        verifier_verdict = fri.verify(proof_stream, polynomial_values)
         polynomial_values.sort(key=lambda iv: iv[0])
-        if not verifier_accepts:
+        if verifier_verdict == False:
             return False
 
-        indices = [i for i, v in polynomial_values]
-        values = [v for i, v in polynomial_values]
+        indices = [i for i, _ in polynomial_values]
+        values = [v for _, v in polynomial_values]
 
-        # read and verify leafs, which are elements of boundary quotient codewords
+        # process indices
         duplicated_indices = [i for i in indices] + \
             [(i + self.expansion_factor) %
-             self.fri.domain_length for i in indices]
-        duplicated_indices.sort()
-        leafs = []
-        for r in range(len(boundary_quotient_roots)):
-            leafs = leafs + [dict()]
-            for i in duplicated_indices:
-                leafs[r][i] = proof_stream.pull()
-                path = proof_stream.pull()
-                verifier_accepts = verifier_accepts and Merkle.verify(
-                    boundary_quotient_roots[r], i, path, leafs[r][i])
-                if not verifier_accepts:
-                    return False
+             fri.domain_length for i in indices]
+        quadrupled_indices = [i for i in duplicated_indices] + [
+            (i + (fri.domain_length // 2)) % fri.domain_length for i in duplicated_indices]
+        quadrupled_indices.sort()
 
-        # read and verify randomizer leafs
-        randomizer = dict()
-        for i in duplicated_indices:
-            randomizer[i] = proof_stream.pull()
-            path = proof_stream.pull()
-            verifier_accepts = verifier_accepts and Merkle.verify(
-                randomizer_root, i, path, randomizer[i])
-            if not verifier_accepts:
+        # get leafs
+        base_leafs = []
+        extension_leafs = []
+        for _ in quadrupled_indices:
+            base_leafs += [proof_stream.pull()]
+            extension_leafs += [proof_stream.pull()]
+
+        # get authentication paths
+        base_paths = []
+        extension_paths = []
+        for _ in quadrupled_indices:
+            base_paths += [proof_stream.pull()]
+            extension_paths += [proof_stream.pull()]
+
+        # verify authentication paths
+        for qi, (elm, salt), path in zip(quadrupled_indices, base_leafs, base_paths):
+            SaltedMerkle.verify(base_root, qi, salt, path, elm)
+        for qi, (elm, salt), path in zip(quadrupled_indices, extension_leafs, extension_paths):
+            SaltedMerkle.verify(base_root, qi, salt, path, elm)
+
+        # compute degree bounds
+        base_degree_bounds = [base_degree_bound] * num_base_polynomials
+        extension_degree_bounds = []
+
+        extension_degree_bounds += ProcessorExtension.boundary_quotient_degree_bounds(log_time)
+        extension_degree_bounds += InstructionExtension.boundary_quotient_degree_bounds(log_time)
+        extension_degree_bounds += MemoryExtension.boundary_quotient_degree_bounds(log_time)
+        extension_degree_bounds += IOExtension.boundary_quotient_degree_bounds(log_input)
+        extension_degree_bounds += IOExtension.boundary_quotient_degree_bounds(log_output)
+
+        extension_degree_bounds += ProcessorExtension.transition_quotient_degree_bounds(log_time, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta])
+        extension_degree_bounds += InstructionExtension.transition_quotient_degree_bounds(log_time, challenges=[a, b, c, alpha, eta])
+        extension_degree_bounds += MemoryExtension.transition_quotient_degree_bounds(log_time, challenges=[d, e, f, beta])
+        extension_degree_bounds += IOExtension.transition_quotient_degree_bounds(log_input, challenges=[gamma])
+        extension_degree_bounds += IOExtension.transition_quotient_degree_bounds(log_output, challenges=[delta])
+
+        extension_degree_bounds += ProcessorExtension.terminal_quotient_degree_bounds(log_time, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[processor_instruction_permutation_terminal])
+        extension_degree_bounds += InstructionExtension.terminal_quotient_degree_bounds(log_time, challenges=[a, b, c, alpha, eta], terminals=[processor_instruction_permutation_terminal, instruction_evaluation_terminal])
+        extension_degree_bounds += MemoryExtension.terminal_quotient_degree_bounds(log_time, challenges=[d, e, f, beta],  terminals=[processor_memory_permutation_terminal])
+        extension_degree_bounds += IOExtension.terminal_quotient_degree_bounds(log_time, challenges=[gamma], terminals=[processor_input_evaluation_terminal])
+        extension_degree_bounds += IOExtension.terminal_quotient_degree_bounds(log_time, challenges=[delta], terminals=[processor_output_evaluation_terminal])
+
+        extension_degree_bounds += [(1 << log_time) - 2] * 2
+
+        # verify nonlinear combination
+        for pv in polynomial_values:
+
+            sum = self.xfield.zero()
+            for j in range(num_base_polynomials):
+                shiftj = max_degree - base_degree_bounds[j]
+                sum += weights[2*j] * base_leafs[0][j] + weights[2*j+1] * base_leafs[0][j] * (omega^shiftj)
+            for j in range(num_randomizer_polynomials):
+                sum += weights[2*num_base_polynomials+j] * base_leafs[0][2*num_base_polynomials+j]
+            for j in range(num_extension_polynomials):
+                shiftj = max_degree - extension_degree_bounds[j]
+                sum += weights[2*num_base_polynomials + num_randomizer_polynomials + 2*j] * extension_leafs[0][j] + weights[2*num_base_polynomials + num_randomizer_polynomials + 2*j+1] * extension_leafs[0][j] * (omega^shiftj)
+
+            verifier_verdict = verifier_verdict and (pv == sum)
+            if not verifier_verdict:
                 return False
 
-        # read and verify transition zerofier leafs
-        transition_zerofier = dict()
-        for i in duplicated_indices:
-            transition_zerofier[i] = proof_stream.pull()
-            path = proof_stream.pull()
-            verifier_accepts = verifier_accepts and Merkle.verify(
-                transition_zerofier_root, i, path, transition_zerofier[i])
-            if not verifier_accepts:
-                return False
+        # verify air constraints
+        # TODO
 
-        # verify leafs of combination polynomial
-        for i in range(len(indices)):
-            current_index = indices[i]  # do need i
-
-            # get trace values by applying a correction to the boundary quotient values (which are the leafs)
-            domain_current_index = self.generator * \
-                (self.omega ^ current_index)
-            next_index = (current_index +
-                          self.expansion_factor) % self.fri.domain_length
-            domain_next_index = self.generator * (self.omega ^ next_index)
-            current_trace = [self.field.zero()
-                             for s in range(self.num_registers)]
-            next_trace = [self.field.zero() for s in range(self.num_registers)]
-            for s in range(self.num_registers):
-                zerofier = self.boundary_zerofiers(boundary)[s]
-                interpolant = self.boundary_interpolants(boundary)[s]
-
-                current_trace[s] = leafs[s][current_index] * zerofier.evaluate(
-                    domain_current_index) + interpolant.evaluate(domain_current_index)
-                next_trace[s] = leafs[s][next_index] * zerofier.evaluate(
-                    domain_next_index) + interpolant.evaluate(domain_next_index)
-
-            point = [domain_current_index] + current_trace + next_trace
-            transition_constraints_values = [transition_constraints[s].evaluate(
-                point) for s in range(len(transition_constraints))]
-
-            # compute nonlinear combination
-            counter = 0
-            terms = []
-            terms += [randomizer[current_index]]
-            for s in range(len(transition_constraints_values)):
-                tcv = transition_constraints_values[s]
-                quotient = tcv / transition_zerofier[current_index]
-                terms += [quotient]
-                shift = self.max_degree(
-                    transition_constraints) - self.transition_quotient_degree_bounds(transition_constraints)[s]
-                terms += [quotient * (domain_current_index ^ shift)]
-            for s in range(self.num_registers):
-                bqv = leafs[s][current_index]  # boundary quotient value
-                terms += [bqv]
-                shift = self.max_degree(
-                    transition_constraints) - self.boundary_quotient_degree_bounds(randomized_trace_length, boundary)[s]
-                terms += [bqv * (domain_current_index ^ shift)]
-            combination = reduce(
-                lambda a, b: a+b, [terms[j] * weights[j] for j in range(len(terms))], self.field.zero())
-
-            # verify against combination polynomial value
-            verifier_accepts = verifier_accepts and (combination == values[i])
-            if not verifier_accepts:
-                return False
-
-        return verifier_accepts
+        return verifier_verdict
