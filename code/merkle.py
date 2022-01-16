@@ -50,6 +50,7 @@ class SaltedMerkle:
             index >>= 1
         return (salt, authentication_path)
 
+    @staticmethod
     def verify(root, index, salt, path, element):
         running_hash = blake2b(bytes(element) + bytes(salt)).digest()
         for node in path:
