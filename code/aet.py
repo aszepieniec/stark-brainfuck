@@ -3,6 +3,7 @@ from multivariate import *
 from ntt import *
 import os
 
+
 class Table:
     def __init__(self, field, width):
         self.field = field
@@ -45,24 +46,31 @@ class Table:
                 assert(mpo.evaluate(point).is_zero(
                 )), f"TRNASITION constraint {i} not satisfied in row {rowidx}; point: {[str(p) for p in point]}; polynomial {str(mpo.partial_evaluate({1: point[1]}))} evaluates to {str(mpo.evaluate(point))}"
 
-    def interpolate( self, omega, order, num_randomizers ):
+    def interpolate(self, omega, order, num_randomizers):
         return self.interpolate_columns(omega, order, num_randomizers, columns=range(self.width))
 
-    def interpolate_columns( self, omega, order, num_randomizers, columns ):
+    def interpolate_columns(self, omega, order, num_randomizers, columns):
         num_rows = len(self.table)
+        assert(num_rows & (num_rows - 1) ==
+               0), f"num_rows has value {num_rows} but must be a power of two"
         self.domain_length = 1
         self.omicron = omega
         while self.domain_length < num_rows + num_randomizers:
             self.domain_length = self.domain_length << 1
+
+        assert(self.domain_length >=
+               num_rows), "domain length must be at least twice as large as number of rows"
+
         while order > self.domain_length:
-            self.omicron = self.omicron^2
+            self.omicron = self.omicron ^ 2
             order = order / 2
 
         polynomials = []
         for i in columns:
-            trace = [self.field.sample(os.urandom(8)) for j in range(self.domain_length)]
+            trace = [self.field.sample(os.urandom(8))
+                     for j in range(self.domain_length)]
             for j in range(num_rows):
-                trace[2*j] = self.table[i][j]
+                trace[2*j] = self.table[j][i]
             polynomials += [intt(self.omicron, trace)]
 
         self.polynomials = polynomials

@@ -1,3 +1,4 @@
+from email.mime import base
 from extension_field import ExtensionField
 from fri import *
 from instruction_extension import InstructionExtension
@@ -18,10 +19,11 @@ from vm import VirtualMachine
 
 
 class BrainfuckStark:
-    def __init__(self):
+    def __init__(self, generator, extension_field):
         # set parameters
-        self.field = BaseField.main()
-        self.xfield = ExtensionField.main()
+        self.field = generator.field
+        self.generator = generator
+        self.xfield = extension_field
         self.expansion_factor = 16
         self.num_colinearity_checks = 40
         self.security_level = 160
@@ -117,6 +119,11 @@ class BrainfuckStark:
         if proof_stream == None:
             proof_stream = ProofStream()
 
+        # pad tables
+        processor_table.pad()
+        instruction_table.pad()
+        memory_table.pad(processor_table)
+
         # interpolate with randomization
         randomizer_offset = self.generator ^ 2
         processor_polynomials = processor_table.interpolate(
@@ -142,11 +149,13 @@ class BrainfuckStark:
         randomizer_polynomial = Polynomial([self.xfield.sample(os.urandom(
             3*9)) for i in range(max_degree+1)])
         randomizer_codeword = fast_coset_evaluate(
-            randomizer_polynomial, self.generator, omega, fri_domain_length)
+            randomizer_polynomial, self.xfield.lift(self.generator), self.xfield.lift(omega), fri_domain_length)
 
         # commit
-        base_codewords = [fast_coset_evaluate(p, self.generator, self.omega, self.fri_domain_length)
+        base_codewords = [fast_coset_evaluate(p, self.generator, omega, fri_domain_length)
                           for p in ([processor_polynomials] + [instruction_polynomials] + [memory_polynomials] + [input_polynomials] + [output_polynomials])]
+        base_codewords = [
+            [self.xfield.lift(c) for c in cdwd] for cdwd in base_codewords]
         zipped_codeword = zip(base_codewords + [randomizer_codeword])
         base_tree = SaltedMerkle(zipped_codeword)
         proof_stream.push(base_tree.root())
