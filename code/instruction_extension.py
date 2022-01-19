@@ -27,6 +27,16 @@ class InstructionExtension(TableExtension):
         self.challenges = [a, b, c, alpha, eta]
 
     @staticmethod
+    def prepare_verify(log_num_rows, challenges, terminals):
+        a, b, c, alpha, eta = challenges
+        instruction_extension = InstructionExtension(a, b, c, alpha, eta)
+        instruction_extension.permutation_terminal = terminals[0]
+        instruction_extension.evaluation_terminal = terminals[1]
+        instruction_extension.terminals = terminals
+        instruction_extension.log_num_rows = log_num_rows
+        return instruction_extension
+
+    @staticmethod
     def extend(instruction_table, program, a, b, c, alpha, eta):
         # algebra stuff
         field = instruction_table.field
@@ -74,7 +84,8 @@ class InstructionExtension(TableExtension):
 
         extended_instruction_table.permutation_terminal = permutation_running_product
         extended_instruction_table.evaluation_terminal = evaluation_running_sum
-        extended_instruction_table.terminals = [permutation_running_product, evaluation_running_sum]
+        extended_instruction_table.terminals = [
+            permutation_running_product, evaluation_running_sum]
 
         return extended_instruction_table
 
@@ -87,13 +98,14 @@ class InstructionExtension(TableExtension):
         polynomials = InstructionTable.transition_constraints_afo_named_variables(
             address, current_instruction, next_instruction, address_next, current_instruction_next, next_instruction_next)
 
-        assert(len(polynomials) == 3), f"expected to inherit 3 polynomials from ancestor but got {len(polynomials)}"
+        assert(len(polynomials) ==
+               3), f"expected to inherit 3 polynomials from ancestor but got {len(polynomials)}"
 
-        polynomials += [(permutation * \
-                            ( alpha \
-                                - a * address  \
-                                - b * current_instruction \
-                                - c * next_instruction ) \
+        polynomials += [(permutation *
+                         (alpha
+                          - a * address
+                          - b * current_instruction
+                          - c * next_instruction)
                         - permutation_next) * current_instruction]
 
         ifnewaddress = address_next - address
@@ -133,7 +145,6 @@ class InstructionExtension(TableExtension):
 
         constraints = []
 
-
         # polynomials += [(permutation * \
         #                     ( alpha \
         #                         - a * address  \
@@ -154,6 +165,7 @@ class InstructionExtension(TableExtension):
         #         (
         #             evaluation - evaluation_next
         #         )]
-        constraints += [x[InstructionExtension.evaluation] - MPolynomial.constant(evaluation_terminal)]
+        constraints += [x[InstructionExtension.evaluation] -
+                        MPolynomial.constant(evaluation_terminal)]
 
         return constraints

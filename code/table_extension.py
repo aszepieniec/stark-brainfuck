@@ -2,13 +2,14 @@ from abc import abstractmethod
 from aet import Table
 from univariate import Polynomial
 
+
 class TableExtension(Table):
-    def __init__( self, xfield, original_width, width ):
+    def __init__(self, xfield, original_width, width):
         super().__init__(xfield, width)
         self.original_width = original_width
         self.xfield = xfield
 
-    def interpolate_extension( self, omega, order, num_randomizers ):
+    def interpolate_extension(self, omega, order, num_randomizers):
         return self.interpolate_columns(omega, order, num_randomizers, range(self.original_width, self.width))
 
     @abstractmethod
@@ -29,21 +30,24 @@ class TableExtension(Table):
         return composition_degree - 1
 
     @abstractmethod
-    def transition_constraints_ext( self, challenges ):
+    def transition_constraints_ext(self, challenges):
         pass
 
-    def transition_quotients( self, challenges ):
+    def transition_quotients(self, challenges):
         quotients = []
         X = Polynomial([self.xfield.zero(), self.xfield.one()])
         for mpo in self.transition_constraints(challenges):
-            point = self.polynomials + [p.scale(self.omicron) for p in self.polynomials]
+            point = self.polynomials + \
+                [p.scale(self.omicron) for p in self.polynomials]
             composition_polynomial = mpo.symbolic_evaluate(point)
-            quotient = composition_polynomial * (X - self.omicron.inverse()) / (X^self.domain_length - 1)
+            quotient = composition_polynomial * \
+                (X - self.omicron.inverse()) / (X ^ self.domain_length - 1)
             quotients += [quotient]
         return quotients
 
     def transition_quotient_degree_bounds(self, log_num_rows, challenges):
-        air_degree = max(air.degree() for air in self.transition_constraints(challenges))
+        air_degree = max(air.degree()
+                         for air in self.transition_constraints(challenges))
         composition_degree = ((1 << log_num_rows) - 1) * air_degree
         return composition_degree + 1 - (1 << log_num_rows)
 
@@ -51,18 +55,60 @@ class TableExtension(Table):
     def terminal_constraints_ext(self, challenges, terminals):
         pass
 
-    def terminal_quotients( self, challenges, terminals ):
+    def terminal_quotients(self, challenges, terminals):
         quotients = []
         X = Polynomial([self.xfield.zero(), self.xfield.one()])
         for mpo in self.terminal_constraints(challenges, terminals):
-            quotient = mpo.symbolic_evaluate(self.polynomials) / (X - Polynomial([self.omicron.inverse()]))
+            quotient = mpo.symbolic_evaluate(
+                self.polynomials) / (X - Polynomial([self.omicron.inverse()]))
             quotients += [quotient]
         return quotients
-    
+
     def terminal_quotient_degree_bounds(self, log_num_rows, challenges, terminals):
         degree = (1 << log_num_rows) - 1
-        air_degree = max(tc.degree() for tc in self.terminal_constraints(challenges, terminals))
+        air_degree = max(tc.degree()
+                         for tc in self.terminal_constraints())
         return air_degree * degree - 1
+
+    def all_quotients(self, log_num_rows, challenges, terminals):
+        return self.boundary_quotients() + self.transition_quotients() + self.terminal_quotients(log_num_rows, challenges, terminals)
+
+    def all_quotient_degree_bounds(self):
+        return self.boundary_quotient_degree_bounds() + self.transition_quotient_degree_bounds() + self.terminal_quotient_degree_bounds()
+
+    def num_quotients(self):
+        return len(self.all_quotient_degree_bounds())
+
+    def evaluate_boundary_quotients(self, omicron, omegai, point):
+        values = []
+        for cycle, mpo in self.boundary_constraints_ext():
+            values += mpo.evaluate(point) / (omegai - (omicron ^ cycle))
+        return values
+
+    def evaluate_transition_quotients(self, omicron, omegai, point, shifted_point, log_num_rows, challenges):
+        values = []
+        zerofier = (omegai ^ (1 << log_num_rows) - 1) / \
+            (omegai - omicron.inverse())
+        for mpo in self.transition_constraints_ext(challenges):
+            values += [mpo.evaluate(point + shifted_point) / zerofier]
+        return values
+
+    def evaluate_terminal_quotients(self, omicron, omegai, point, shifted_point, challenges, terminals):
+        values = []
+        zerofier = omegai - omicron.inverse()
+        for mpo in self.terminal_constraints_ext(challenges, terminals):
+            values += [mpo.evaluate(point+shifted_point) / zerofier]
+        return values
+
+    def evaluate_quotients(self, omicron, omegai, point, shifted_point):
+        return self.evaluate_boundary_quotients(omicron, omegai, point) \
+            + self.evaluate_transition_quotients(omicron, omegai, point, shifted_point, self.log_num_rows, self.challenges) \
+            + self.evaluate_terminal_quotients(omicron,
+                                               point, self.log_num_rows, self.challenges, self.terminals)
+
+    @staticmethod
+    def prepare_verify(log_num_rows, challenges, terminals):
+        pass
 
     def test(self):
         for i in range(len(self.boundary_constraints_ext())):
@@ -72,7 +118,8 @@ class TableExtension(Table):
                 assert(mpo.evaluate(point).is_zero(
                 )), f"BOUNDARY constraint {i} not satisfied; point: {[str(p) for p in point]}; polynomial {str(mpo)} evaluates to {str(mpo.evaluate(point))}"
 
-        transition_constraints = self.transition_constraints_ext(self.challenges)
+        transition_constraints = self.transition_constraints_ext(
+            self.challenges)
         for i in range(len(transition_constraints)):
             mpo = transition_constraints[i]
             for rowidx in range(self.nrows()-1):
@@ -84,9 +131,11 @@ class TableExtension(Table):
                 assert(mpo.evaluate(point).is_zero(
                 )), f"TRNASITION constraint {i} not satisfied in row {rowidx}; point: {[str(p) for p in point]}; polynomial {str(mpo.partial_evaluate({1: point[1]}))} evaluates to {str(mpo.evaluate(point))}"
 
-        terminal_constraints = self.terminal_constraints_ext(self.challenges, self.terminals)
+        terminal_constraints = self.terminal_constraints_ext(
+            self.challenges, self.terminals)
         if len(self.table) != 0:
             for i in range(len(terminal_constraints)):
                 mpo = terminal_constraints[i]
                 point = self.table[-1]
-                assert(mpo.evaluate(point).is_zero()), f"TERMINAL constraint {i} not satisfied; point: {[str(p) for p in point]}; polynomial {str(mpo)} evaluates to {str(mpo.evaluate(point))}"
+                assert(mpo.evaluate(point).is_zero(
+                )), f"TERMINAL constraint {i} not satisfied; point: {[str(p) for p in point]}; polynomial {str(mpo)} evaluates to {str(mpo.evaluate(point))}"

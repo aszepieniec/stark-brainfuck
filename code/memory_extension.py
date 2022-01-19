@@ -26,6 +26,15 @@ class MemoryExtension(TableExtension):
         self.challenges = [d, e, f, beta]
 
     @staticmethod
+    def prepare_verify(log_num_rows, challenges, terminals):
+        d, e, f, beta = challenges
+        memory_extension = MemoryExtension(d, e, f, beta)
+        memory_extension.permutation_terminal = terminals[0]
+        memory_extension.log_num_rows = log_num_rows
+        memory_extension.terminals = terminals
+        return memory_extension
+
+    @staticmethod
     def extend(memory_table, d, e, f, beta):
 
         # algebra stuff
@@ -86,7 +95,7 @@ class MemoryExtension(TableExtension):
                 (0, x[MemoryExtension.permutation] - one),   # permutation
                 ]
 
-    def interpolate_extension( self, omega, order, num_randomizers ):
+    def interpolate_extension(self, omega, order, num_randomizers):
         return self.interpolate_columns(omega, order, num_randomizers, range(MemoryTable.memory_value, self.width))
 
     def terminal_constraints_ext(self, challenges, terminals):

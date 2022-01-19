@@ -16,7 +16,15 @@ class IOExtension(TableExtension):
 
         self.width = 1+1
 
-        self.evaluation_terminal = self.field.zero() # initial value
+        self.evaluation_terminal = self.field.zero()  # initial value
+
+    @staticmethod
+    def prepare_verify(log_num_rows, challenges, terminals):
+        io_extension = IOExtension(challenges[0])
+        io_extension.evaluation_terminal = terminals[0]
+        io_extension.log_num_rows = log_num_rows
+        io_extension.terminals = terminals
+        return io_extension
 
     @staticmethod
     def extend(io_table, gamma):
@@ -74,4 +82,3 @@ class IOExtension(TableExtension):
         # polynomials += [evaluation * gamma + input_ - evaluation_next]
 
         return [x[IOExtension.evaluation] * gamma + x[IOTable.column] - evaluation_terminal]
-     

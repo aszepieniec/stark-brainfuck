@@ -19,7 +19,7 @@ class ProcessorExtension(TableExtension):
     output_evaluation = 10
 
     def __init__(self, a, b, c, d, e, f, alpha, beta, gamma, delta):
-        super(ProcessorExtension,self).__init__(a.field, 7, 11)
+        super(ProcessorExtension, self).__init__(a.field, 7, 11)
         field = a.field
 
         # terminal values (placeholders)
@@ -42,6 +42,19 @@ class ProcessorExtension(TableExtension):
         self.challenges = [a, b, c, d, e, f, alpha, beta, gamma, delta]
 
         self.width = 7 + 4
+
+    @staticmethod
+    def prepare_verify(log_num_rows, challenges, terminals):
+        a, b, c, d, e, f, alpha, beta, gamma, delta = challenges
+        processor_extension = ProcessorExtension(
+            a, b, c, d, e, f, alpha, beta, gamma, delta)
+        processor_extension.instruction_permutation_terminal = terminals[0]
+        processor_extension.memory_permutation_terminal = terminals[1]
+        processor_extension.input_evaluation_terminal = terminals[2]
+        processor_extension.output_evaluation_terminal = terminals[3]
+        processor_extension.log_num_rows = log_num_rows
+        processor_extension.terminals = terminals
+        return processor_extension
 
     @staticmethod
     def extend(processor_table, a, b, c, d, e, f, alpha, beta, gamma, delta):
@@ -106,7 +119,8 @@ class ProcessorExtension(TableExtension):
         extended_processor_table.memory_permutation_terminal = memory_permutation_running_product
         extended_processor_table.input_evaluation_terminal = input_evaluation_running_evaluation
         extended_processor_table.output_evaluation_terminal = output_evaluation_running_evaluation
-        extended_processor_table.terminals = [instruction_permutation_running_product, memory_permutation_running_product, input_evaluation_running_evaluation, output_evaluation_running_evaluation]
+        extended_processor_table.terminals = [instruction_permutation_running_product,
+                                              memory_permutation_running_product, input_evaluation_running_evaluation, output_evaluation_running_evaluation]
 
         return extended_processor_table
 
@@ -137,7 +151,7 @@ class ProcessorExtension(TableExtension):
 
         # base AIR polynomials
         polynomials = ProcessorTable.transition_constraints_afo_named_variables(cycle, instruction_pointer, current_instruction, next_instruction, memory_pointer, memory_value,
-                                                                      is_zero, cycle_next, instruction_pointer_next, current_instruction_next, next_instruction_next, memory_pointer_next, memory_value_next, is_zero_next)
+                                                                                is_zero, cycle_next, instruction_pointer_next, current_instruction_next, next_instruction_next, memory_pointer_next, memory_value_next, is_zero_next)
 
         assert(len(polynomials) ==
                6), f"expected to have 6 transition constraint polynomials, but have {len(polynomials)}"
@@ -182,11 +196,12 @@ class ProcessorExtension(TableExtension):
                        ]
         return constraints
 
-    def interpolate_extension( self, omega, order, num_randomizers ):
+    def interpolate_extension(self, omega, order, num_randomizers):
         return self.interpolate_columns(omega, order, num_randomizers, range(ProcessorTable.is_zero, self.width))
-    
+
     def terminal_constraints_ext(self, challenges, terminals):
-        a, b, c, d, e, f, alpha, beta, gamma, delta = [MPolynomial.constant(c) for c in challenges]
+        a, b, c, d, e, f, alpha, beta, gamma, delta = [
+            MPolynomial.constant(c) for c in challenges]
         x = MPolynomial.variables(self.width, self.field)
         airs = []
 
@@ -204,19 +219,21 @@ class ProcessorExtension(TableExtension):
         #                 (self.beta - self.d * cycle
         #                  - self.e * memory_pointer - self.f * memory_value)
         #                 - memory_permutation_next]
-        airs += [MPolynomial.constant(terminals[1]) - x[ProcessorExtension.memory_permutation] * (beta - d * x[ProcessorTable.cycle] - e * x[ProcessorTable.memory_pointer] - f * x[ProcessorTable.memory_value])]
-
+        airs += [MPolynomial.constant(terminals[1]) - x[ProcessorExtension.memory_permutation] * (
+            beta - d * x[ProcessorTable.cycle] - e * x[ProcessorTable.memory_pointer] - f * x[ProcessorTable.memory_value])]
 
         # running evaluation for input
         # polynomials += [(input_evaluation_next \
         #                   - input_evaluation * self.gamma \
         #                   - memory_value) * ProcessorTable.ifnot_instruction(',', current_instruction) * current_instruction \
         #               + (input_evaluation_next - input_evaluation) * ProcessorTable.if_instruction(',', current_instruction)]
-        airs += [MPolynomial.constant(terminals[2]) - x[ProcessorExtension.input_evaluation]]
+        airs += [MPolynomial.constant(terminals[2]) -
+                 x[ProcessorExtension.input_evaluation]]
 
         # running evaluation for output
         # polynomials += [(output_evaluation_next - output_evaluation * self.delta - memory_value) * ProcessorTable.ifnot_instruction(
         #     '.', current_instruction) * current_instruction + (output_evaluation_next - output_evaluation) * ProcessorTable.if_instruction('.', current_instruction)]
-        airs += [MPolynomial.constant(terminals[3]) - x[ProcessorExtension.output_evaluation]]
-        
+        airs += [MPolynomial.constant(terminals[3]) -
+                 x[ProcessorExtension.output_evaluation]]
+
         return airs

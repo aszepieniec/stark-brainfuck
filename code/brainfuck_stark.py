@@ -198,79 +198,27 @@ class BrainfuckStark:
         proof_stream.push(extension_tree.root())
 
         # gather polynomials derived from generalized AIR constraints relating to boundary, transition, and terminals
-        extension_polynomials = []
-        extension_degree_bounds = []
-        extension_polynomials += processor_extension.boundary_quotients()
-        extension_polynomials += processor_extension.transition_quotients()
-        extension_polynomials += processor_extension.terminal_quotients(
-            challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[processor_extension.instruction_permutation_terminal])
+        quotient_polynomials = []
+        quotient_polynomials += processor_extension.all_quotients()
+        quotient_polynomials += instruction_extension.all_quotients()
+        quotient_polynomials += memory_extension.all_quotients()
+        quotient_polynomials += input_extension.all_quotients()
+        quotient_polynomials += output_extension.all_quotients()
 
-        extension_polynomials += instruction_extension.boundary_quotients()
-        extension_polynomials += instruction_extension.transition_quotients()
-        extension_polynomials += instruction_extension.terminal_quotients(
-            challenges=[a, b, c, alpha, eta],
-            terminals=[instruction_extension.permutation_terminal, instruction_extension.evaluation_terminal])
-
-        extension_polynomials += memory_extension.boundary_quotients()
-        extension_polynomials += memory_extension.transition_quotients()
-        extension_polynomials += memory_extension.terminal_quotients(
-            challenges=[d, e, f, beta], terminals=[memory_extension.permutation_terminal])
-
-        extension_polynomials += input_extension.boundary_quotients()
-        extension_polynomials += input_extension.transition_quotients()
-        extension_polynomials += input_extension.terminal_quotients(
-            challenges=[gamma], terminals=[input_extension.evaluation_terminal])
-
-        extension_polynomials += output_extension.boundary_quotients()
-        extension_polynomials += output_extension.transition_quotients()
-        extension_polynomials += output_extension.terminal_quotients(
-            challenges=[delta], terminals=[output_extension.evaluation_terminal])
-
-        extension_degree_bounds += ProcessorExtension.boundary_quotient_degree_bounds(
-            log_time)
-        extension_degree_bounds += ProcessorExtension.transition_quotient_degree_bounds(
-            log_time, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta])
-        extension_degree_bounds += ProcessorExtension.terminal_quotient_degree_bounds(
-            log_time,
-            challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta],
-            terminals=[processor_extension.instruction_permutation_terminal])
-
-        extension_degree_bounds += InstructionExtension.boundary_quotient_degree_bounds(
-            log_time)
-        extension_degree_bounds += InstructionExtension.transition_quotient_degree_bounds(
-            log_time, challenges=[a, b, c, alpha, eta])
-        extension_degree_bounds += InstructionExtension.terminal_quotient_degree_bounds(
-            log_time, challenges=[a, b, c, alpha, eta],
-            terminals=[instruction_extension.permutation_terminal, instruction_extension.evaluation_terminal])
-
-        extension_degree_bounds += MemoryExtension.boundary_quotient_degree_bounds(
-            log_time)
-        extension_degree_bounds += MemoryExtension.transition_quotient_degree_bounds(
-            log_time, challenges=[d, e, f, beta])
-        extension_degree_bounds += MemoryExtension.terminal_quotient_degree_bounds(
-            log_time, challenges=[d, e, f, beta],  terminals=[memory_extension.permutation_terminal])
-
-        extension_degree_bounds += IOExtension.boundary_quotient_degree_bounds(
-            log_input)
-        extension_degree_bounds += IOExtension.transition_quotient_degree_bounds(
-            log_input, challenges=[gamma])
-        extension_degree_bounds += IOExtension.terminal_quotient_degree_bounds(
-            log_time, challenges=[gamma], terminals=[input_extension.evaluation_terminal])
-
-        extension_degree_bounds += IOExtension.boundary_quotient_degree_bounds(
-            log_output)
-        extension_degree_bounds += IOExtension.transition_quotient_degree_bounds(
-            log_output, challenges=[delta])
-        extension_degree_bounds += IOExtension.terminal_quotient_degree_bounds(
-            log_time, challenges=[delta], terminals=[output_extension.evaluation_terminal])
+        quotient_degree_bounds = []
+        quotient_degree_bounds += processor_extension.all_quotient_degree_bounds()
+        quotient_degree_bounds += instruction_extension.all_quotient_degree_bounds()
+        quotient_degree_bounds += memory_extension.all_quotient_degree_bounds()
+        quotient_degree_bounds += input_extension.all_quotient_degree_bounds()
+        quotient_degree_bounds += output_extension.all_quotient_degree_bounds()
 
         # ... and equal initial values
         X = Polynomial([self.xfield.zero(), self.xfield.one()])
-        extension_polynomials += [(processor_extension_polynomials[ProcessorExtension.instruction_permutation] -
-                                   instruction_extension_polynomials[InstructionExtension.permutation]) / (X - self.xfield.one())]
-        extension_polynomials += [(processor_extension_polynomials[ProcessorExtension.memory_permutation] -
-                                   memory_extension_polynomials[MemoryExtension.permutation]) / (X - self.xfield.one())]
-        extension_degree_bounds += [(1 << log_time) - 2] * 2
+        quotient_polynomials += [(processor_extension_polynomials[ProcessorExtension.instruction_permutation] -
+                                  instruction_extension_polynomials[InstructionExtension.permutation]) / (X - self.xfield.one())]
+        quotient_polynomials += [(processor_extension_polynomials[ProcessorExtension.memory_permutation] -
+                                  memory_extension_polynomials[MemoryExtension.permutation]) / (X - self.xfield.one())]
+        quotient_degree_bounds += [(1 << log_time) - 2] * 2
         # (don't need to subtract equal values for the io evaluations because they're not randomized)
 
         # send terminals
@@ -291,7 +239,7 @@ class BrainfuckStark:
         weights = self.sample_weights(2*num_base_polynomials + 2*num_extension_polynomials +
                                       num_randomizer_polynomials, proof_stream.prover_fiat_shamir())
 
-        assert(all(p.degree() <= max_degree for p in extension_polynomials)
+        assert(all(p.degree() <= max_degree for p in quotient_polynomials)
                ), "transition quotient degrees do not match with expectation"
 
         # compute terms of nonlinear combination polynomial
@@ -300,10 +248,10 @@ class BrainfuckStark:
             terms += [base_polynomials[i]]
             shift = max_degree - base_degree_bounds[i]
             terms += [(X ^ shift) * base_polynomials[i]]
-        for i in range(len(extension_polynomials)):
-            terms += [extension_polynomials[i]]
-            shift = max_degree - extension_degree_bounds[i]
-            terms += [(X ^ shift) * extension_polynomials[i]]
+        for i in range(len(quotient_polynomials)):
+            terms += [quotient_polynomials[i]]
+            shift = max_degree - quotient_degree_bounds[i]
+            terms += [(X ^ shift) * quotient_polynomials[i]]
         terms += [randomizer_polynomial]
 
         # take weighted sum
@@ -316,7 +264,7 @@ class BrainfuckStark:
             combination, self.generator, self.omega, self.fri_domain_length)
 
         # prove low degree of combination polynomial, and collect indices
-        indices = self.fri.prove(combined_codeword, proof_stream)
+        indices = fri.prove(combined_codeword, proof_stream)
 
         # process indices
         duplicated_indices = [i for i in indices] + \
@@ -370,7 +318,7 @@ class BrainfuckStark:
         omicron = self.field.primitive_nth_root(
             rounded_trace_length)
 
-        # instantiate helper objects
+        # instantiate subprotocol objects
         fri = Fri(generator, omega, fri_domain_length,
                   self.expansion_factor, self.num_colinearity_checks)
 
@@ -393,22 +341,38 @@ class BrainfuckStark:
         processor_output_evaluation_terminal = proof_stream.pull()
         instruction_evaluation_terminal = proof_stream.pull()
 
-        # get root of table extensions
-        extension_root = proof_stream.pull()
+        # get root of table extensions and quotients
+        second_root = proof_stream.pull()
 
         # get terminal values
         processor_instruction_permutation_terminal = proof_stream.pull()
-        processor_memory_permutation = proof_stream.pull()
+        processor_memory_permutation_terminal = proof_stream.pull()
         processor_input_evaluation_terminal = proof_stream.pull()
         processor_output_evaluation_terminal = proof_stream.pull()
         instruction_evaluation_terminal = proof_stream.pull()
 
+        # prepare to verify tables
+        processor_extension = ProcessorExtension.prepare_verify(log_time, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[
+                                                                processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal])
+        instruction_extension = InstructionExtension.prepare_verify(log_time, challenges=[a, b, c, alpha, eta], terminals=[
+                                                                    processor_instruction_permutation_terminal, instruction_evaluation_terminal])
+        memory_extension = MemoryExtension.prepare_verify(log_time, challenges=[
+                                                          d, e, f, beta], terminals=[processor_memory_permutation_terminal])
+        input_extension = IOExtension.prepare_verify(
+            log_input, challenges=[gamma], terminals=[processor_input_evaluation_terminal])
+        output_extension = IOExtension.prepare_verify(
+            log_output, challenges=[delta], terminals=[processor_output_evaluation_terminal])
+
         # get weights for nonlinear combination
         num_base_polynomials = ProcessorTable(self.field).width + InstructionTable(
             self.field).width + MemoryTable(self.field).width + IOTable(self.field).width * 2
-        num_extension_polynomials = ProcessorExtension(self.field).width + InstructionExtension(
-            self.field).width + MemoryExtension(self.field).width + IOExtension(self.field).width * 2 - num_base_polynomials
         num_randomizer_polynomials = 1
+        num_extension_polynomials = processor_extension.width + instruction_extension.width + \
+            memory_extension.width + input_extension.width + \
+            output_extension.width - num_base_polynomials
+        num_quotient_polynomials = processor_extension.num_quotients() + instruction_extension.num_quotients() + \
+            memory_extension.num_quotients() + input_extension.num_quotients() + \
+            output_extension.num_quotients()
         weights = self.sample_weights(2*num_base_polynomials + 2*num_extension_polynomials +
                                       num_randomizer_polynomials, proof_stream.verifier_fiat_shamir())
 
@@ -432,62 +396,37 @@ class BrainfuckStark:
 
         # get leafs
         base_leafs = []
-        extension_leafs = []
+        secondary_leafs = []
         for _ in quadrupled_indices:
             base_leafs += [proof_stream.pull()]
-            extension_leafs += [proof_stream.pull()]
+            secondary_leafs += [proof_stream.pull()]
 
         # get authentication paths
         base_paths = []
-        extension_paths = []
+        secondary_paths = []
         for _ in quadrupled_indices:
             base_paths += [proof_stream.pull()]
-            extension_paths += [proof_stream.pull()]
+            secondary_paths += [proof_stream.pull()]
 
         # verify authentication paths
         for qi, (elm, salt), path in zip(quadrupled_indices, base_leafs, base_paths):
             SaltedMerkle.verify(base_root, qi, salt, path, elm)
-        for qi, (elm, salt), path in zip(quadrupled_indices, extension_leafs, extension_paths):
+        for qi, (elm, salt), path in zip(quadrupled_indices, secondary_leafs, secondary_paths):
             SaltedMerkle.verify(base_root, qi, salt, path, elm)
 
         # compute degree bounds
         base_degree_bounds = [base_degree_bound] * num_base_polynomials
-        extension_degree_bounds = []
+        extension_degree_bounds = [
+            base_degree_bound] * num_extension_polynomials
+        quotient_degree_bounds = []
 
-        extension_degree_bounds += ProcessorExtension.boundary_quotient_degree_bounds(
-            log_time)
-        extension_degree_bounds += InstructionExtension.boundary_quotient_degree_bounds(
-            log_time)
-        extension_degree_bounds += MemoryExtension.boundary_quotient_degree_bounds(
-            log_time)
-        extension_degree_bounds += IOExtension.boundary_quotient_degree_bounds(
-            log_input)
-        extension_degree_bounds += IOExtension.boundary_quotient_degree_bounds(
-            log_output)
+        quotient_degree_bounds += processor_extension.all_quotient_degree_bounds()
+        quotient_degree_bounds += instruction_extension.all_quotient_degree_bounds()
+        quotient_degree_bounds += memory_extension.all_quotient_degree_bounds()
+        quotient_degree_bounds += input_extension.all_quotient_degree_bounds()
+        quotient_degree_bounds += output_extension.all_quotient_degree_bounds()
 
-        extension_degree_bounds += ProcessorExtension.transition_quotient_degree_bounds(
-            log_time, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta])
-        extension_degree_bounds += InstructionExtension.transition_quotient_degree_bounds(
-            log_time, challenges=[a, b, c, alpha, eta])
-        extension_degree_bounds += MemoryExtension.transition_quotient_degree_bounds(
-            log_time, challenges=[d, e, f, beta])
-        extension_degree_bounds += IOExtension.transition_quotient_degree_bounds(
-            log_input, challenges=[gamma])
-        extension_degree_bounds += IOExtension.transition_quotient_degree_bounds(
-            log_output, challenges=[delta])
-
-        extension_degree_bounds += ProcessorExtension.terminal_quotient_degree_bounds(log_time, challenges=[
-                                                                                      a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[processor_instruction_permutation_terminal])
-        extension_degree_bounds += InstructionExtension.terminal_quotient_degree_bounds(log_time, challenges=[
-                                                                                        a, b, c, alpha, eta], terminals=[processor_instruction_permutation_terminal, instruction_evaluation_terminal])
-        extension_degree_bounds += MemoryExtension.terminal_quotient_degree_bounds(
-            log_time, challenges=[d, e, f, beta],  terminals=[processor_memory_permutation_terminal])
-        extension_degree_bounds += IOExtension.terminal_quotient_degree_bounds(
-            log_time, challenges=[gamma], terminals=[processor_input_evaluation_terminal])
-        extension_degree_bounds += IOExtension.terminal_quotient_degree_bounds(
-            log_time, challenges=[delta], terminals=[processor_output_evaluation_terminal])
-
-        extension_degree_bounds += [(1 << log_time) - 2] * 2
+        quotient_degree_bounds += [(1 << log_time) - 2] * 2
 
         # verify nonlinear combination
         for pv in polynomial_values:
@@ -502,9 +441,14 @@ class BrainfuckStark:
                     base_leafs[0][2*num_base_polynomials+j]
             for j in range(num_extension_polynomials):
                 shiftj = max_degree - extension_degree_bounds[j]
-                sum += weights[2*num_base_polynomials + num_randomizer_polynomials + 2*j] * extension_leafs[0][j] + \
+                sum += weights[2*num_base_polynomials + num_randomizer_polynomials + 2*j] * secondary_leafs[0][j] + \
                     weights[2*num_base_polynomials + num_randomizer_polynomials +
-                            2*j+1] * extension_leafs[0][j] * (omega ^ shiftj)
+                            2*j+1] * secondary_leafs[0][j] * (omega ^ shiftj)
+            for j in range(num_quotient_polynomials):
+                shiftj = max_degree - quotient_degree_bounds[j]
+                sum += weights[2*num_base_polynomials + num_randomizer_polynomials + 2*num_extension_polynomials + 2*j] * secondary_leafs[0][num_extension_polynomials+j] + \
+                    weights[2*num_base_polynomials + num_randomizer_polynomials + 2 *
+                            num_extension_polynomials + 2*j + 1] * secondary_leafs[0][num_extension_polynomials+j] * (omega ^ shiftj)
 
             verifier_verdict = verifier_verdict and (pv == sum)
             if not verifier_verdict:
@@ -512,92 +456,55 @@ class BrainfuckStark:
 
         # verify air constraints
         for i in range(len(quadrupled_indices)-1):
-            qi, (base_elm, _), (ext_elm, _) = zip(
-                quadrupled_indices, base_leafs, extension_leafs)[i]
-            qi_next, (base_elm_next, _), (ext_elm_next, _) = zip(
-                quadrupled_indices, base_leafs, extension_leafs)[i+1]
+            qi, (base_elm, _), (sec_elm, _) = zip(
+                quadrupled_indices, base_leafs, secondary_leafs)[i]
+            qi_next, (base_elm_next, _), (sec_elm_next, _) = zip(
+                quadrupled_indices, base_leafs, secondary_leafs)[i+1]
+
             if qi_next == qi + 1:
                 current_index = qi
-                next_index = qi + 1 % rounded_trace_length
 
-                # processor
-                processor_extension = ProcessorExtension(
-                    a, b, c, d, e, f, alpha, beta, gamma, delta)
-                processor_table_indices = range(0, ProcessorTable.width())
-                processor_extension_indices = range(0,
-                                                    ProcessorExtension.width() - ProcessorTable.width())
-                processor_constraints_indices = range(0, len(processor_extension.boundary_constraints_ext())
-                                                      + len(processor_extension.transition_constraints_ext())
-                                                      + len(processor_extension.terminal_constraints_ext()))
-                current_point = base_elm[processor_table_indices] + \
-                    ext_elm[processor_extension_indices]
-                next_point = base_elm_next[processor_table_indices] + \
-                    ext_elm_next[processor_extension_indices]
-                processor_extension.verify_rows(
-                    current_point, next_point, polynomial_values[current_index][processor_constraints_indices])
+                point = base_elm + \
+                    sec_elm[0:num_extension_polynomials]
+                quotients_from_leafs = sec_elm[num_extension_polynomials:]
+                shifted_point = base_elm_next + \
+                    sec_elm_next[0:num_extension_polynomials]
 
-                # instruction
-                instruction_extension = InstructionExtension(
-                    a, b, c, alpha, eta)
-                instruction_table_indices = range(ProcessorTable.width(),
-                                                  ProcessorTable().width + InstructionTable().width)
-                instruction_extension_indices = range(ProcessorExtension().width - ProcessorTable().width,
-                                                      ProcessorExtension().width - ProcessorTable().width + InstructionExtension().width - InstructionTable().width)
-                instruction_constraints_indices = range(1+max(processor_constraints_indices),
-                                                        1+max(processor_constraints_indices) + len(instruction_extension.boundary_constraints_ext()) + len(instruction_extension.transition_constraints_ext()) + len(instruction_extension.terminal_constraints_ext()))
-                current_point = base_elm[instruction_table_indices] + \
-                    ext_elm[instruction_extension_indices]
-                next_point = base_elm_next[instruction_table_indices] + \
-                    ext_elm_next[instruction_extension_indices]
-                instruction_extension.verify_rows(
-                    current_point, next_point, polynomial_values[current_index][instruction_constraints_indices])
+                # internal airs
+                evaluated_quotients = []
+                evaluated_quotients += [processor_extension.evaluate_quotients(
+                    omicron, omega ^ current_index, point, shifted_point)]
+                evaluated_quotients += [instruction_extension.evaluate_quotients(
+                    omicron, omega ^ current_index, point, shifted_point)]
+                evaluated_quotients += [memory_extension.evaluate_quotients(
+                    omicron, omega ^ current_index, point, shifted_point)]
+                evaluated_quotients += [input_extension.evaluate_quotients(
+                    omicron, omega ^ current_index, point, shifted_point)]
+                evaluated_quotients += [output_extension.evaluate_quotients(
+                    omicron, omega ^ current_index, point, shifted_point)]
 
-                # memory
-                memory_extension = MemoryExtension(
-                    d, e, f, beta)
-                memory_table_indices = range(ProcessorTable().width + InstructionTable().width,
-                                             ProcessorTable().width + InstructionTable().width + MemoryTable().width)
-                memory_extension_indices = range(ProcessorExtension().width - ProcessorTable().width + InstructionExtension().width - InstructionTable().width,
-                                                 ProcessorExtension().width - ProcessorTable().width + InstructionExtension().width - InstructionTable().width + MemoryExtension().width - MemoryTable().width)
-                memory_constraints_indices = range(1+max(instruction_constraints_indices),
-                                                   1+max(instruction_constraints_indices) + len(memory_extension.boundary_constraints_ext()) + len(memory_extension.transition_constraints_ext()) + len(memory_extension.terminal_constraints_ext()))
-                current_point = base_elm[memory_table_indices] + \
-                    ext_elm[memory_extension_indices]
-                next_point = base_elm_next[memory_table_indices] + \
-                    ext_elm_next[memory_extension_indices]
-                memory_extension.verify_rows(
-                    current_point, next_point, polynomial_values[current_index][memory_constraints_indices])
+                # table relations
+                # X = Polynomial([self.xfield.zero(), self.xfield.one()])
+                # quotient_polynomials += [(processor_extension_polynomials[ProcessorExtension.instruction_permutation] -
+                #                         instruction_extension_polynomials[InstructionExtension.permutation]) / (X - self.xfield.one())]
+                # quotient_polynomials += [(processor_extension_polynomials[ProcessorExtension.memory_permutation] -
+                #                         memory_extension_polynomials[MemoryExtension.permutation]) / (X - self.xfield.one())]
+                evaluated_quotients += [(sec_elm[ProcessorExtension.instruction_permutation - ProcessorTable().width] - sec_elm
+                                         [processor_extension.width - ProcessorTable().width + InstructionExtension.permutation - InstructionTable().width]) / ((omega ^ current_index) - self.xfield.one())]
+                evaluated_quotients += [(sec_elm[ProcessorExtension.memory_permutation - ProcessorTable().width] - sec_elm
+                                         [processor_extension.width - ProcessorTable().width + instruction_extension.width - InstructionTable().width + MemoryExtension.permutation - MemoryTable().width]) / ((omega ^ current_index) - self.xfield.one())]
 
-                # input
-                input_extension = IOExtension(gamma)
-                input_table_indices = range(ProcessorTable().width + InstructionTable().width + MemoryTable().width,
-                                            ProcessorTable().width + InstructionTable().width + MemoryTable().width + IOTable().width)
-                input_extension_indices = range(ProcessorExtension().width - ProcessorTable().width + InstructionExtension().width - InstructionTable().width + MemoryExtension().width - MemoryTable().width,
-                                                ProcessorExtension().width - ProcessorTable().width + InstructionExtension().width - InstructionTable().width + MemoryExtension().width - MemoryTable().width + IOExtension().width - IOTable().width)
-                input_constraints_indices = range(1+max(memory_constraints_indices),
-                                                  1+max(memory_constraints_indices) + len(input_extension.boundary_constraints_ext()) + len(input_extension.transition_constraints_ext()) + len(input_extension.terminal_constraints_ext()))
-                current_point = base_elm[input_table_indices] + \
-                    ext_elm[input_extension_indices]
-                next_point = base_elm_next[input_table_indices] + \
-                    ext_elm_next[input_extension_indices]
-                input_extension.verify_rows(
-                    current_point, next_point, polynomial_values[current_index][input_constraints_indices])
+                verifier_verdict = verifier_verdict and evaluated_quotients == quotients_from_leafs
 
-                # output
-                output_extension = IOExtension(delta)
-                output_table_indices = range(ProcessorTable().width + InstructionTable().width + MemoryTable().width + IOTable().width,
-                                             ProcessorTable().width + InstructionTable().width + MemoryTable().width + IOTable().width + IOTable().width)
-                output_extension_indices = range(ProcessorExtension().width - ProcessorTable().width + InstructionExtension().width - InstructionTable().width + MemoryExtension().width - MemoryTable().width + IOExtension().width - IOTable().width,
-                                                 ProcessorExtension().width - ProcessorTable().width + InstructionExtension().width - InstructionTable().width + MemoryExtension().width - MemoryTable().width + IOExtension().width - IOTable().width + IOExtension().width - IOTable().width)
-                output_constraints_indices = range(1+max(input_constraints_indices),
-                                                   1+max(input_constraints_indices) + len(output_extension.boundary_constraints_ext()) + len(output_extension.transition_constraints_ext()) + len(output_extension.terminal_constraints_ext()))
-                current_point = base_elm[output_table_indices] + \
-                    ext_elm[output_extension_indices]
-                next_point = base_elm_next[output_table_indices] + \
-                    ext_elm_next[output_extension_indices]
-                output_extension.verify_rows(
-                    current_point, next_point, polynomial_values[current_index][output_constraints_indices])
-
-            # verify table relations
+        # verify external terminals:
+        # input
+        verifier_verdict = verifier_verdict and processor_extension.input_evaluation_terminal == VirtualMachine.evaluation_terminal(
+            [self.xfield.lift(t) for t in input_symbols], gamma)
+        # output
+        verifier_verdict = verifier_verdict and processor_extension.input_evaluation_terminal == VirtualMachine.evaluation_terminal(
+            [self.xfield.lift(t) for t in output_symbols], delta)
+        # program
+        verifier_verdict = verifier_verdict and instruction_evaluation_terminal == VirtualMachine.program_evaluation(
+            program, a, b, c, eta)
 
         return verifier_verdict
