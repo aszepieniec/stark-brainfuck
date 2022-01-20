@@ -71,7 +71,7 @@ class Table:
                      for j in range(self.domain_length)]
             for j in range(num_rows):
                 trace[2*j] = self.table[j][i]
-            polynomials += [intt(self.omicron, trace)]
+            polynomials += [Polynomial(intt(self.omicron, trace))]
 
         self.polynomials = polynomials
 

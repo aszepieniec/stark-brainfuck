@@ -152,11 +152,12 @@ class BrainfuckStark:
             randomizer_polynomial, self.xfield.lift(self.generator), self.xfield.lift(omega), fri_domain_length)
 
         # commit
+        base_polynomials = processor_polynomials + instruction_polynomials + memory_polynomials + input_polynomials + output_polynomials
         base_codewords = [fast_coset_evaluate(p, self.generator, omega, fri_domain_length)
-                          for p in ([processor_polynomials] + [instruction_polynomials] + [memory_polynomials] + [input_polynomials] + [output_polynomials])]
+                          for p in base_polynomials]
         base_codewords = [
             [self.xfield.lift(c) for c in cdwd] for cdwd in base_codewords]
-        zipped_codeword = zip(base_codewords + [randomizer_codeword])
+        zipped_codeword = list(zip(base_codewords + [randomizer_codeword]))
         base_tree = SaltedMerkle(zipped_codeword)
         proof_stream.push(base_tree.root())
 
@@ -239,7 +240,7 @@ class BrainfuckStark:
 
         # get weights for nonlinear combination
         #  - 1 randomizer
-        #  - 2 for every other polynomial (base and extension)
+        #  - 2 for every other polynomial (base, extension, quotients)
         num_base_polynomials = ProcessorTable(self.field).width + InstructionTable(
             self.field).width + MemoryTable(self.field).width + IOTable(self.field).width * 2
         num_extension_polynomials = ProcessorExtension(self.field).width + InstructionExtension(
