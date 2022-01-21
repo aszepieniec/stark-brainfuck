@@ -1,6 +1,7 @@
 from hashlib import blake2b
 from os import urandom
 from binascii import hexlify
+import pickle
 
 
 class SaltedMerkle:
@@ -26,8 +27,10 @@ class SaltedMerkle:
 
         # populate nodes with hash of leafs
         for i in range(len(self.leafs)):
+            left_bytes = pickle.dumps(self.leafs[i][0])
+            right_bytes = pickle.dumps(self.leafs[i][1])
             self.nodes[next_power_of_two +
-                       i] = blake2b(bytes(self.leafs[i][0]) + bytes(self.leafs[i][1])).digest()
+                       i] = blake2b(left_bytes + right_bytes).digest()
 
         # populate nodes with merger of children, recursively
         i = next_power_of_two
@@ -52,7 +55,8 @@ class SaltedMerkle:
 
     @staticmethod
     def verify(root, index, salt, path, element):
-        running_hash = blake2b(bytes(element) + bytes(salt)).digest()
+        running_hash = blake2b(pickle.dumps(element) +
+                               pickle.dumps(salt)).digest()
         for node in path:
             if index % 2 == 0:
                 running_hash = blake2b(running_hash + node).digest()

@@ -5,7 +5,9 @@ from os import urandom
 
 def test_merkle():
     n = 64
-    elements = [urandom(int(urandom(1)[0])) for i in range(n)]
+    elements = [list(l) for l in zip([urandom(int(urandom(1)[0]))
+                                      for i in range(n)], [urandom(int(urandom(1)[0])) for i in range(n)])]
+
     tree = SaltedMerkle(elements)
     root = tree.root()
 
