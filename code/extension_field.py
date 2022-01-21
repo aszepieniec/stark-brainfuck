@@ -4,7 +4,8 @@ from algebra import *
 
 class ExtensionFieldElement:
     def __init__(self, polynomial, field):
-        self.polynomial = Polynomial(polynomial.coefficients[:polynomial.degree()+1])
+        self.polynomial = Polynomial(
+            polynomial.coefficients[:polynomial.degree()+1])
         self.field = field
 
     def __add__(self, right):
@@ -75,6 +76,8 @@ class ExtensionField:
 
     def inverse(self, operand):
         a, b, g = Polynomial.xgcd(operand.polynomial, self.modulus)
+        assert(a * operand.polynomial + b *
+               self.modulus == g), "bezout relation fails"
         return ExtensionFieldElement(a % self.modulus, self)
 
     def divide(self, left, right):
@@ -107,12 +110,11 @@ class ExtensionField:
             coefficients += [element]
         return ExtensionFieldElement(Polynomial(coefficients), self)
 
-    def lift(self, base_field_element : BaseFieldElement) -> ExtensionFieldElement:
+    def lift(self, base_field_element: BaseFieldElement) -> ExtensionFieldElement:
         return ExtensionFieldElement(Polynomial([base_field_element]), self)
 
     def __str__(self):
         return self.polynomial.__str__()
-    
+
     def __call__(self, integer):
-        return ExtensionFieldElement(Polynomial([BaseFieldElement(integer,self.modulus.coefficients[0].field)]), self)
-        
+        return ExtensionFieldElement(Polynomial([BaseFieldElement(integer, self.modulus.coefficients[0].field)]), self)

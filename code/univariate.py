@@ -56,16 +56,22 @@ class Polynomial:
             rem.is_zero()), "cannot perform polynomial division because remainder is not zero"
         return quo
 
+    def __floordiv__(self, other):
+        quo, rem = Polynomial.divide(self, other)
+        return quo
+
     def __mod__(self, other):
         quo, rem = Polynomial.divide(self, other)
         return rem
 
     def __eq__(self, other):
+        assert(type(self) == type(
+            other)), f"type of self {type(self)} must be equal to type of other which is {type(other)}"
         if self.degree() != other.degree():
             return False
         if self.degree() == -1:
             return True
-        return all(self.coefficients[i] == other.coefficients[i] for i in range(len(self.coefficients)))
+        return all(self.coefficients[i] == other.coefficients[i] for i in range(min(len(self.coefficients), len(other.coefficients))))
 
     def __neq__(self, other):
         return not self.__eq__(other)
@@ -163,17 +169,22 @@ class Polynomial:
         return Polynomial([(factor ^ i) * self.coefficients[i] for i in range(len(self.coefficients))])
 
     def xgcd(x, y):
+        one = Polynomial([x.coefficients[0].field.one()])
+        zero = Polynomial([x.coefficients[0].field.zero()])
         old_r, r = (x, y)
-        old_s, s = (1, 0)
-        old_t, t = (0, 1)
+        old_s, s = (one, zero)
+        old_t, t = (zero, one)
 
-        while r != 0:
+        while not r.is_zero():
             quotient = old_r // r
             old_r, r = (r, old_r - quotient * r)
             old_s, s = (s, old_s - quotient * s)
             old_t, t = (t, old_t - quotient * t)
 
-        return old_s, old_t, old_r  # a, b, g
+        lcinv = old_r.coefficients[old_r.degree()].inverse()
+
+        # a, b, g
+        return Polynomial([c*lcinv for c in old_s.coefficients]), Polynomial([c*lcinv for c in old_t.coefficients]), Polynomial([c*lcinv for c in old_r.coefficients])
 
 
 def test_colinearity(points):
