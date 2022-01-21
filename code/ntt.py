@@ -10,9 +10,9 @@ def ntt(primitive_root, values):
     field = values[0].field
 
     assert(primitive_root ^ len(values) == field.one()
-           ), "primitive root must be nth root of unity, where n is len(values)"
+           ), f"primitive root must be nth root of unity, where n is {len(values)}"
     assert(primitive_root ^ (len(values)//2) != field.one()
-           ), "primitive root is not primitive nth root of unity, where n is len(values)"
+           ), f"primitive root {primitive_root} is not primitive nth root of unity, where n is {len(values)}; powered to half-n the root gives {primitive_root^(len(values)//2)}"
 
     half = len(values) // 2
 

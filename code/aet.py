@@ -53,22 +53,34 @@ class Table:
         num_rows = len(self.table)
         assert(num_rows & (num_rows - 1) ==
                0), f"num_rows has value {num_rows} but must be a power of two"
+
+        assert(omega ^ order == omega.field.one()
+               ), "order must match with omega"
+        assert(omega ^ (order//2) != omega.field.one()
+               ), "order must be primitive"
+
         self.domain_length = 1
-        self.omicron = omega
         while self.domain_length < num_rows + num_randomizers:
             self.domain_length = self.domain_length << 1
 
         assert(self.domain_length >=
                num_rows), "domain length must be at least twice as large as number of rows"
 
+        self.omicron = omega
         while order > self.domain_length:
             self.omicron = self.omicron ^ 2
-            order = order / 2
+            order = order // 2
+
+        assert(self.omicron ^ order == self.omicron.field.one()
+               ), "order must now be order of omicron"
+        assert(self.omicron ^ (order//2) !=
+               self.omicron.field.one()), "order not primitive"
+        assert(self.domain_length == order)
 
         polynomials = []
         for i in columns:
-            trace = [self.field.sample(os.urandom(8))
-                     for j in range(self.domain_length)]
+            trace = [omega.field.sample(os.urandom(3*8))
+                     for j in range(order)]
             for j in range(num_rows):
                 trace[2*j] = self.table[j][i]
             polynomials += [Polynomial(intt(self.omicron, trace))]

@@ -72,7 +72,7 @@ class BrainfuckStark:
         return [randomized_trace_degree - bz.degree() for bz in self.boundary_zerofiers(boundary)]
 
     def sample_weights(self, number, randomness):
-        return [self.field.sample(blake2b(randomness + bytes(i)).digest()) for i in range(0, number)]
+        return [self.xfield.sample(blake2b(randomness + bytes(i)).digest()) for i in range(0, number)]
 
     @staticmethod
     def roundup_npo2(integer):
@@ -105,6 +105,14 @@ class BrainfuckStark:
         max_degree = BrainfuckStark.roundup_npo2(
             tq_degree + 1) - 1  # The max degree bound provable by FRI
         fri_domain_length = (max_degree+1) * self.expansion_factor
+
+        # print("original trace length:", original_trace_length)
+        # print("rounded trace length:", rounded_trace_length)
+        # print("air degree:", air_degree)
+        # print("transition polynomials degree:", tp_degree)
+        # print("transition quotients degree:", tq_degree)
+        # print("max degree:", max_degree)
+        # print("fri domain length:", fri_domain_length)
 
         # compute generators
         generator = self.field.generator()
@@ -152,7 +160,8 @@ class BrainfuckStark:
             randomizer_polynomial, self.xfield.lift(self.generator), self.xfield.lift(omega), fri_domain_length)
 
         # commit
-        base_polynomials = processor_polynomials + instruction_polynomials + memory_polynomials + input_polynomials + output_polynomials
+        base_polynomials = processor_polynomials + instruction_polynomials + \
+            memory_polynomials + input_polynomials + output_polynomials
         base_codewords = [fast_coset_evaluate(p, self.generator, omega, fri_domain_length)
                           for p in base_polynomials]
         base_codewords = [
@@ -190,19 +199,22 @@ class BrainfuckStark:
 
         # interpolate extension columns
         processor_extension_polynomials = processor_extension.interpolate(
-            randomizer_offset, omega, fri_domain_length, self.num_randomizers)
+            self.xfield.lift(omega), fri_domain_length, self.num_randomizers)
         instruction_extension_polynomials = instruction_extension.interpolate(
-            randomizer_offset, omega, fri_domain_length, self.num_randomizers)
+            self.xfield.lift(omega), fri_domain_length, self.num_randomizers)
         memory_extension_polynomials = memory_extension.interpolate(
-            randomizer_offset, omega, fri_domain_length, self.num_randomizers)
+            self.xfield.lift(omega), fri_domain_length, self.num_randomizers)
         input_extension_polynomials = input_extension.interpolate(
-            randomizer_offset, omega, fri_domain_length, self.num_randomizers)
+            self.xfield.lift(omega), fri_domain_length, self.num_randomizers)
         output_extension_polynomials = output_extension.interpolate(
-            randomizer_offset, omega, fri_domain_length, self.num_randomizers)
+            self.xfield.lift(omega), fri_domain_length, self.num_randomizers)
 
         # commit to extension polynomials
-        extension_codewords = [fast_coset_evaluate(p, generator, omega, fri_domain_length)
-                               for p in ([processor_extension_polynomials] + [instruction_extension_polynomials] + [memory_extension_polynomials] + [input_extension_polynomials] + [output_extension_polynomials])]
+        extension_polynomials = processor_extension_polynomials + instruction_extension_polynomials + \
+            memory_extension_polynomials + \
+            input_extension_polynomials + output_extension_polynomials
+        extension_codewords = [fast_coset_evaluate(p, self.xfield.lift(generator), self.xfield.lift(omega), fri_domain_length)
+                               for p in (extension_polynomials)]
         zipped_extension_codeword = zip(extension_codewords)
         extension_tree = SaltedMerkle(zipped_extension_codeword)
         proof_stream.push(extension_tree.root())

@@ -37,7 +37,7 @@ class InstructionExtension(TableExtension):
         return instruction_extension
 
     @staticmethod
-    def extend(instruction_table, program, a, b, c, alpha, eta):
+    def extend(instruction_table, a, b, c, alpha, eta):
         # algebra stuff
         field = instruction_table.field
         xfield = a.field
