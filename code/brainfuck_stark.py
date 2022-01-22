@@ -215,7 +215,7 @@ class BrainfuckStark:
             input_extension_polynomials + output_extension_polynomials
         extension_codewords = [fast_coset_evaluate(p, self.xfield.lift(generator), self.xfield.lift(omega), fri_domain_length)
                                for p in (extension_polynomials)]
-        zipped_extension_codeword = zip(extension_codewords)
+        zipped_extension_codeword = list(zip(extension_codewords))
         extension_tree = SaltedMerkle(zipped_extension_codeword)
         proof_stream.push(extension_tree.root())
 
