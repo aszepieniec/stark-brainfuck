@@ -46,7 +46,7 @@ class ExtensionFieldElement:
         return str(self.polynomial)
 
     def __bytes__(self):
-        return bytes("|".join(str(c.value) for c in self.polynomial.coefficients).encode())
+        return bytes("|".join(str(c.polynomial) for c in self.polynomial.coefficients).encode())
 
     def is_zero(self):
         return self.polynomial.is_zero()
@@ -82,8 +82,8 @@ class ExtensionField:
 
     def divide(self, left, right):
         assert(not right.is_zero()), "divide by zero"
-        a, b, g = Polynomial.xgcd(right.value, self.p)
-        return ExtensionFieldElement(left.value * a % self.modulus, self)
+        a, b, g = Polynomial.xgcd(right.polynomial, self.modulus)
+        return ExtensionFieldElement(left.polynomial * a % self.modulus, self)
 
     def main():
         # p = 2^64 - 2^32 + 1

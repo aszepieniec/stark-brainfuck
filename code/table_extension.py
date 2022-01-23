@@ -19,9 +19,9 @@ class TableExtension(Table):
     def boundary_quotients(self):
         quotients = []
         X = Polynomial([self.xfield.zero(), self.xfield.one()])
-        for row, mpo in self.boundary_constraints():
-            composition_polynomial = mpo.symbolic_evaluate(self.polynomials)
-            quotients += composition_polynomial / (X - self.xfield(row))
+        for row, mpo in self.boundary_constraints_ext():
+            composition_polynomial = mpo.evaluate_symbolic(self.polynomials)
+            quotients += [composition_polynomial / (X - Polynomial([self.omicron^row]))]
         return quotients
 
     @staticmethod
@@ -36,18 +36,19 @@ class TableExtension(Table):
     def transition_quotients(self, challenges):
         quotients = []
         X = Polynomial([self.xfield.zero(), self.xfield.one()])
-        for mpo in self.transition_constraints(challenges):
+        one = Polynomial([self.xfield.one()])
+        for mpo in self.transition_constraints_ext(challenges):
             point = self.polynomials + \
                 [p.scale(self.omicron) for p in self.polynomials]
-            composition_polynomial = mpo.symbolic_evaluate(point)
+            composition_polynomial = mpo.evaluate_symbolic(point)
             quotient = composition_polynomial * \
-                (X - self.omicron.inverse()) / (X ^ self.domain_length - 1)
+                (X - self.omicron.inverse()) / ((X ^ self.domain_length) - one)
             quotients += [quotient]
         return quotients
 
     def transition_quotient_degree_bounds(self, log_num_rows, challenges):
         air_degree = max(air.degree()
-                         for air in self.transition_constraints(challenges))
+                         for air in self.transition_constraints_ext(challenges))
         composition_degree = ((1 << log_num_rows) - 1) * air_degree
         return composition_degree + 1 - (1 << log_num_rows)
 
@@ -58,8 +59,8 @@ class TableExtension(Table):
     def terminal_quotients(self, challenges, terminals):
         quotients = []
         X = Polynomial([self.xfield.zero(), self.xfield.one()])
-        for mpo in self.terminal_constraints(challenges, terminals):
-            quotient = mpo.symbolic_evaluate(
+        for mpo in self.terminal_constraints_ext(challenges, terminals):
+            quotient = mpo.evaluate_symbolic(
                 self.polynomials) / (X - Polynomial([self.omicron.inverse()]))
             quotients += [quotient]
         return quotients
@@ -71,7 +72,7 @@ class TableExtension(Table):
         return air_degree * degree - 1
 
     def all_quotients(self, log_num_rows, challenges, terminals):
-        return self.boundary_quotients() + self.transition_quotients() + self.terminal_quotients(log_num_rows, challenges, terminals)
+        return self.boundary_quotients() + self.transition_quotients(challenges) + self.terminal_quotients(challenges, terminals)
 
     def all_quotient_degree_bounds(self):
         return self.boundary_quotient_degree_bounds() + self.transition_quotient_degree_bounds() + self.terminal_quotient_degree_bounds()

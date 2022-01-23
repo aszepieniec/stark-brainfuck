@@ -221,11 +221,11 @@ class BrainfuckStark:
 
         # gather polynomials derived from generalized AIR constraints relating to boundary, transition, and terminals
         quotient_polynomials = []
-        quotient_polynomials += processor_extension.all_quotients()
-        quotient_polynomials += instruction_extension.all_quotients()
-        quotient_polynomials += memory_extension.all_quotients()
-        quotient_polynomials += input_extension.all_quotients()
-        quotient_polynomials += output_extension.all_quotients()
+        quotient_polynomials += processor_extension.all_quotients(log_time, challenges=[a,b,c,d,e,f,alpha,beta,gamma,delta], terminals=[processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal])
+        quotient_polynomials += instruction_extension.all_quotients(log_time, challenges=[a,b,c,alpha,eta], terminals=[processor_instruction_permutation_terminal, instruction_evaluation_terminal])
+        quotient_polynomials += memory_extension.all_quotients(log_time, challenges=[d,e,f, beta], terminals=[processor_memory_permutation_terminal])
+        quotient_polynomials += input_extension.all_quotients(log_input, chalenges=[gamma], terminal=[processor_input_evaluation_terminal])
+        quotient_polynomials += output_extension.all_quotients(log_input, challenges=[delta], terminals=[processor_output_evaluation_terminal])
 
         quotient_degree_bounds = []
         quotient_degree_bounds += processor_extension.all_quotient_degree_bounds()
