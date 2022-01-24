@@ -1,5 +1,5 @@
 from email.mime import base
-from extension_field import ExtensionField
+from extension_field import ExtensionField, ExtensionFieldElement
 from fri import *
 from instruction_extension import InstructionExtension
 from instruction_table import InstructionTable
@@ -14,6 +14,7 @@ from multivariate import *
 from ntt import *
 from functools import reduce
 import os
+import time
 
 from vm import VirtualMachine
 
@@ -80,6 +81,43 @@ class BrainfuckStark:
             return 1
         return 1 << (len(bin(integer-1)[2:]))
 
+    @staticmethod
+    def xntt(poly, omega, order):
+        xfield = poly.coefficients[0].field
+        field = xfield.polynomial.coefficients[0].field
+        # decompose
+        coeffs_lists = [poly.coefficients[i][j]
+                        for j in range(3) for i in range(1+poly.degree())]
+        # pad
+        for i in range(len(coeffs_lists)):
+            coeffs_lists[i] += [field.zero()] * \
+                (order - len(coeffs_lists[i]))
+        # ntt
+        transformed_lists = [ntt(omega, cl) for cl in coeffs_lists]
+        # recompose
+        codeword = [ExtensionFieldElement(Polynomial(
+            [transformed_lists[i][j] for j in range(3)]), field) for i in range(order)]
+        return codeword
+
+    @staticmethod
+    def xfast_coset_evaluate(polynomial, offset, generator, order):
+        xfield = polynomial.coefficients[0].field
+        field = offset.field
+        coeff_lists = [[polynomial.coefficients[i].polynomial.coefficients[j]
+                        for i in range(1+polynomial.degree())] for j in range(3)]
+        acc = field.one()
+        for i in range(1+polynomial.degree()):
+            for j in range(3):
+                coeff_lists[j][i] = coeff_lists[j][i] * acc
+                acc = acc * offset
+        transformed_values = []
+        for i in range(3):
+            transformed_values += [ntt(generator, coeff_lists[i] +
+                                       [field.zero()] * (order - len(coeff_lists[i])))]
+        xcdwd = [ExtensionFieldElement(Polynomial(
+            [transformed_values[j][i] for j in range(3)]), xfield) for i in range(order)]
+        return xcdwd
+
     def prove(self, processor_table, instruction_table, memory_table, input_table, output_table, proof_stream=None):
         # infer details about computation
         original_trace_length = len(processor_table.table)
@@ -132,6 +170,8 @@ class BrainfuckStark:
         instruction_table.pad()
         memory_table.pad(processor_table)
 
+        print("interpolating base tables ...")
+        tick = time.time()
         # interpolate with randomization
         randomizer_offset = self.generator ^ 2
         processor_polynomials = processor_table.interpolate(
@@ -144,6 +184,8 @@ class BrainfuckStark:
             omega, fri_domain_length, self.num_randomizers)
         output_polynomials = output_table.interpolate(
             omega, fri_domain_length, self.num_randomizers)
+        tock = time.time()
+        print("base table interpolation took", (tock - tick), "seconds")
 
         base_polynomials = processor_polynomials + instruction_polynomials + \
             memory_polynomials + input_polynomials + output_polynomials
@@ -153,12 +195,18 @@ class BrainfuckStark:
         base_degree_bound -= 1
         base_degree_bounds = [base_degree_bound] * len(base_polynomials)
 
+        tick = time.time()
+        print("sampling randomizer polynomial ...")
         # sample randomizer polynomial
         randomizer_polynomial = Polynomial([self.xfield.sample(os.urandom(
             3*9)) for i in range(max_degree+1)])
-        randomizer_codeword = fast_coset_evaluate(
-            randomizer_polynomial, self.xfield.lift(self.generator), self.xfield.lift(omega), fri_domain_length)
+        randomizer_codeword = BrainfuckStark.xfast_coset_evaluate(
+            randomizer_polynomial, self.generator, omega, fri_domain_length)
+        tock = time.time()
+        print("sampling randomizer polynomial took", (tock - tick), "seconds")
 
+        tick = time.time()
+        print("committing to base polynomials ...")
         # commit
         base_polynomials = processor_polynomials + instruction_polynomials + \
             memory_polynomials + input_polynomials + output_polynomials
@@ -169,11 +217,15 @@ class BrainfuckStark:
         zipped_codeword = list(zip(base_codewords + [randomizer_codeword]))
         base_tree = SaltedMerkle(zipped_codeword)
         proof_stream.push(base_tree.root())
+        tock = time.time()
+        print("commitment to base polynomials took", (tock - tick), "seconds")
 
         # get coefficients for table extensions
         a, b, c, d, e, f, alpha, beta, gamma, delta, eta = self.sample_weights(
             11, proof_stream.prover_fiat_shamir())
 
+        print("extending ...")
+        tick = time.time()
         # extend tables
         processor_extension = ProcessorExtension.extend(
             processor_table, a, b, c, d, e, f, alpha, beta, gamma, delta)
@@ -182,6 +234,8 @@ class BrainfuckStark:
         memory_extension = MemoryExtension.extend(memory_table, d, e, f, beta)
         input_extension = IOExtension.extend(input_table, gamma)
         output_extension = IOExtension.extend(output_table, delta)
+        tock = time.time()
+        print("computing table extensions took", (tock - tick), "seconds")
 
         # get terminal values
         processor_instruction_permutation_terminal = processor_extension.instruction_permutation_terminal
@@ -197,6 +251,8 @@ class BrainfuckStark:
         proof_stream.push(processor_output_evaluation_terminal)
         proof_stream.push(instruction_evaluation_terminal)
 
+        tick = time.time()
+        print("interpolating extensions ...")
         # interpolate extension columns
         processor_extension_polynomials = processor_extension.interpolate(
             self.xfield.lift(omega), fri_domain_length, self.num_randomizers)
@@ -208,24 +264,38 @@ class BrainfuckStark:
             self.xfield.lift(omega), fri_domain_length, self.num_randomizers)
         output_extension_polynomials = output_extension.interpolate(
             self.xfield.lift(omega), fri_domain_length, self.num_randomizers)
+        tock = time.time()
+        print("interpolation of extensions took", (tock - tick), "seconds")
 
+        tick = time.time()
+        print("committing to extension polynomials ...")
         # commit to extension polynomials
         extension_polynomials = processor_extension_polynomials + instruction_extension_polynomials + \
             memory_extension_polynomials + \
             input_extension_polynomials + output_extension_polynomials
-        extension_codewords = [fast_coset_evaluate(p, self.xfield.lift(generator), self.xfield.lift(omega), fri_domain_length)
+        extension_codewords = [BrainfuckStark.xfast_coset_evaluate(p, generator, omega, fri_domain_length)
                                for p in (extension_polynomials)]
         zipped_extension_codeword = list(zip(extension_codewords))
         extension_tree = SaltedMerkle(zipped_extension_codeword)
         proof_stream.push(extension_tree.root())
+        tock = time.time()
+        print("commitment to extension polynomials took",
+              (tock - tick), "seconds")
 
+        tick = time.time()
+        print("computing quotients ...")
         # gather polynomials derived from generalized AIR constraints relating to boundary, transition, and terminals
         quotient_polynomials = []
-        quotient_polynomials += processor_extension.all_quotients(log_time, challenges=[a,b,c,d,e,f,alpha,beta,gamma,delta], terminals=[processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal])
-        quotient_polynomials += instruction_extension.all_quotients(log_time, challenges=[a,b,c,alpha,eta], terminals=[processor_instruction_permutation_terminal, instruction_evaluation_terminal])
-        quotient_polynomials += memory_extension.all_quotients(log_time, challenges=[d,e,f, beta], terminals=[processor_memory_permutation_terminal])
-        quotient_polynomials += input_extension.all_quotients(log_input, chalenges=[gamma], terminal=[processor_input_evaluation_terminal])
-        quotient_polynomials += output_extension.all_quotients(log_input, challenges=[delta], terminals=[processor_output_evaluation_terminal])
+        quotient_polynomials += processor_extension.all_quotients(log_time, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[
+                                                                  processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal])
+        quotient_polynomials += instruction_extension.all_quotients(log_time, challenges=[a, b, c, alpha, eta], terminals=[
+                                                                    processor_instruction_permutation_terminal, instruction_evaluation_terminal])
+        quotient_polynomials += memory_extension.all_quotients(log_time, challenges=[
+                                                               d, e, f, beta], terminals=[processor_memory_permutation_terminal])
+        quotient_polynomials += input_extension.all_quotients(
+            log_input, chalenges=[gamma], terminal=[processor_input_evaluation_terminal])
+        quotient_polynomials += output_extension.all_quotients(
+            log_input, challenges=[delta], terminals=[processor_output_evaluation_terminal])
 
         quotient_degree_bounds = []
         quotient_degree_bounds += processor_extension.all_quotient_degree_bounds()
@@ -242,6 +312,8 @@ class BrainfuckStark:
                                   memory_extension_polynomials[MemoryExtension.permutation]) / (X - self.xfield.one())]
         quotient_degree_bounds += [(1 << log_time) - 2] * 2
         # (don't need to subtract equal values for the io evaluations because they're not randomized)
+        tock = time.time()
+        print("computing quotients took", (tock - tick), "seconds")
 
         # send terminals
         proof_stream.push(processor_extension.instruction_permutation_terminal)
