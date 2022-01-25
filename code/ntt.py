@@ -206,3 +206,17 @@ def fast_coset_divide(lhs, rhs, offset, primitive_root, root_order):  # clean di
         scaled_quotient_coefficients[:(lhs.degree() - rhs.degree() + 1)])
 
     return scaled_quotient.scale(offset.inverse())
+
+
+def batch_inverse(array):
+    assert(all(not a.is_zero() for a in array)
+           ), "batch inverse does not work when input contains a zero"
+    products = [a for a in array]
+    for i in range(1, len(array)):
+        products[i] = products[i-1] * array[i]
+    acc = products[-1].inverse()
+    for i in reversed(range(1, len(array))):
+        products[i] = acc * products[i-1]
+        acc = acc * array[i]
+    products[0] = acc
+    return products
