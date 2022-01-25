@@ -11,6 +11,8 @@ class InstructionExtension(TableExtension):
     permutation = 3
     evaluation = 4
 
+    width = 5
+
     def __init__(self, a, b, c, alpha, eta):
         super(InstructionExtension, self).__init__(a.field, 3, 5)
 
@@ -86,6 +88,7 @@ class InstructionExtension(TableExtension):
         extended_instruction_table.evaluation_terminal = evaluation_running_sum
         extended_instruction_table.terminals = [
             permutation_running_product, evaluation_running_sum]
+        extended_instruction_table.field = xfield
 
         return extended_instruction_table
 

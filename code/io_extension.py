@@ -7,6 +7,8 @@ class IOExtension(TableExtension):
     column = 0
     evaluation = 1
 
+    width = 2
+
     def __init__(self, gamma):
         super(IOExtension, self).__init__(gamma.field, 1, 2)
 
@@ -54,6 +56,7 @@ class IOExtension(TableExtension):
         extended_io_table.table = table_extension
         extended_io_table.evaluation_terminal = io_running_evaluation
         extended_io_table.terminals = [io_running_evaluation]
+        extended_io_table.field = xfield
 
         return extended_io_table
 

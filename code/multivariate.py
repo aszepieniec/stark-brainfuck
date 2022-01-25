@@ -86,6 +86,9 @@ class MPolynomial:
                     return False
             return True
 
+    def degree(self):
+        return max(sum(k) for k in self.dictionary.keys())
+
     # Returns the multivariate polynomials representing each indeterminates linear function
     # with a leading coefficient of one. For three indeterminates, returns:
     # [f(x,y,z) = x, f(x,y,z) = y, f(x,y,z) = z]
@@ -114,16 +117,22 @@ class MPolynomial:
         for k, v in self.dictionary.items():
             prod = Polynomial([field.one()])
             for i in range(len(k)):
-                inner_prod = Polynomial([field.one()])
-                for j in range(k[i]):
-                    pointij = memo.get((i, j))
-                    if not pointij:
-                        inner_prod = inner_prod * point[i]
-                        memo[(i, j)] = inner_prod
+                inneracc = Polynomial([field.one()])
+                j = 0
+                if (i, 1 << j) not in memo:
+                    memo[(i, 1 << j)] = point[i]
+                while (1 << j) <= k[i]:
+                    if (i, 1 << j) not in memo:
+                        pointij = memo.get((i, 1 << (j-1)))
+                        pointij = pointij * pointij
+                        memo[(i, 1 << j)] = pointij
                     else:
-                        inner_prod = pointij
-                prod = prod * inner_prod
-            acc = acc + prod * Polynomial([v])
+                        pointij = memo[(i, 1 << j)]
+                    if (k[i] & (1 << j)) != 0:
+                        inneracc *= pointij
+                    j += 1
+                prod *= inneracc
+            acc += prod * Polynomial([v])
         return acc
 
     def lift(polynomial, variable_index):

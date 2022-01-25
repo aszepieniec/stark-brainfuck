@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from random import random
 from multivariate import *
 from ntt import *
 import os
@@ -51,6 +52,11 @@ class Table:
 
     def interpolate_columns(self, omega, order, num_randomizers, columns):
         num_rows = len(self.table)
+        if num_rows == 0:
+            return [Polynomial([self.field.zero()])] * self.width
+
+        assert(num_rows != 0), "number of rows cannot be zero"
+
         assert(num_rows & (num_rows - 1) ==
                0), f"num_rows has value {num_rows} but must be a power of two"
 
@@ -63,8 +69,7 @@ class Table:
         while self.domain_length < num_rows + num_randomizers:
             self.domain_length = self.domain_length << 1
 
-        assert(self.domain_length >=
-               num_rows), "domain length must be at least twice as large as number of rows"
+        randomness_expansion_factor = int(self.domain_length / num_rows)
 
         self.omicron = omega
         while order > self.domain_length:
@@ -79,12 +84,10 @@ class Table:
 
         polynomials = []
         for i in columns:
-            trace = [omega.field.sample(os.urandom(3*8))
+            trace = [self.field.sample(os.urandom(3*8))
                      for j in range(order)]
             for j in range(num_rows):
-                trace[2*j] = self.table[j][i]
-            polynomials += [Polynomial(intt(self.omicron, trace))]
-
-        self.polynomials = polynomials
+                trace[randomness_expansion_factor*j] = self.table[j][i]
+            polynomials += [Polynomial(intt(self.field.lift(self.omicron), trace))]
 
         return polynomials

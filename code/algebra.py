@@ -71,6 +71,9 @@ class BaseField:
     def __init__(self, p):
         self.p = p
 
+    def lift(self, bfe):
+        return bfe
+
     def zero(self):
         return BaseFieldElement(0, self)
 
@@ -134,4 +137,3 @@ class BaseField:
 
     def __call__(self, integer):
         return BaseFieldElement(integer % self.p, self)
-        

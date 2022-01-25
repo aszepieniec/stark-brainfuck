@@ -11,13 +11,16 @@ class ProcessorTable(Table):
     memory_value = 5
     is_zero = 6
 
+    width = 7
+
     def __init__(self, field):
         super(ProcessorTable, self).__init__(field, 7)
 
-    def pad( self ):
+    def pad(self):
         while len(self.table) & (len(self.table)-1) != 0:
             new_row = [self.field.zero()] * 7
-            new_row[ProcessorTable.cycle] = self.table[-1][ProcessorTable.cycle] + self.field.one()
+            new_row[ProcessorTable.cycle] = self.table[-1][ProcessorTable.cycle] + \
+                self.field.one()
             new_row[ProcessorTable.instruction_pointer] = self.table[-1][ProcessorTable.instruction_pointer]
             new_row[ProcessorTable.current_instruction] = self.field.zero()
             new_row[ProcessorTable.next_instruction] = self.field.zero()
@@ -69,14 +72,16 @@ class ProcessorTable(Table):
         elif instr == '<':
             polynomials[ProcessorTable.cycle] = instruction_pointer_next - \
                 instruction_pointer - one
-            polynomials[ProcessorTable.instruction_pointer] = memory_pointer_next - memory_pointer + one
+            polynomials[ProcessorTable.instruction_pointer] = memory_pointer_next - \
+                memory_pointer + one
             # memory value, satisfied by permutation argument
             polynomials[ProcessorTable.current_instruction] = zero
 
         elif instr == '>':
             polynomials[ProcessorTable.cycle] = instruction_pointer_next - \
                 instruction_pointer - one
-            polynomials[ProcessorTable.instruction_pointer] = memory_pointer_next - memory_pointer - one
+            polynomials[ProcessorTable.instruction_pointer] = memory_pointer_next - \
+                memory_pointer - one
             # memory value, satisfied by permutation argument
             polynomials[ProcessorTable.current_instruction] = zero
 
@@ -84,13 +89,15 @@ class ProcessorTable(Table):
             polynomials[ProcessorTable.cycle] = instruction_pointer_next - \
                 instruction_pointer - one
             polynomials[ProcessorTable.instruction_pointer] = memory_pointer_next - memory_pointer
-            polynomials[ProcessorTable.current_instruction] = memory_value_next - memory_value - one
+            polynomials[ProcessorTable.current_instruction] = memory_value_next - \
+                memory_value - one
 
         elif instr == '-':
             polynomials[ProcessorTable.cycle] = instruction_pointer_next - \
                 instruction_pointer - one
             polynomials[ProcessorTable.instruction_pointer] = memory_pointer_next - memory_pointer
-            polynomials[ProcessorTable.current_instruction] = memory_value_next - memory_value + one
+            polynomials[ProcessorTable.current_instruction] = memory_value_next - \
+                memory_value + one
 
         elif instr == ',':
             polynomials[ProcessorTable.cycle] = instruction_pointer_next - \
@@ -122,21 +129,22 @@ class ProcessorTable(Table):
         # instruction-specific polynomials
         for c in "[]<>+-,.":
             instr = ProcessorTable.instruction_polynomials(c,
-                                                      cycle,
-                                                      instruction_pointer,
-                                                      current_instruction,
-                                                      next_instruction,
-                                                      memory_pointer,
-                                                      memory_value,
-                                                      is_zero,
-                                                      cycle_next,
-                                                      instruction_pointer_next,
-                                                      current_instruction_next,
-                                                      next_instruction_next,
-                                                      memory_pointer_next,
-                                                      memory_value_next,
-                                                      is_zero_next)
-            deselector = ProcessorTable.ifnot_instruction(c, current_instruction)
+                                                           cycle,
+                                                           instruction_pointer,
+                                                           current_instruction,
+                                                           next_instruction,
+                                                           memory_pointer,
+                                                           memory_value,
+                                                           is_zero,
+                                                           cycle_next,
+                                                           instruction_pointer_next,
+                                                           current_instruction_next,
+                                                           next_instruction_next,
+                                                           memory_pointer_next,
+                                                           memory_value_next,
+                                                           is_zero_next)
+            deselector = ProcessorTable.ifnot_instruction(
+                c, current_instruction)
 
             for i in range(len(instr)):
                 polynomials[i] += deselector * instr[i]
@@ -177,6 +185,6 @@ class ProcessorTable(Table):
                        # (0, ???), # next instruction
                        (0, x[ProcessorTable.memory_pointer] - zero),
                        (0, x[ProcessorTable.memory_value] - zero),
-                       (0, x[ProcessorTable.is_zero] - one)] 
+                       (0, x[ProcessorTable.is_zero] - one)]
 
         return constraints

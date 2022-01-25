@@ -7,9 +7,11 @@ class InstructionTable(Table):
     current_instruction = 1
     next_instruction = 2
 
+    width = 3
+
     def __init__(self, field):
         super(InstructionTable, self).__init__(field, 3)
-    
+
     def pad(self):
         while len(self.table) & (len(self.table)-1):
             new_row = [self.field.zero()] * self.width

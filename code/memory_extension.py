@@ -11,6 +11,8 @@ class MemoryExtension(TableExtension):
 
     permutation = 3
 
+    width = 4
+
     def __init__(self, d, e, f, beta):
         super(MemoryExtension, self).__init__(d.field, 3, 4)
 
@@ -64,6 +66,7 @@ class MemoryExtension(TableExtension):
 
         extended_memory_table.permutation_terminal = memory_permutation_running_product
         extended_memory_table.terminals = [memory_permutation_running_product]
+        extended_memory_table.field = xfield
 
         return extended_memory_table
 

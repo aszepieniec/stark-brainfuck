@@ -18,6 +18,8 @@ class ProcessorExtension(TableExtension):
     input_evaluation = 9
     output_evaluation = 10
 
+    width = 11
+
     def __init__(self, a, b, c, d, e, f, alpha, beta, gamma, delta):
         super(ProcessorExtension, self).__init__(a.field, 7, 11)
         field = a.field
@@ -121,6 +123,7 @@ class ProcessorExtension(TableExtension):
         extended_processor_table.output_evaluation_terminal = output_evaluation_running_evaluation
         extended_processor_table.terminals = [instruction_permutation_running_product,
                                               memory_permutation_running_product, input_evaluation_running_evaluation, output_evaluation_running_evaluation]
+        extended_processor_table.field = xfield
 
         return extended_processor_table
 
