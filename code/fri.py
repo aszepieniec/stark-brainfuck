@@ -1,4 +1,5 @@
 from algebra import *
+from extension_field import ExtensionFieldElement
 from merkle import *
 from ip import *
 from ntt import *
@@ -21,6 +22,35 @@ class Fri:
 
         def list(self):
             return [(self.omega ^ i) * self.offset for i in range(self.length)]
+
+        def evaluate( self, polynomial ):
+            coefficients = polynomial.scale(self.offset).coefficients
+            coefficients += [self.omega.field.zero()] * (self.length - len(coefficients))
+            return ntt(self.omega, coefficients)
+
+        def interpolate( self, values ):
+            return fast_interpolate([(self.omega^i) * self.offset for i in range(self.length)], values, self.omega, self.length)
+
+        def xevaluate(self, polynomial):
+            xfield = polynomial.coefficients[0].field
+            coefficients = [[self.omega.field.zero()] * xfield.modulus.degree()] * (1 + polynomial.degree())
+            for i in range(len(coefficients)):
+                coefficients[i] += [self.omega.field.zero()] * (xfield.modulus.degree() - len(coefficients[i]))
+            scale = [self.offset^i for i in range(len(coefficients))]
+            for i in range(len(coefficients)):
+                for j in range(xfield.modulus.degree()):
+                    coefficients[i][j] *= scale[i]
+            transposed = [[self.omega.field.zero()] * self.length] * xfield.modulus.degree()
+            for i in range(xfield.modulus.degree()):
+                for j in range(len(coefficients)):
+                    transposed[i][j] = coefficients[j][i]
+            values = [ntt(self.omega, row) for row in transposed]
+            xcdwd = [ExtensionFieldElement(Polynomial(
+                [values[j][i] for j in range(xfield.modulus.degree())]), xfield) for i in range(self.length)]
+            return xcdwd
+
+        def xinterpolate(self, values):
+            return fast_interpolate([values[0].field.lift((self.omega^i) * self.offset) for i in range(self.length)], values, values[0].field.lift(self.omega), self.length)
 
     def __init__(self, offset, omega, initial_domain_length, expansion_factor, num_colinearity_tests):
         self.domain = Fri.Domain(offset, omega, initial_domain_length)

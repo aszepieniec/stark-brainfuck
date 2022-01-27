@@ -103,29 +103,6 @@ class BrainfuckStark:
             [transformed_lists[i][j] for j in range(3)]), field) for i in range(order)]
         return codeword
 
-    @staticmethod
-    def xfast_fri_domain_evaluate(polynomial, domain):
-        offset = domain.offset
-        omega = domain.omega
-        length = domain.length
-        xfield = polynomial.coefficients[0].field
-        field = domain.offset.field
-        coeff_lists = [[], [], []]
-        acc = field.one()
-        for i in range(1+polynomial.degree()):
-            coeffs = list(polynomial.coefficients[i].polynomial.coefficients)
-            coeffs += [field.zero()] * (xfield.modulus.degree() - len(coeffs))
-            for j in range(3):
-                coeff_lists[j] += [coeffs[j] * acc]
-            acc *= offset
-        transformed_values = []
-        for i in range(3):
-            transformed_values += [ntt(omega, coeff_lists[i] +
-                                       [field.zero()] * (length - len(coeff_lists[i])))]
-        xcdwd = [ExtensionFieldElement(Polynomial(
-            [transformed_values[j][i] for j in range(3)]), xfield) for i in range(length)]
-        return xcdwd
-
     def prove(self, processor_table, instruction_table, memory_table, input_table, output_table, proof_stream=None):
         # infer details about computation
         original_trace_length = len(processor_table.table)
@@ -207,8 +184,8 @@ class BrainfuckStark:
         # sample randomizer polynomial
         randomizer_polynomial = Polynomial([self.xfield.sample(os.urandom(
             3*9)) for i in range(max_degree+1)])
-        randomizer_codeword = BrainfuckStark.xfast_fri_domain_evaluate(
-            randomizer_polynomial, fri.domain)
+        randomizer_codeword =  fri.domain.xevaluate(
+            randomizer_polynomial)
         tock = time.time()
         print("sampling randomizer polynomial took", (tock - tick), "seconds")
 
@@ -280,15 +257,15 @@ class BrainfuckStark:
         extension_polynomials = processor_extension_polynomials + instruction_extension_polynomials + \
             memory_extension_polynomials + \
             input_extension_polynomials + output_extension_polynomials
-        processor_codewords = [BrainfuckStark.xfast_fri_domain_evaluate(p, fri.domain)
+        processor_codewords = [fri.domain.xevaluate(p)
                                for p in (processor_extension_polynomials)]
-        instruction_codewords = [BrainfuckStark.xfast_fri_domain_evaluate(p, fri.domain)
+        instruction_codewords = [fri.domain.xevaluate(p)
                                  for p in (instruction_extension_polynomials)]
-        memory_codewords = [BrainfuckStark.xfast_fri_domain_evaluate(p, fri.domain)
+        memory_codewords = [fri.domain.xevaluate(p)
                             for p in (memory_extension_polynomials)]
-        input_codewords = [BrainfuckStark.xfast_fri_domain_evaluate(p, fri.domain)
+        input_codewords = [fri.domain.xevaluate(p)
                            for p in (input_extension_polynomials)]
-        output_codewords = [BrainfuckStark.xfast_fri_domain_evaluate(p, fri.domain)
+        output_codewords = [fri.domain.xevaluate(p)
                             for p in (output_extension_polynomials)]
         extension_codewords = processor_codewords + instruction_codewords + \
             memory_codewords + input_codewords + output_codewords
@@ -299,46 +276,47 @@ class BrainfuckStark:
         print("commitment to extension polynomials took",
               (tock - tick), "seconds")
 
+        print("first instruction pointeR:", processor_extension.table[0][ProcessorExtension.instruction_pointer])
+
         tick = time.time()
         print("computing quotients ...")
         # gather polynomials derived from generalized AIR constraints relating to boundary, transition, and terminals
         quotient_codewords = []
         quotient_codewords += processor_extension.all_quotients(omicron, fri.domain, processor_codewords, log_time, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[
             processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal])
-        quotient_codewords += instruction_extension.all_quotients(omicron, fri.domain, instruction_codewords, log_time, challenges=[a, b, c, alpha, eta], terminals=[
-            processor_instruction_permutation_terminal, instruction_evaluation_terminal])
-        quotient_codewords += memory_extension.all_quotients(omicron, fri.domain, memory_codewords, log_time, challenges=[
-            d, e, f, beta], terminals=[processor_memory_permutation_terminal])
-        quotient_codewords += input_extension.all_quotients(omicron, fri.domain, input_codewords,
-                                                            log_input, challenges=[gamma], terminals=[processor_input_evaluation_terminal])
-        quotient_codewords += output_extension.all_quotients(omicron, fri.domain, output_codewords,
-                                                             log_output, challenges=[delta], terminals=[processor_output_evaluation_terminal])
+        # quotient_codewords += instruction_extension.all_quotients(omicron, fri.domain, instruction_codewords, log_time, challenges=[a, b, c, alpha, eta], terminals=[
+        #     processor_instruction_permutation_terminal, instruction_evaluation_terminal])
+        # quotient_codewords += memory_extension.all_quotients(omicron, fri.domain, memory_codewords, log_time, challenges=[
+        #     d, e, f, beta], terminals=[processor_memory_permutation_terminal])
+        # quotient_codewords += input_extension.all_quotients(omicron, fri.domain, input_codewords,
+        #                                                     log_input, challenges=[gamma], terminals=[processor_input_evaluation_terminal])
+        # quotient_codewords += output_extension.all_quotients(omicron, fri.domain, output_codewords,
+        #                                                      log_output, challenges=[delta], terminals=[processor_output_evaluation_terminal])
 
         quotient_degree_bounds = []
         print("number of degree bounds:")
         quotient_degree_bounds += processor_extension.all_quotient_degree_bounds(log_time, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[
             processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal])
         print(len(quotient_degree_bounds))
-        quotient_degree_bounds += instruction_extension.all_quotient_degree_bounds(log_time, challenges=[a, b, c, alpha, eta], terminals=[
-            processor_instruction_permutation_terminal, instruction_evaluation_terminal])
-        print(len(quotient_degree_bounds))
-        quotient_degree_bounds += memory_extension.all_quotient_degree_bounds(log_time, challenges=[
-            d, e, f, beta], terminals=[processor_memory_permutation_terminal])
-        print(len(quotient_degree_bounds))
-        quotient_degree_bounds += input_extension.all_quotient_degree_bounds(
-            log_input, challenges=[gamma], terminals=[processor_input_evaluation_terminal])
-        print(len(quotient_degree_bounds))
-        quotient_degree_bounds += output_extension.all_quotient_degree_bounds(
-            log_output, challenges=[delta], terminals=[processor_output_evaluation_terminal])
-        print(len(quotient_degree_bounds))
+        # quotient_degree_bounds += instruction_extension.all_quotient_degree_bounds(log_time, challenges=[a, b, c, alpha, eta], terminals=[
+        #     processor_instruction_permutation_terminal, instruction_evaluation_terminal])
+        # print(len(quotient_degree_bounds))
+        # quotient_degree_bounds += memory_extension.all_quotient_degree_bounds(log_time, challenges=[
+        #     d, e, f, beta], terminals=[processor_memory_permutation_terminal])
+        # print(len(quotient_degree_bounds))
+        # quotient_degree_bounds += input_extension.all_quotient_degree_bounds(
+        #     log_input, challenges=[gamma], terminals=[processor_input_evaluation_terminal])
+        # print(len(quotient_degree_bounds))
+        # quotient_degree_bounds += output_extension.all_quotient_degree_bounds(
+        #     log_output, challenges=[delta], terminals=[processor_output_evaluation_terminal])
+        # print(len(quotient_degree_bounds))
 
         # ... and equal initial values
-        X = Polynomial([self.xfield.zero(), self.xfield.one()])
-        quotient_codewords += [[(processor_codewords[ProcessorExtension.instruction_permutation][i] -
-                                 instruction_codewords[InstructionExtension.permutation][i]) * self.xfield.lift((fri.domain(i) - self.field.one()).inverse()) for i in range(fri.domain.length)]]
-        quotient_codewords += [[(processor_codewords[ProcessorExtension.memory_permutation][i] -
-                                memory_codewords[MemoryExtension.permutation][i]) * self.xfield.lift((fri.domain(i) - self.field.one()).inverse()) for i in range(fri.domain.length)]]
-        quotient_degree_bounds += [(1 << log_time) - 2] * 2
+        # quotient_codewords += [[(processor_codewords[ProcessorExtension.instruction_permutation][i] -
+        #                          instruction_codewords[InstructionExtension.permutation][i]) * self.xfield.lift((fri.domain(i) - self.field.one()).inverse()) for i in range(fri.domain.length)]]
+        # quotient_codewords += [[(processor_codewords[ProcessorExtension.memory_permutation][i] -
+        #                         memory_codewords[MemoryExtension.permutation][i]) * self.xfield.lift((fri.domain(i) - self.field.one()).inverse()) for i in range(fri.domain.length)]]
+        # quotient_degree_bounds += [(1 << log_time) - 2] * 2
         # (don't need to subtract equal values for the io evaluations because they're not randomized)
         tock = time.time()
         print("computing quotients took", (tock - tick), "seconds")
@@ -361,9 +339,9 @@ class BrainfuckStark:
         weights = self.sample_weights(2*num_base_polynomials + 2*num_extension_polynomials +
                                       num_randomizer_polynomials, proof_stream.prover_fiat_shamir())
 
-        polynomials = [fast_interpolate([self.xfield.lift(e) for e in fri.domain.list()], qcw, self.xfield.lift(fri.domain.omega),
-                                        fri.domain.length) for qcw in quotient_codewords]
-        for i in range(len(polynomials)):
+        polynomials = []
+        for i in range(len(quotient_codewords)):
+            polynomials += [fri.domain.xinterpolate(quotient_codewords[i])]
             assert(polynomials[i].degree() <=
                    max_degree), f"degree violation for quotient polynomial {i}"
 
