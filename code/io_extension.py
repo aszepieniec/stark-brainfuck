@@ -72,10 +72,10 @@ class IOExtension(TableExtension):
         return polynomials
 
     def boundary_constraints_ext(self):
-        # format: (row, polynomial)
+        # format: mpolynomial
         x = MPolynomial.variables(self.width, self.field)
         zero = MPolynomial.zero()
-        return [(0, x[1] - zero)]  # evaluation
+        return [x[1] - zero]  # evaluation
 
     def terminal_constraints_ext(self, challenges, terminals):
         gamma = MPolynomial.constant(challenges[0])

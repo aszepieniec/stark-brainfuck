@@ -44,7 +44,7 @@ class InstructionTable(Table):
         return InstructionTable.transition_constraints_afo_named_variables(address, current_instruction, next_instruction, address_next, current_instruction_next, next_instruction_next)
 
     def boundary_constraints(self):
-        # format: (row, polynomial)
+        # format: mpolynomial
         x = MPolynomial.variables(self.width, self.field)
         zero = MPolynomial.zero()
-        return [(0, x[InstructionTable.address]-zero)]
+        return [x[InstructionTable.address]-zero]

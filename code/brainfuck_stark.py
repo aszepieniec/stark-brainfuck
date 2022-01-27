@@ -140,8 +140,8 @@ class BrainfuckStark:
         # compute generators
         generator = self.field.generator()
         omega = self.field.primitive_nth_root(fri_domain_length)
-        omicron = self.field.primitive_nth_root(
-            rounded_trace_length)
+        omidi = self.field.primitive_nth_root(max_degree+1)
+        omicron = self.field.primitive_nth_root(rounded_trace_length)
 
         # instantiate helper objects
         fri = Fri(generator, omega, fri_domain_length,
@@ -194,7 +194,7 @@ class BrainfuckStark:
         # commit
         base_polynomials = processor_polynomials + instruction_polynomials + \
             memory_polynomials + input_polynomials + output_polynomials
-        base_codewords = [fast_coset_evaluate(p, self.generator, omega, fri_domain_length)
+        base_codewords = [fri.domain.evaluate(p)
                           for p in base_polynomials]
         base_codewords = [
             [self.xfield.lift(c) for c in cdwd] for cdwd in base_codewords]
@@ -278,6 +278,9 @@ class BrainfuckStark:
 
         print("first instruction pointeR:", processor_extension.table[0][ProcessorExtension.instruction_pointer])
 
+        processor_table.test()
+        processor_extension.test()
+
         tick = time.time()
         print("computing quotients ...")
         # gather polynomials derived from generalized AIR constraints relating to boundary, transition, and terminals
@@ -343,7 +346,7 @@ class BrainfuckStark:
         for i in range(len(quotient_codewords)):
             polynomials += [fri.domain.xinterpolate(quotient_codewords[i])]
             assert(polynomials[i].degree() <=
-                   max_degree), f"degree violation for quotient polynomial {i}"
+                   max_degree), f"degree violation for quotient polynomial {i}; max degree: {max_degree}; observed degree: {polynomials[i].degree()}"
 
         # compute terms of nonlinear combination polynomial
         terms = []

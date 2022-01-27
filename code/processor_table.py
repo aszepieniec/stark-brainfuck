@@ -179,12 +179,12 @@ class ProcessorTable(Table):
         x = MPolynomial.variables(self.width, self.field)
         one = MPolynomial.constant(self.field.one())
         zero = MPolynomial.zero()
-        constraints = [(0, x[ProcessorTable.cycle] - zero),
-                       (0, x[ProcessorTable.instruction_pointer] - zero),
-                       # (0, ???), # current instruction
-                       # (0, ???), # next instruction
-                       (0, x[ProcessorTable.memory_pointer] - zero),
-                       (0, x[ProcessorTable.memory_value] - zero),
-                       (0, x[ProcessorTable.is_zero] - one)]
+        constraints = [x[ProcessorTable.cycle] - zero,
+                       x[ProcessorTable.instruction_pointer] - zero,
+                       # ???, # current instruction
+                       # ???, # next instruction
+                       x[ProcessorTable.memory_pointer] - zero,
+                       x[ProcessorTable.memory_value] - zero,
+                       x[ProcessorTable.is_zero] - one]
 
         return constraints

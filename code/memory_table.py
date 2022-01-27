@@ -59,11 +59,11 @@ class MemoryTable(Table):
         return MemoryTable.transition_constraints_afo_named_variables(cycle, address, value, cycle_next, address_next, value_next)
 
     def boundary_constraints(self):
-        # format: (cycle, polynomial)
+        # format: mpolynomial
         x = MPolynomial.variables(self.width, self.field)
         one = MPolynomial.constant(self.field.one())
         zero = MPolynomial.zero()
-        return [(0, x[MemoryTable.cycle]),
-                (0, x[MemoryTable.memory_pointer]),
-                (0, x[MemoryTable.memory_value]),
+        return [x[MemoryTable.cycle],
+                x[MemoryTable.memory_pointer],
+                x[MemoryTable.memory_value],
                 ]

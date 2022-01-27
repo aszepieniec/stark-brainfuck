@@ -29,9 +29,9 @@ class Table:
 
     def test(self):
         for i in range(len(self.boundary_constraints())):
-            row, mpo = self.boundary_constraints()[i]
+            mpo = self.boundary_constraints()[i]
             if len(self.table) != 0:
-                point = self.table[row]
+                point = self.table[0]
                 assert(mpo.evaluate(point).is_zero(
                 )), f"BOUNDARY constraint {i} not satisfied; point: {[str(p) for p in point]}; polynomial {str(mpo)} evaluates to {str(mpo.evaluate(point))}"
 

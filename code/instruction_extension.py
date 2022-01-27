@@ -135,9 +135,9 @@ class InstructionExtension(TableExtension):
         x = MPolynomial.variables(self.width, self.field)
         one = MPolynomial.constant(self.field.one())
         zero = MPolynomial.zero()
-        return [(0, x[self.address] - zero),  # address starts at zero
-                (0, x[self.permutation] - one),  # running product starts at 1
-                (0, x[self.evaluation] - self.a * x[self.address] - self.b * x[self.current_instruction] - self.c * x[self.next_instruction])]
+        return [x[self.address] - zero,  # address starts at zero
+                x[self.permutation] - one,  # running product starts at 1
+                x[self.evaluation] - self.a * x[self.address] - self.b * x[self.current_instruction] - self.c * x[self.next_instruction]]
 
     def terminal_constraints_ext(self, challenges, terminals):
         a, b, c, alpha, eta = challenges

@@ -20,17 +20,18 @@ class TableExtension(Table):
     def boundary_quotients(self, omicron, fri_domain, codewords):
         quotient_codewords = []
         boundary_constraints = self.boundary_constraints_ext()
-        zerofiers = dict()
-        rows = [row for row, _ in boundary_constraints]
-        for row in rows:
-            zerofiers[row] = [fri_domain(i) - (omicron ^ row)
-                              for i in range(fri_domain.length)]
-        zerofiers_inverse = dict()
-        for row, z in zerofiers.items():
-            zerofiers_inverse[row] = batch_inverse(z)
-        for row, mpo in boundary_constraints:
-            quotient_codewords = [[mpo.evaluate([codewords[j][i] for j in range(
-                self.width)]) * self.xfield.lift(zerofiers_inverse[row][i]) for i in range(fri_domain.length)]]
+        print("got", len(boundary_constraints), "boundary constraints")
+        zerofier = [fri_domain(i) - omicron.field.one() for i in range(fri_domain.length)]
+        zerofier_inverse = batch_inverse(zerofier)
+        for l in range(len(boundary_constraints)):
+            mpo = boundary_constraints[l]
+            quotient_codewords += [[mpo.evaluate([codewords[j][i] for j in range(
+                self.width)]) * self.xfield.lift(zerofier_inverse[i]) for i in range(fri_domain.length)]]
+            if l == 4:
+                print("boundary constraint 4:", mpo)
+                special_codeword = [quotient_codewords[l][i] * self.xfield.lift(zerofier_inverse[i]) for i in range(fri_domain.length)]
+                quotient_polynomial = fri_domain.xinterpolate(special_codeword)
+                print("quotient polynomial degree:", quotient_polynomial.degree())
         return quotient_codewords
 
     def boundary_quotient_degree_bounds(self, log_num_rows):
@@ -47,13 +48,17 @@ class TableExtension(Table):
         zerofier = [(domain(i) ^ domain.length) - field.one()
                     for i in range(domain.length)]
         zerofier_inverse = batch_inverse(zerofier)
-        for mpo in self.transition_constraints_ext(challenges):
+        transition_constraints = self.transition_constraints_ext(challenges)
+        print("got", len(transition_constraints), "transition constraints")
+        for l in range(len(transition_constraints)):
+            mpo = transition_constraints[l]
             quotient_codeword = []
             for i in range(domain.length):
-                point = [codewords[j][i] for j in range(
-                    self.width)] + [codewords[j][(i+1) % domain.length] for j in range(self.width)]
+                point = [codewords[j][i] for j in range(self.width)] + \
+                         [codewords[j][(i+1) % domain.length] for j in range(self.width)]
                 quotient_codeword += [mpo.evaluate(point) *
                                       self.field.lift((domain(i) - omicron.inverse()) * zerofier_inverse[i])]
+            
             quotients += [quotient_codeword]
         return quotients
 
@@ -84,7 +89,11 @@ class TableExtension(Table):
         return [air_degree * degree - 1] * len(self.terminal_constraints_ext(challenges, terminals))
 
     def all_quotients(self, omicron, domain, codewords, log_num_rows, challenges, terminals):
-        return self.boundary_quotients(omicron, domain, codewords) + self.transition_quotients(omicron, domain, codewords, challenges) + self.terminal_quotients(omicron, domain, codewords, challenges, terminals)
+        boundary_quotients = self.boundary_quotients(omicron, domain, codewords)
+        transition_quotients = self.transition_quotients(omicron, domain, codewords, challenges)
+        terminal_quotients = self.terminal_quotients(omicron, domain, codewords, challenges, terminals)
+        print("have quotients:", len(boundary_quotients), "boundary,", len(transition_quotients), "transition, and", len(terminal_quotients), "terminal")
+        return boundary_quotients + transition_quotients + terminal_quotients
 
     def all_quotient_degree_bounds(self, log_num_rows, challenges, terminals):
         bounds = self.boundary_quotient_degree_bounds(log_num_rows) + self.transition_quotient_degree_bounds(
@@ -128,9 +137,9 @@ class TableExtension(Table):
 
     def test(self):
         for i in range(len(self.boundary_constraints_ext())):
-            row, mpo = self.boundary_constraints_ext()[i]
+            mpo = self.boundary_constraints_ext()[i]
             if len(self.table) != 0:
-                point = self.table[row]
+                point = self.table[0]
                 assert(mpo.evaluate(point).is_zero(
                 )), f"BOUNDARY constraint {i} not satisfied; point: {[str(p) for p in point]}; polynomial {str(mpo)} evaluates to {str(mpo.evaluate(point))}"
 

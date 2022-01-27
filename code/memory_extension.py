@@ -88,14 +88,14 @@ class MemoryExtension(TableExtension):
         return polynomials
 
     def boundary_constraints_ext(self):
-        # format: (cycle, polynomial)
+        # format: mpolynomial
         x = MPolynomial.variables(self.width, self.field)
         one = MPolynomial.constant(self.field.one())
         zero = MPolynomial.zero()
-        return [(0, x[MemoryExtension.cycle] - zero),  # cycle
-                (0, x[MemoryExtension.memory_pointer] - zero),  # memory pointer
-                (0, x[MemoryExtension.memory_value] - zero),  # memory value
-                (0, x[MemoryExtension.permutation] - one),   # permutation
+        return [x[MemoryExtension.cycle] - zero,  # cycle
+                x[MemoryExtension.memory_pointer] - zero,  # memory pointer
+                x[MemoryExtension.memory_value] - zero,  # memory value
+                x[MemoryExtension.permutation] - one   # permutation
                 ]
 
     def interpolate_extension(self, omega, order, num_randomizers):

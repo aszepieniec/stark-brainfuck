@@ -181,21 +181,21 @@ class ProcessorExtension(TableExtension):
         return polynomials
 
     def boundary_constraints_ext(self):
-        # format: (cycle, polynomial)
+        # format: mpolynomial
         x = MPolynomial.variables(self.width, self.field)
         one = MPolynomial.constant(self.field.one())
         zero = MPolynomial.zero()
-        constraints = [(0, x[self.cycle] - zero),
-                       (0, x[self.instruction_pointer] - zero),
-                       # (0, x[self.current_instruction] - ??),
-                       # (0, x[self.next_instruction] - ??),
-                       (0, x[self.memory_pointer] - zero),
-                       (0, x[self.memory_value] - zero),
-                       (0, x[self.is_zero] - one),
-                       (0, x[self.instruction_permutation] - one),
-                       (0, x[self.memory_permutation] - one),
-                       (0, x[self.input_evaluation] - zero),
-                       (0, x[self.output_evaluation] - zero)
+        constraints = [x[self.cycle] - zero,
+                       x[self.instruction_pointer] - zero,
+                       # x[self.current_instruction] - ??),
+                       # x[self.next_instruction] - ??),
+                       x[self.memory_pointer] - zero,
+                       x[self.memory_value] - zero,
+                       x[self.is_zero] - one,
+                       x[self.instruction_permutation] - one,
+                       x[self.memory_permutation] - one,
+                       x[self.input_evaluation] - zero,
+                       x[self.output_evaluation] - zero
                        ]
         return constraints
 
