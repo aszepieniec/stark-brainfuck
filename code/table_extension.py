@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from aet import Table
 from ntt import batch_inverse
+from processor_table import ProcessorTable
 from univariate import Polynomial
 
 
@@ -23,6 +24,11 @@ class TableExtension(Table):
         print("got", len(boundary_constraints), "boundary constraints")
         zerofier = [fri_domain(i) - omicron.field.one() for i in range(fri_domain.length)]
         zerofier_inverse = batch_inverse(zerofier)
+
+        is_zero_polynomial = fri_domain.xinterpolate(codewords[ProcessorTable.is_zero])
+        print("is_zero polynomial:", is_zero_polynomial)
+        print("is_zero codeword:", [str(c) for c in codewords[ProcessorTable.is_zero]])
+
         for l in range(len(boundary_constraints)):
             mpo = boundary_constraints[l]
             quotient_codewords += [[mpo.evaluate([codewords[j][i] for j in range(

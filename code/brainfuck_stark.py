@@ -192,13 +192,12 @@ class BrainfuckStark:
         tick = time.time()
         print("committing to base polynomials ...")
         # commit
-        base_polynomials = processor_polynomials + instruction_polynomials + \
-            memory_polynomials + input_polynomials + output_polynomials
-        base_codewords = [fri.domain.evaluate(p)
-                          for p in base_polynomials]
-        base_codewords = [
-            [self.xfield.lift(c) for c in cdwd] for cdwd in base_codewords]
-        zipped_codeword = list(zip(base_codewords + [randomizer_codeword]))
+        processor_base_codewords = [fri.domain.evaluate(p) for p in processor_polynomials]
+        instruction_base_codewords = [fri.domain.evaluate(p) for p in instruction_polynomials]
+        memory_base_codewords = [fri.domain.evaluate(p) for p in memory_polynomials]
+        input_base_codewords = [fri.domain.evaluate(p) for p in input_polynomials]
+        output_base_codewords = [fri.domain.evaluate(p) for p in output_polynomials]
+        zipped_codeword = list(zip(processor_base_codewords + instruction_base_codewords + memory_base_codewords + input_base_codewords + output_base_codewords + [randomizer_codeword]))
         base_tree = SaltedMerkle(zipped_codeword)
         proof_stream.push(base_tree.root())
         tock = time.time()
@@ -238,15 +237,15 @@ class BrainfuckStark:
         tick = time.time()
         print("interpolating extensions ...")
         # interpolate extension columns
-        processor_extension_polynomials = processor_extension.interpolate(
+        processor_extension_polynomials = processor_extension.interpolate_extension(
             omega, fri_domain_length, self.num_randomizers)
-        instruction_extension_polynomials = instruction_extension.interpolate(
+        instruction_extension_polynomials = instruction_extension.interpolate_extension(
             omega, fri_domain_length, self.num_randomizers)
-        memory_extension_polynomials = memory_extension.interpolate(
+        memory_extension_polynomials = memory_extension.interpolate_extension(
             omega, fri_domain_length, self.num_randomizers)
-        input_extension_polynomials = input_extension.interpolate(
+        input_extension_polynomials = input_extension.interpolate_extension(
             omega, fri_domain_length, self.num_randomizers)
-        output_extension_polynomials = output_extension.interpolate(
+        output_extension_polynomials = output_extension.interpolate_extension(
             omega, fri_domain_length, self.num_randomizers)
         tock = time.time()
         print("interpolation of extensions took", (tock - tick), "seconds")
@@ -254,21 +253,18 @@ class BrainfuckStark:
         tick = time.time()
         print("committing to extension polynomials ...")
         # commit to extension polynomials
-        extension_polynomials = processor_extension_polynomials + instruction_extension_polynomials + \
-            memory_extension_polynomials + \
-            input_extension_polynomials + output_extension_polynomials
-        processor_codewords = [fri.domain.xevaluate(p)
+        processor_extension_codewords = [fri.domain.xevaluate(p)
                                for p in (processor_extension_polynomials)]
-        instruction_codewords = [fri.domain.xevaluate(p)
+        instruction_extension_codewords = [fri.domain.xevaluate(p)
                                  for p in (instruction_extension_polynomials)]
-        memory_codewords = [fri.domain.xevaluate(p)
+        memory_extension_codewords = [fri.domain.xevaluate(p)
                             for p in (memory_extension_polynomials)]
-        input_codewords = [fri.domain.xevaluate(p)
+        input_extension_codewords = [fri.domain.xevaluate(p)
                            for p in (input_extension_polynomials)]
-        output_codewords = [fri.domain.xevaluate(p)
+        output_extension_codewords = [fri.domain.xevaluate(p)
                             for p in (output_extension_polynomials)]
-        extension_codewords = processor_codewords + instruction_codewords + \
-            memory_codewords + input_codewords + output_codewords
+        extension_codewords = processor_extension_codewords + instruction_extension_codewords + \
+            memory_extension_codewords + input_extension_codewords + output_extension_codewords
         zipped_extension_codeword = list(zip(extension_codewords))
         extension_tree = SaltedMerkle(zipped_extension_codeword)
         proof_stream.push(extension_tree.root())
@@ -280,6 +276,13 @@ class BrainfuckStark:
 
         processor_table.test()
         processor_extension.test()
+
+        # combine base + extension
+        processor_codewords = [[self.xfield.lift(c) for c in codeword] for codeword in processor_base_codewords] + processor_extension_codewords
+        instruction_codewords = [[self.xfield.lift(c) for c in codeword] for codeword in instruction_base_codewords] + instruction_extension_codewords
+        memory_codewords = [[self.xfield.lift(c) for c in codeword] for codeword in memory_base_codewords] + memory_extension_codewords
+        input_codewords = [[self.xfield.lift(c) for c in codeword] for codeword in input_base_codewords] + input_extension_codewords
+        output_codewords = [[self.xfield.lift(c) for c in codeword] for codeword in output_base_codewords] + output_extension_codewords
 
         tick = time.time()
         print("computing quotients ...")

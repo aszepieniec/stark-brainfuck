@@ -28,9 +28,6 @@ class Fri:
             coefficients += [self.omega.field.zero()] * (self.length - len(coefficients))
             return ntt(self.omega, coefficients)
 
-        def interpolate( self, values ):
-            return fast_interpolate([(self.omega^i) * self.offset for i in range(self.length)], values, self.omega, self.length)
-
         def xevaluate(self, polynomial):
             xfield = polynomial.coefficients[0].field
             coefficients = [[self.omega.field.zero()] * xfield.modulus.degree()] * (1 + polynomial.degree())
@@ -49,8 +46,11 @@ class Fri:
                 [values[j][i] for j in range(xfield.modulus.degree())]), xfield) for i in range(self.length)]
             return xcdwd
 
-        def xinterpolate(self, values):
-            return fast_interpolate([values[0].field.lift((self.omega^i) * self.offset) for i in range(self.length)], values, values[0].field.lift(self.omega), self.length)
+        def interpolate( self, values ):
+            return fast_coset_interpolate(self.offset, self.omega, values)
+
+        def xinterpolate( self, values ):
+            return fast_coset_interpolate(values[0].field.lift(self.offset), values[0].field.lift(self.omega), values)
 
     def __init__(self, offset, omega, initial_domain_length, expansion_factor, num_colinearity_tests):
         self.domain = Fri.Domain(offset, omega, initial_domain_length)

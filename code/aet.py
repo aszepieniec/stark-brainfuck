@@ -51,6 +51,7 @@ class Table:
         return self.interpolate_columns(omega, order, num_randomizers, columns=range(self.width))
 
     def interpolate_columns(self, omega, order, num_randomizers, columns):
+        print("interpolating table columns", columns)
         num_rows = len(self.table)
         if num_rows == 0:
             return [Polynomial([self.field.zero()])] * self.width
@@ -89,5 +90,7 @@ class Table:
             for j in range(num_rows):
                 trace[randomness_expansion_factor*j] = self.table[j][i]
             polynomials += [Polynomial(intt(self.field.lift(self.omicron), trace))]
+            if i == 6:
+                print("interpolating iz_zero polynomial; found polynomial:", polynomials[i])
 
         return polynomials

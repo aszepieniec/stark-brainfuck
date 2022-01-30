@@ -161,6 +161,24 @@ def fast_coset_evaluate(polynomial, offset, generator, order):
                  [offset.field.zero()] * (order - len(polynomial.coefficients)))
     return values
 
+def fast_coset_interpolate(offset, generator, values):
+    coefficients = intt(generator, values)
+    poly = Polynomial(coefficients)
+    return poly.scale(offset.inverse())
+
+def batch_inverse(array):
+    assert(all(not a.is_zero() for a in array)
+           ), "batch inverse does not work when input contains a zero"
+    products = [a for a in array]
+    for i in range(1, len(array)):
+        products[i] = products[i-1] * array[i]
+    acc = products[-1].inverse()
+    for i in reversed(range(1, len(array))):
+        products[i] = acc * products[i-1]
+        acc = acc * array[i]
+    products[0] = acc
+    return products
+
 
 def fast_coset_divide(lhs, rhs, offset, primitive_root, root_order):  # clean division only!
     assert(primitive_root ^ root_order == primitive_root.field.one()
@@ -199,24 +217,11 @@ def fast_coset_divide(lhs, rhs, offset, primitive_root, root_order):  # clean di
 
     lhs_codeword = ntt(root, lhs_coefficients)
     rhs_codeword = ntt(root, rhs_coefficients)
+    rhs_inverse = batch_inverse(rhs_codeword)
 
-    quotient_codeword = [l / r for (l, r) in zip(lhs_codeword, rhs_codeword)]
+    quotient_codeword = [l * r for (l, r) in zip(lhs_codeword, rhs_inverse)]
     scaled_quotient_coefficients = intt(root, quotient_codeword)
     scaled_quotient = Polynomial(
         scaled_quotient_coefficients[:(lhs.degree() - rhs.degree() + 1)])
 
     return scaled_quotient.scale(offset.inverse())
-
-
-def batch_inverse(array):
-    assert(all(not a.is_zero() for a in array)
-           ), "batch inverse does not work when input contains a zero"
-    products = [a for a in array]
-    for i in range(1, len(array)):
-        products[i] = products[i-1] * array[i]
-    acc = products[-1].inverse()
-    for i in reversed(range(1, len(array))):
-        products[i] = acc * products[i-1]
-        acc = acc * array[i]
-    products[0] = acc
-    return products

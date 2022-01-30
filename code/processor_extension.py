@@ -200,7 +200,7 @@ class ProcessorExtension(TableExtension):
         return constraints
 
     def interpolate_extension(self, omega, order, num_randomizers):
-        return self.interpolate_columns(omega, order, num_randomizers, range(ProcessorTable.is_zero, self.width))
+        return self.interpolate_columns(omega, order, num_randomizers, range(ProcessorTable.width, self.width))
 
     def terminal_constraints_ext(self, challenges, terminals):
         a, b, c, d, e, f, alpha, beta, gamma, delta = [
