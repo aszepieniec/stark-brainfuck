@@ -25,19 +25,10 @@ class TableExtension(Table):
         zerofier = [fri_domain(i) - omicron.field.one() for i in range(fri_domain.length)]
         zerofier_inverse = batch_inverse(zerofier)
 
-        is_zero_polynomial = fri_domain.xinterpolate(codewords[ProcessorTable.is_zero])
-        print("is_zero polynomial:", is_zero_polynomial)
-        print("is_zero codeword:", [str(c) for c in codewords[ProcessorTable.is_zero]])
-
         for l in range(len(boundary_constraints)):
             mpo = boundary_constraints[l]
             quotient_codewords += [[mpo.evaluate([codewords[j][i] for j in range(
                 self.width)]) * self.xfield.lift(zerofier_inverse[i]) for i in range(fri_domain.length)]]
-            if l == 4:
-                print("boundary constraint 4:", mpo)
-                special_codeword = [quotient_codewords[l][i] * self.xfield.lift(zerofier_inverse[i]) for i in range(fri_domain.length)]
-                quotient_polynomial = fri_domain.xinterpolate(special_codeword)
-                print("quotient polynomial degree:", quotient_polynomial.degree())
         return quotient_codewords
 
     def boundary_quotient_degree_bounds(self, log_num_rows):
@@ -48,24 +39,47 @@ class TableExtension(Table):
     def transition_constraints_ext(self, challenges):
         pass
 
-    def transition_quotients(self, omicron, domain, codewords, challenges):
+    def transition_quotients(self, omicron, log_num_rows, domain, codewords, challenges):
+        interpolation_subgroup_order = 1 << log_num_rows
+        print("interpolation subgroup order:", interpolation_subgroup_order)
         quotients = []
         field = domain.omega.field
-        zerofier = [(domain(i) ^ domain.length) - field.one()
-                    for i in range(domain.length)]
-        zerofier_inverse = batch_inverse(zerofier)
+        subgroup_zerofier = [(domain(i) ^ interpolation_subgroup_order) - field.one() for i in range(domain.length)]
+        subgroup_zerofier_inverse = batch_inverse(subgroup_zerofier)
+        zerofier_inverse = [subgroup_zerofier_inverse[i] * (domain(i) - omicron.inverse()) for i in range(domain.length)]
+
         transition_constraints = self.transition_constraints_ext(challenges)
         print("got", len(transition_constraints), "transition constraints")
+
+        symbolic_point = [domain.xinterpolate(c) for c in codewords]
+        symbolic_point = symbolic_point + [sp.scale(self.xfield.lift(omicron)) for sp in symbolic_point]
+        X = Polynomial([self.field.zero(), self.field.one()])
+        symbolic_zerofier = (((X^interpolation_subgroup_order)) - Polynomial([self.field.one()])) / (X - Polynomial([self.field.lift(omicron.inverse())]))
+
+        for i in range(interpolation_subgroup_order):
+            print("value of symbolic zerofier in omicron^%i:" % i, symbolic_zerofier.evaluate(self.field.lift(omicron^i)))
+
         for l in range(len(transition_constraints)):
             mpo = transition_constraints[l]
             quotient_codeword = []
             for i in range(domain.length):
                 point = [codewords[j][i] for j in range(self.width)] + \
-                         [codewords[j][(i+1) % domain.length] for j in range(self.width)]
-                quotient_codeword += [mpo.evaluate(point) *
-                                      self.field.lift((domain(i) - omicron.inverse()) * zerofier_inverse[i])]
+                         [codewords[j][(i+(domain.length // interpolation_subgroup_order)) % domain.length] for j in range(self.width)]
+                quotient_codeword += [mpo.evaluate(point) * self.field.lift(zerofier_inverse[i])]
             
             quotients += [quotient_codeword]
+
+            if l == 0:
+                print("symbolically evaluating polynomial", mpo)
+                symbolic_transition_polynomial = mpo.evaluate_symbolic(symbolic_point)
+                print("transition quotient degree:", domain.xinterpolate(quotients[-1]).degree(), "versus codeword length:", len(quotients[-1]))
+                print("symbolic transition polynomial degree:", symbolic_transition_polynomial.degree())
+                for i in range(interpolation_subgroup_order):
+                    print("value in omicron^%i:" % i, symbolic_transition_polynomial.evaluate(self.field.lift(omicron^i)))
+                symbolic_quotient, symbolic_remainder = symbolic_transition_polynomial.divide(symbolic_zerofier)
+                print("symbolic quotient degree:", symbolic_quotient.degree())
+                print("symbolic remainder degree:", symbolic_remainder.degree())
+                print("---")
         return quotients
 
     def transition_quotient_degree_bounds(self, log_num_rows, challenges):
@@ -96,7 +110,7 @@ class TableExtension(Table):
 
     def all_quotients(self, omicron, domain, codewords, log_num_rows, challenges, terminals):
         boundary_quotients = self.boundary_quotients(omicron, domain, codewords)
-        transition_quotients = self.transition_quotients(omicron, domain, codewords, challenges)
+        transition_quotients = self.transition_quotients(omicron, log_num_rows, domain, codewords, challenges)
         terminal_quotients = self.terminal_quotients(omicron, domain, codewords, challenges, terminals)
         print("have quotients:", len(boundary_quotients), "boundary,", len(transition_quotients), "transition, and", len(terminal_quotients), "terminal")
         return boundary_quotients + transition_quotients + terminal_quotients

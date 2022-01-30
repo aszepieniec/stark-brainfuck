@@ -1,5 +1,5 @@
 from processor_table import *
-from table_extension import TableExtension
+from table_extension import *
 
 
 class ProcessorExtension(TableExtension):

@@ -22,7 +22,7 @@ def test_vm():
 def test_states():
     code = (">>[++-]<")
     program = VirtualMachine.compile(code)
-    processor_table, instruction_table, memory_table, input_table, output_table = VirtualMachine.simulate(
+    log_time, processor_table, instruction_table, memory_table, input_table, output_table = VirtualMachine.simulate(
         program)
     print("hello, workd")
 
@@ -39,7 +39,7 @@ def test_air():
     program = VirtualMachine.compile(code)
 
     # populate AETs
-    processor_table, instruction_table, memory_table, input_table, output_table = VirtualMachine.simulate(
+    log_time, processor_table, instruction_table, memory_table, input_table, output_table = VirtualMachine.simulate(
         program)
 
     # test AETs against AIR
@@ -61,7 +61,7 @@ def test_pad():
     program = VirtualMachine.compile(code)
 
     # populate AETs
-    processor_table, instruction_table, memory_table, input_table, output_table = VirtualMachine.simulate(
+    log_time, processor_table, instruction_table, memory_table, input_table, output_table = VirtualMachine.simulate(
         program)
 
     # pad tables to length 2^k
@@ -90,7 +90,7 @@ def test_extend():
     program = VirtualMachine.compile(code)
 
     # populate AETs
-    processor_table, instruction_table, memory_table, input_table, output_table = VirtualMachine.simulate(
+    log_time, processor_table, instruction_table, memory_table, input_table, output_table = VirtualMachine.simulate(
         program)
 
     # pad tables to length 2^k
@@ -106,7 +106,7 @@ def test_extend():
 
     # extend tables
     instruction_extension = InstructionExtension.extend(
-        instruction_table, program, a, b, c, alpha, eta)
+        instruction_table, a, b, c, alpha, eta)
     processor_extension = ProcessorExtension.extend(
         processor_table, a, b, c, d, e, f, alpha, beta, gamma, delta)
     memory_extension = MemoryExtension.extend(memory_table, d, e, f, beta)

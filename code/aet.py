@@ -48,10 +48,9 @@ class Table:
                 )), f"TRNASITION constraint {i} not satisfied in row {rowidx}; point: {[str(p) for p in point]}; polynomial {str(mpo.partial_evaluate({1: point[1]}))} evaluates to {str(mpo.evaluate(point))}"
 
     def interpolate(self, omega, order, num_randomizers):
-        return self.interpolate_columns(omega, order, num_randomizers, columns=range(self.width))
+        return self.interpolate_columns(omega, order, num_randomizers, column_indices=range(self.width))
 
-    def interpolate_columns(self, omega, order, num_randomizers, columns):
-        print("interpolating table columns", columns)
+    def interpolate_columns(self, omega, order, num_randomizers, column_indices):
         num_rows = len(self.table)
         if num_rows == 0:
             return [Polynomial([self.field.zero()])] * self.width
@@ -84,13 +83,11 @@ class Table:
         assert(self.domain_length == order)
 
         polynomials = []
-        for i in columns:
+        for i in column_indices:
             trace = [self.field.sample(os.urandom(3*8))
                      for j in range(order)]
             for j in range(num_rows):
                 trace[randomness_expansion_factor*j] = self.table[j][i]
             polynomials += [Polynomial(intt(self.field.lift(self.omicron), trace))]
-            if i == 6:
-                print("interpolating iz_zero polynomial; found polynomial:", polynomials[i])
 
         return polynomials

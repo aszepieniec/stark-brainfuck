@@ -103,7 +103,7 @@ class BrainfuckStark:
             [transformed_lists[i][j] for j in range(3)]), field) for i in range(order)]
         return codeword
 
-    def prove(self, processor_table, instruction_table, memory_table, input_table, output_table, proof_stream=None):
+    def prove(self, log_time, program, processor_table, instruction_table, memory_table, input_table, output_table, proof_stream=None):
         # infer details about computation
         original_trace_length = len(processor_table.table)
         rounded_trace_length = BrainfuckStark.roundup_npo2(
@@ -111,9 +111,10 @@ class BrainfuckStark:
         randomized_trace_length = rounded_trace_length + self.num_randomizers
 
         # infer table lengths (=# rows)
-        log_time = 1
-        while (1 << log_time) < rounded_trace_length:
-            log_time += 1
+        log_time_ = 1
+        while (1 << log_time_) < rounded_trace_length:
+            log_time_ += 1
+        assert(log_time == log_time_), "log time does not match with trace length"
         log_input = 1
         while (1 << log_input) < len(input_table.table):
             log_input += 1
@@ -122,20 +123,25 @@ class BrainfuckStark:
             log_output += 1
 
         # compute fri domain length
-        air_degree = 10  # TODO verify me
-        tp_degree = air_degree * (randomized_trace_length - 1)
-        tq_degree = tp_degree - (rounded_trace_length - 1)
+        air_degree = 9  # TODO verify me
+        trace_degree = BrainfuckStark.roundup_npo2(randomized_trace_length) - 1
+        tp_degree = air_degree * trace_degree
+        tz_degree = rounded_trace_length - 1
+        tq_degree = tp_degree - tz_degree
         max_degree = BrainfuckStark.roundup_npo2(
             tq_degree + 1) - 1  # The max degree bound provable by FRI
         fri_domain_length = (max_degree+1) * self.expansion_factor
 
-        # print("original trace length:", original_trace_length)
-        # print("rounded trace length:", rounded_trace_length)
-        # print("air degree:", air_degree)
-        # print("transition polynomials degree:", tp_degree)
-        # print("transition quotients degree:", tq_degree)
-        # print("max degree:", max_degree)
-        # print("fri domain length:", fri_domain_length)
+        print("original trace length:", original_trace_length)
+        print("rounded trace length:", rounded_trace_length)
+        print("randomized trace length:", randomized_trace_length)
+        print("trace degree:", trace_degree)
+        print("air degree:", air_degree)
+        print("transition polynomials degree:", tp_degree)
+        print("transition quotients degree:", tq_degree)
+        print("transition zerofier degree:", tz_degree)
+        print("max degree:", max_degree)
+        print("fri domain length:", fri_domain_length)
 
         # compute generators
         generator = self.field.generator()
@@ -254,15 +260,15 @@ class BrainfuckStark:
         print("committing to extension polynomials ...")
         # commit to extension polynomials
         processor_extension_codewords = [fri.domain.xevaluate(p)
-                               for p in (processor_extension_polynomials)]
+                               for p in processor_extension_polynomials]
         instruction_extension_codewords = [fri.domain.xevaluate(p)
-                                 for p in (instruction_extension_polynomials)]
+                                 for p in instruction_extension_polynomials]
         memory_extension_codewords = [fri.domain.xevaluate(p)
-                            for p in (memory_extension_polynomials)]
+                            for p in memory_extension_polynomials]
         input_extension_codewords = [fri.domain.xevaluate(p)
-                           for p in (input_extension_polynomials)]
+                           for p in input_extension_polynomials]
         output_extension_codewords = [fri.domain.xevaluate(p)
-                            for p in (output_extension_polynomials)]
+                            for p in output_extension_polynomials]
         extension_codewords = processor_extension_codewords + instruction_extension_codewords + \
             memory_extension_codewords + input_extension_codewords + output_extension_codewords
         zipped_extension_codeword = list(zip(extension_codewords))

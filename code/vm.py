@@ -248,7 +248,12 @@ class VirtualMachine:
         # sort by instruction address
         instruction_table.table.sort(key=lambda row: row[0].value)
 
-        return processor_table, instruction_table, memory_table, input_table, output_table
+        # compute instance data for computation
+        log_time = 0
+        while 1 << log_time < len(processor_table.table):
+            log_time += 1
+
+        return log_time, processor_table, instruction_table, memory_table, input_table, output_table
 
     @staticmethod
     def num_challenges():
