@@ -111,16 +111,26 @@ class BrainfuckStark:
         randomized_trace_length = rounded_trace_length + self.num_randomizers
 
         # infer table lengths (=# rows)
-        log_time_ = 1
+        log_time_ = 0
         while (1 << log_time_) < rounded_trace_length:
             log_time_ += 1
         assert(log_time == log_time_), "log time does not match with trace length"
-        log_input = 1
-        while (1 << log_input) < len(input_table.table):
-            log_input += 1
-        log_output = 1
-        while (1 << log_output) < len(output_table.table):
-            log_output += 1
+        log_input = 0
+        if len(input_table.table) == 0:
+            log_input -= 1
+        else:
+            while (1 << log_input) < len(input_table.table):
+                log_input += 1
+        log_output = 0
+        if len(output_table.table) == 0:
+            log_output -= 1
+        else:
+            while (1 << log_output) < len(output_table.table):
+                log_output += 1
+        
+        print("log time:", log_time_)
+        print("log input length:", log_input)
+        print("log output length:", log_output)
 
         # compute fri domain length
         air_degree = 9  # TODO verify me
@@ -132,16 +142,16 @@ class BrainfuckStark:
             tq_degree + 1) - 1  # The max degree bound provable by FRI
         fri_domain_length = (max_degree+1) * self.expansion_factor
 
-        print("original trace length:", original_trace_length)
-        print("rounded trace length:", rounded_trace_length)
-        print("randomized trace length:", randomized_trace_length)
-        print("trace degree:", trace_degree)
-        print("air degree:", air_degree)
-        print("transition polynomials degree:", tp_degree)
-        print("transition quotients degree:", tq_degree)
-        print("transition zerofier degree:", tz_degree)
-        print("max degree:", max_degree)
-        print("fri domain length:", fri_domain_length)
+        # print("original trace length:", original_trace_length)
+        # print("rounded trace length:", rounded_trace_length)
+        # print("randomized trace length:", randomized_trace_length)
+        # print("trace degree:", trace_degree)
+        # print("air degree:", air_degree)
+        # print("transition polynomials degree:", tp_degree)
+        # print("transition quotients degree:", tq_degree)
+        # print("transition zerofier degree:", tz_degree)
+        # print("max degree:", max_degree)
+        # print("fri domain length:", fri_domain_length)
 
         # compute generators
         generator = self.field.generator()
@@ -294,34 +304,39 @@ class BrainfuckStark:
         print("computing quotients ...")
         # gather polynomials derived from generalized AIR constraints relating to boundary, transition, and terminals
         quotient_codewords = []
+        print("processor table:")
         quotient_codewords += processor_extension.all_quotients(omicron, fri.domain, processor_codewords, log_time, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[
             processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal])
-        # quotient_codewords += instruction_extension.all_quotients(omicron, fri.domain, instruction_codewords, log_time, challenges=[a, b, c, alpha, eta], terminals=[
-        #     processor_instruction_permutation_terminal, instruction_evaluation_terminal])
-        # quotient_codewords += memory_extension.all_quotients(omicron, fri.domain, memory_codewords, log_time, challenges=[
-        #     d, e, f, beta], terminals=[processor_memory_permutation_terminal])
-        # quotient_codewords += input_extension.all_quotients(omicron, fri.domain, input_codewords,
-        #                                                     log_input, challenges=[gamma], terminals=[processor_input_evaluation_terminal])
-        # quotient_codewords += output_extension.all_quotients(omicron, fri.domain, output_codewords,
-        #                                                      log_output, challenges=[delta], terminals=[processor_output_evaluation_terminal])
+        print("instruction table:")
+        quotient_codewords += instruction_extension.all_quotients(omicron, fri.domain, instruction_codewords, log_time, challenges=[a, b, c, alpha, eta], terminals=[
+            processor_instruction_permutation_terminal, instruction_evaluation_terminal])
+        print("memory table:")
+        quotient_codewords += memory_extension.all_quotients(omicron, fri.domain, memory_codewords, log_time, challenges=[
+            d, e, f, beta], terminals=[processor_memory_permutation_terminal])
+        print("input table:")
+        quotient_codewords += input_extension.all_quotients(omicron, fri.domain, input_codewords,
+                                                            log_input, challenges=[gamma], terminals=[processor_input_evaluation_terminal])
+        print("output table:")
+        quotient_codewords += output_extension.all_quotients(omicron, fri.domain, output_codewords,
+                                                             log_output, challenges=[delta], terminals=[processor_output_evaluation_terminal])
 
         quotient_degree_bounds = []
         print("number of degree bounds:")
         quotient_degree_bounds += processor_extension.all_quotient_degree_bounds(log_time, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[
             processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal])
         print(len(quotient_degree_bounds))
-        # quotient_degree_bounds += instruction_extension.all_quotient_degree_bounds(log_time, challenges=[a, b, c, alpha, eta], terminals=[
-        #     processor_instruction_permutation_terminal, instruction_evaluation_terminal])
-        # print(len(quotient_degree_bounds))
-        # quotient_degree_bounds += memory_extension.all_quotient_degree_bounds(log_time, challenges=[
-        #     d, e, f, beta], terminals=[processor_memory_permutation_terminal])
-        # print(len(quotient_degree_bounds))
-        # quotient_degree_bounds += input_extension.all_quotient_degree_bounds(
-        #     log_input, challenges=[gamma], terminals=[processor_input_evaluation_terminal])
-        # print(len(quotient_degree_bounds))
-        # quotient_degree_bounds += output_extension.all_quotient_degree_bounds(
-        #     log_output, challenges=[delta], terminals=[processor_output_evaluation_terminal])
-        # print(len(quotient_degree_bounds))
+        quotient_degree_bounds += instruction_extension.all_quotient_degree_bounds(log_time, challenges=[a, b, c, alpha, eta], terminals=[
+            processor_instruction_permutation_terminal, instruction_evaluation_terminal])
+        print(len(quotient_degree_bounds))
+        quotient_degree_bounds += memory_extension.all_quotient_degree_bounds(log_time, challenges=[
+            d, e, f, beta], terminals=[processor_memory_permutation_terminal])
+        print(len(quotient_degree_bounds))
+        quotient_degree_bounds += input_extension.all_quotient_degree_bounds(
+            log_input, challenges=[gamma], terminals=[processor_input_evaluation_terminal])
+        print(len(quotient_degree_bounds))
+        quotient_degree_bounds += output_extension.all_quotient_degree_bounds(
+            log_output, challenges=[delta], terminals=[processor_output_evaluation_terminal])
+        print(len(quotient_degree_bounds))
 
         # ... and equal initial values
         # quotient_codewords += [[(processor_codewords[ProcessorExtension.instruction_permutation][i] -

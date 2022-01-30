@@ -32,7 +32,10 @@ class TableExtension(Table):
         return quotient_codewords
 
     def boundary_quotient_degree_bounds(self, log_num_rows):
-        composition_degree = (1 << log_num_rows) - 1
+        if log_num_rows >= 0:
+            composition_degree = (1 << log_num_rows) - 1
+        else:
+            composition_degree = -1
         return [composition_degree - 1] * len(self.boundary_constraints_ext())
 
     @abstractmethod
@@ -40,6 +43,9 @@ class TableExtension(Table):
         pass
 
     def transition_quotients(self, omicron, log_num_rows, domain, codewords, challenges):
+        if log_num_rows < 0:
+            return []
+            
         interpolation_subgroup_order = 1 << log_num_rows
         print("interpolation subgroup order:", interpolation_subgroup_order)
         quotients = []
@@ -56,8 +62,8 @@ class TableExtension(Table):
         X = Polynomial([self.field.zero(), self.field.one()])
         symbolic_zerofier = (((X^interpolation_subgroup_order)) - Polynomial([self.field.one()])) / (X - Polynomial([self.field.lift(omicron.inverse())]))
 
-        for i in range(interpolation_subgroup_order):
-            print("value of symbolic zerofier in omicron^%i:" % i, symbolic_zerofier.evaluate(self.field.lift(omicron^i)))
+        # for i in range(interpolation_subgroup_order):
+        #     print("value of symbolic zerofier in omicron^%i:" % i, symbolic_zerofier.evaluate(self.field.lift(omicron^i)))
 
         for l in range(len(transition_constraints)):
             mpo = transition_constraints[l]
@@ -69,7 +75,7 @@ class TableExtension(Table):
             
             quotients += [quotient_codeword]
 
-            if l == 0:
+            if l == -1:
                 print("symbolically evaluating polynomial", mpo)
                 symbolic_transition_polynomial = mpo.evaluate_symbolic(symbolic_point)
                 print("transition quotient degree:", domain.xinterpolate(quotients[-1]).degree(), "versus codeword length:", len(quotients[-1]))
@@ -83,10 +89,14 @@ class TableExtension(Table):
         return quotients
 
     def transition_quotient_degree_bounds(self, log_num_rows, challenges):
+        if log_num_rows >= 0:
+            trace_degree = (1 << log_num_rows)-1
+        else:
+            trace_degree = -1
         air_degree = max(air.degree()
                          for air in self.transition_constraints_ext(challenges))
-        composition_degree = ((1 << log_num_rows) - 1) * air_degree
-        return [composition_degree + 1 - (1 << log_num_rows)] * len(self.transition_constraints_ext(challenges))
+        composition_degree = trace_degree * air_degree
+        return [composition_degree - trace_degree] * len(self.transition_constraints_ext(challenges))
 
     @ abstractmethod
     def terminal_constraints_ext(self, challenges, terminals):
@@ -103,7 +113,10 @@ class TableExtension(Table):
         return quotient_codewords
 
     def terminal_quotient_degree_bounds(self, log_num_rows, challenges, terminals):
-        degree = (1 << log_num_rows) - 1
+        if log_num_rows >= 0:
+            degree = (1 << log_num_rows) - 1
+        else:
+            degree = -1
         air_degree = max(tc.degree()
                          for tc in self.terminal_constraints_ext(challenges, terminals))
         return [air_degree * degree - 1] * len(self.terminal_constraints_ext(challenges, terminals))
