@@ -293,6 +293,9 @@ class BrainfuckStark:
         processor_table.test()
         processor_extension.test()
 
+        instruction_table.test()
+        instruction_extension.test()
+
         # combine base + extension
         processor_codewords = [[self.xfield.lift(c) for c in codeword] for codeword in processor_base_codewords] + processor_extension_codewords
         instruction_codewords = [[self.xfield.lift(c) for c in codeword] for codeword in instruction_base_codewords] + instruction_extension_codewords

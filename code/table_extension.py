@@ -75,8 +75,8 @@ class TableExtension(Table):
             
             quotients += [quotient_codeword]
 
-            if l == -1:
-                print("symbolically evaluating polynomial", mpo)
+            if l == 3:
+                print("symbolically evaluating polynomial", mpo, "(%i)" % l)
                 symbolic_transition_polynomial = mpo.evaluate_symbolic(symbolic_point)
                 print("transition quotient degree:", domain.xinterpolate(quotients[-1]).degree(), "versus codeword length:", len(quotients[-1]))
                 print("symbolic transition polynomial degree:", symbolic_transition_polynomial.degree())
