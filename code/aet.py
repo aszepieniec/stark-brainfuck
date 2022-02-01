@@ -53,7 +53,7 @@ class Table:
     def interpolate_columns(self, omega, omega_order, num_randomizers, column_indices):
         num_rows = len(self.table)
         if num_rows == 0:
-            return [Polynomial([self.field.zero()])] * self.width
+            return []
 
         assert(num_rows != 0), "number of rows cannot be zero"
 
@@ -111,3 +111,11 @@ class Table:
                     polynomials[-1].evaluate(self.field.lift(omicron ^ row)) == self.table[row][col])
 
         return polynomials
+
+    def get_height(self):
+        if self.table:
+            return len(self.table)
+        elif hasattr(self, 'height'):
+            return self.height
+        else:
+            return 0

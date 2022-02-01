@@ -19,6 +19,9 @@ class TableExtension(Table):
         pass
 
     def boundary_quotients(self, fri_domain, codewords):
+        if len(codewords) == 0:
+            return []
+
         quotient_codewords = []
         boundary_constraints = self.boundary_constraints_ext()
         print("got", len(boundary_constraints), "boundary constraints")

@@ -51,9 +51,9 @@ class BrainfuckStark:
     def transition_quotient_degree_bounds(self, transition_constraints):
         return [d - (self.original_trace_length-1) for d in self.transition_degree_bounds(transition_constraints)]
 
-    def max_degree(self, transition_constraints):
-        md = max(self.transition_quotient_degree_bounds(transition_constraints))
-        return (1 << (len(bin(md)[2:]))) - 1
+    # def max_degree(self, transition_constraints):
+    #     md = max(self.transition_quotient_degree_bounds(transition_constraints))
+    #     return (1 << (len(bin(md)[2:]))) - 1
 
     def boundary_zerofiers(self, boundary):
         zerofiers = []
@@ -77,7 +77,7 @@ class BrainfuckStark:
         return [randomized_trace_degree - bz.degree() for bz in self.boundary_zerofiers(boundary)]
 
     def sample_weights(self, number, randomness):
-        return [self.xfield.sample(blake2b(randomness + bytes(i)).digest()) for i in range(0, number)]
+        return [self.xfield.sample(blake2b(randomness + bytes(i)).digest()) for i in range(number)]
 
     @staticmethod
     def roundup_npo2(integer):
@@ -110,18 +110,14 @@ class BrainfuckStark:
         # infer details about computation
         original_trace_length = len(processor_table.table)
         rounded_trace_length = BrainfuckStark.roundup_npo2(
-            original_trace_length)
+            original_trace_length + len(program))
         randomized_trace_length = rounded_trace_length + self.num_randomizers
 
         # infer table lengths (=# rows)
-        log_time_ = 0
-        while (1 << log_time_) < rounded_trace_length:
-            log_time_ += 1
-        assert(log_time == log_time_), "log time does not match with trace length"
         log_instructions = 0
         while (1 << log_instructions) < BrainfuckStark.roundup_npo2(len(instruction_table.table)):
             log_instructions += 1
-        assert(log_time == log_time_), "log time does not match with trace length"
+
         log_input = 0
         if len(input_table.table) == 0:
             log_input -= 1
@@ -135,7 +131,7 @@ class BrainfuckStark:
             while (1 << log_output) < len(output_table.table):
                 log_output += 1
 
-        print("log time:", log_time_)
+        print("log time:", log_time)
         print("log input length:", log_input)
         print("log output length:", log_output)
 
@@ -173,7 +169,7 @@ class BrainfuckStark:
         if proof_stream == None:
             proof_stream = ProofStream()
 
-        # pad tables
+        # pad tables to height 2^k
         processor_table.pad()
         instruction_table.pad()
         memory_table.pad(processor_table)
@@ -198,11 +194,13 @@ class BrainfuckStark:
 
         base_polynomials = processor_polynomials + instruction_polynomials + \
             memory_polynomials + input_polynomials + output_polynomials
-        base_degree_bound = 1
-        while base_degree_bound < rounded_trace_length + self.num_randomizers:
-            base_degree_bound = base_degree_bound << 1
-        base_degree_bound -= 1
-        base_degree_bounds = [base_degree_bound] * len(base_polynomials)
+        base_degree_bounds = [processor_table.get_height()-1] * ProcessorTable.width + [instruction_table.get_height()-1] * \
+            InstructionTable.width + \
+            [memory_table.get_height()-1] * MemoryTable.width
+        if input_table.get_height() != 0:
+            base_degree_bounds += [input_table.get_height()-1] * IOTable.width
+        if output_table.get_height() != 0:
+            base_degree_bounds += [output_table.get_height()-1] * IOTable.width
 
         tick = time.time()
         print("sampling randomizer polynomial ...")
@@ -301,6 +299,20 @@ class BrainfuckStark:
         extension_tree = SaltedMerkle(zipped_extension_codeword)
         proof_stream.push(extension_tree.root())
         tock = time.time()
+
+        extension_degree_bounds = []
+        extension_degree_bounds += [processor_extension.get_height()-1] * (
+            ProcessorExtension.width - ProcessorTable.width)
+        extension_degree_bounds += [instruction_extension.get_height()-1] * (
+            InstructionExtension.width - InstructionTable.width)
+        extension_degree_bounds += [memory_extension.get_height()-1] * \
+            (MemoryExtension.width - MemoryTable.width)
+        if input_extension.get_height() != 0:
+            extension_degree_bounds += [input_extension.get_height()-1] * \
+                (IOExtension.width - IOTable.width)
+        if output_extension.get_height() != 0:
+            extension_degree_bounds += [output_extension.get_height()-1] * \
+                (IOExtension.width - IOTable.width)
         print("commitment to extension polynomials took",
               (tock - tick), "seconds")
 
@@ -401,28 +413,37 @@ class BrainfuckStark:
                    max_degree), f"degree violation for quotient polynomial {i}; max degree: {max_degree}; observed degree: {polynomials[i].degree()}"
 
         # compute terms of nonlinear combination polynomial
+        # TODO: memoize shifted fri domains
         terms = []
-        for i in range(len(base_polynomials)):
-            terms += [base_polynomials[i]]
+        base_codewords = processor_base_codewords + instruction_base_codewords + \
+            memory_base_codewords + input_base_codewords + output_base_codewords
+        for i in range(len(base_codewords)):
+            terms += [[self.xfield.lift(c) for c in base_codewords[i]]]
             shift = max_degree - base_degree_bounds[i]
-            terms += [(X ^ shift) * base_polynomials[i]]
-        for i in range(len(quotient_polynomials)):
-            terms += [quotient_polynomials[i]]
+            print("shift:", shift)
+            terms += [[self.xfield.lift((fri.domain(j) ^ shift) * base_codewords[i][j])
+                      for j in range(fri.domain.length)]]
+        for i in range(len(extension_codewords)):
+            terms += [extension_codewords[i]]
+            shift = max_degree - extension_degree_bounds[i]
+            print("shift':", shift)
+            terms += [[self.xfield.lift(fri.domain(j) ^ shift) * extension_codewords[i][j]
+                      for j in range(fri.domain.length)]]
+        for i in range(len(quotient_codewords)):
+            terms += [quotient_codewords[i]]
             shift = max_degree - quotient_degree_bounds[i]
-            terms += [(X ^ shift) * quotient_polynomials[i]]
-        terms += [randomizer_polynomial]
+            print("shift\":", shift)
+            terms += [[self.xfield.lift(fri.domain(j) ^ shift) * quotient_codewords[i][j]
+                      for j in range(fri.domain.length)]]
+        terms += [randomizer_codeword]
 
         # take weighted sum
-        # combination = sum(weights[i] * terms[i] for all i)
-        combination = reduce(
-            lambda a, b: a+b, [Polynomial([weights[i]]) * terms[i] for i in range(len(terms))], Polynomial([]))
-
-        # compute matching codeword
-        combined_codeword = fast_coset_evaluate(
-            combination, self.generator, self.omega, self.fri_domain_length)
+        # combination = sum(weights[i] * terms[i] for i)
+        combination_codeword = reduce(
+            lambda lhs, rhs: [l+r for l, r in zip(lhs, rhs)], [[w * e for e in t] for w, t in zip(weights, terms)], [self.xfield.zero()] * fri.domain.length)
 
         # prove low degree of combination polynomial, and collect indices
-        indices = fri.prove(combined_codeword, proof_stream)
+        indices = fri.prove(combination_codeword, proof_stream)
 
         # process indices
         duplicated_indices = [i for i in indices] + \
