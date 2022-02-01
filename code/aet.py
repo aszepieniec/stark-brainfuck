@@ -50,7 +50,7 @@ class Table:
     def interpolate(self, omega, order, num_randomizers):
         return self.interpolate_columns(omega, order, num_randomizers, column_indices=range(self.width))
 
-    def interpolate_columns(self, omega, order, num_randomizers, column_indices):
+    def interpolate_columns(self, omega, omega_order, num_randomizers, column_indices):
         num_rows = len(self.table)
         if num_rows == 0:
             return [Polynomial([self.field.zero()])] * self.width
@@ -60,34 +60,54 @@ class Table:
         assert(num_rows & (num_rows - 1) ==
                0), f"num_rows has value {num_rows} but must be a power of two"
 
-        assert(omega ^ order == omega.field.one()
+        assert(omega ^ omega_order == omega.field.one()
                ), "order must match with omega"
-        assert(omega ^ (order//2) != omega.field.one()
+        assert(omega ^ (omega_order//2) != omega.field.one()
                ), "order must be primitive"
 
-        self.domain_length = 1
-        while self.domain_length < num_rows + num_randomizers:
-            self.domain_length = self.domain_length << 1
+        omidi_order = 1
+        while omidi_order < num_rows + num_randomizers:
+            omidi_order = omidi_order << 1
 
-        randomness_expansion_factor = int(self.domain_length / num_rows)
+        randomness_expansion_factor = int(omidi_order / num_rows)
 
-        self.omicron = omega
-        while order > self.domain_length:
-            self.omicron = self.omicron ^ 2
-            order = order // 2
+        omidi = omega
+        current_order = omega_order
+        while current_order != omidi_order:
+            omidi = omidi ^ 2
+            current_order = current_order // 2
 
-        assert(self.omicron ^ order == self.omicron.field.one()
-               ), "order must now be order of omicron"
-        assert(self.omicron ^ (order//2) !=
-               self.omicron.field.one()), "order not primitive"
-        assert(self.domain_length == order)
+        assert(omidi ^ omidi_order == omidi.field.one()
+               ), "order must now be order of omidi"
+        assert(omidi ^ (omidi_order//2) !=
+               omidi.field.one()), "order not primitive"
+
+        omicron = omidi
+        omicron_order = omidi_order
+        while omicron_order != num_rows:
+            omicron = omicron ^ 2
+            omicron_order = omicron_order // 2
+
+        self.omidi = omidi
+        self.omicron = omicron
+
+        assert(omidi.has_order_po2(omidi_order)
+               ), "omidi does not have right order"
+        assert(omicron.has_order_po2(num_rows)
+               ), "omicron does not have right order"
 
         polynomials = []
-        for i in column_indices:
+        for col in column_indices:
             trace = [self.field.sample(os.urandom(3*8))
-                     for j in range(order)]
-            for j in range(num_rows):
-                trace[randomness_expansion_factor*j] = self.table[j][i]
-            polynomials += [Polynomial(intt(self.field.lift(self.omicron), trace))]
+                     for row in range(omidi_order)]
+            trace = [self.field.zero()
+                     for row in range(omidi_order)]
+            for row in range(num_rows):
+                trace[randomness_expansion_factor*row] = self.table[row][col]
+            polynomials += [Polynomial(intt(self.field.lift(omidi), trace))]
+
+            for row in range(num_rows):
+                assert(
+                    polynomials[-1].evaluate(self.field.lift(omicron ^ row)) == self.table[row][col])
 
         return polynomials

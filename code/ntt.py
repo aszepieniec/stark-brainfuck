@@ -25,6 +25,10 @@ def ntt(primitive_root, values):
 def intt(primitive_root, values):
     assert(len(values) & (len(values) - 1) ==
            0), "cannot compute intt of non-power-of-two sequence"
+    assert(primitive_root ^ len(values) == primitive_root.field.one()
+           ), "supplied root does not have supplied order"
+    assert(primitive_root ^ (len(values)//2) != primitive_root.field.one()
+           ), "supplied root is not primitive root of supplied order"
 
     if len(values) == 1:
         return values
@@ -161,10 +165,12 @@ def fast_coset_evaluate(polynomial, offset, generator, order):
                  [offset.field.zero()] * (order - len(polynomial.coefficients)))
     return values
 
+
 def fast_coset_interpolate(offset, generator, values):
     coefficients = intt(generator, values)
     poly = Polynomial(coefficients)
     return poly.scale(offset.inverse())
+
 
 def batch_inverse(array):
     assert(all(not a.is_zero() for a in array)

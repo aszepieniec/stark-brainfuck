@@ -24,15 +24,21 @@ def test_ntt():
 def test_intt():
     field = BaseField.main()
 
-    logn = 7
-    n = 1 << logn
-    primitive_root = field.primitive_nth_root(n)
+    for logn in range(1, 8):
+        n = 1 << logn
+        primitive_root = field.primitive_nth_root(n)
 
-    values = [field.sample(os.urandom(1)) for i in range(n)]
-    coeffs = ntt(primitive_root, values)
-    values_again = intt(primitive_root, coeffs)
+        values = [field.sample(os.urandom(1)) for i in range(n)]
+        coeffs = intt(primitive_root, values)
+        values_again = ntt(primitive_root, coeffs)
 
-    assert(values == values_again), "inverse ntt is different from forward ntt"
+        assert(values == values_again), "inverse ntt is different from forward ntt"
+
+        polynomial = Polynomial(coeffs)
+        values_again_again = [polynomial.evaluate(
+            primitive_root ^ i) for i in range(len(values))]
+        assert(values_again_again ==
+               values), "inverse ntt does not compute coefficients of polynomial"
 
 
 def test_multiply():

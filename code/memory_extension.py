@@ -99,7 +99,7 @@ class MemoryExtension(TableExtension):
                 ]
 
     def interpolate_extension(self, omega, order, num_randomizers):
-        return self.interpolate_columns(omega, order, num_randomizers, range(MemoryTable.memory_value, self.width))
+        return self.interpolate_columns(omega, order, num_randomizers, range(MemoryTable.width, self.width))
 
     def terminal_constraints_ext(self, challenges, terminals):
         d, e, f, beta = [MPolynomial.constant(c) for c in challenges]
