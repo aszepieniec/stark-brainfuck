@@ -1,5 +1,5 @@
 from algebra import *
-from extension_field import ExtensionFieldElement
+from extension_field import ExtensionField, ExtensionFieldElement
 from merkle import *
 from ip import *
 from ntt import *
@@ -23,9 +23,10 @@ class Fri:
         def list(self):
             return [(self.omega ^ i) * self.offset for i in range(self.length)]
 
-        def evaluate( self, polynomial ):
+        def evaluate(self, polynomial):
             coefficients = polynomial.scale(self.offset).coefficients
-            coefficients += [self.omega.field.zero()] * (self.length - len(coefficients))
+            coefficients += [self.omega.field.zero()] * \
+                (self.length - len(coefficients))
             return ntt(self.omega, coefficients)
 
         def xevaluate(self, polynomial):
@@ -48,15 +49,16 @@ class Fri:
             xfield = polynomial.coefficients[0].field
             return fast_coset_evaluate(polynomial, xfield.lift(self.offset), xfield.lift(self.omega), self.length)
 
-        def interpolate( self, values ):
+        def interpolate(self, values):
             return fast_coset_interpolate(self.offset, self.omega, values)
 
-        def xinterpolate( self, values ):
-            return fast_coset_interpolate(values[0].field.lift(self.offset), values[0].field.lift(self.omega), values)
+        def xinterpolate(self, values):
+            xfield = values[0].field
+            return fast_coset_interpolate(xfield.lift(self.offset), xfield.lift(self.omega), values)
 
-    def __init__(self, offset, omega, initial_domain_length, expansion_factor, num_colinearity_tests):
+    def __init__(self, offset, omega, initial_domain_length, expansion_factor, num_colinearity_tests, xfield):
         self.domain = Fri.Domain(offset, omega, initial_domain_length)
-        self.field = omega.field
+        self.field = xfield
         self.expansion_factor = expansion_factor
         self.num_colinearity_tests = num_colinearity_tests
 
@@ -97,13 +99,13 @@ class Fri:
         return indices
 
     def eval_domain(self):
-        return [self.domain(i) for i in range(self.domain_length)]
+        return [self.domain(i) for i in range(self.domain.length)]
 
     def commit(self, codeword, proof_stream, round_index=0):
         one = self.field.one()
-        two = BaseFieldElement(2, self.field)
-        omega = self.omega
-        offset = self.offset
+        two = self.field.one() + self.field.one()
+        omega = self.field.lift(self.domain.omega)
+        offset = self.field.lift(self.domain.offset)
         trees = []
         codewords = []
 
@@ -149,7 +151,7 @@ class Fri:
     def query(self, current_tree, next_tree, c_indices, proof_stream):
         # infer a and b indices
         a_indices = [index for index in c_indices]
-        b_indices = [index + len(current_tree.num_leafs) //
+        b_indices = [index + len(current_tree.leafs) //
                      2 for index in c_indices]
 
         # reveal leafs
@@ -166,7 +168,7 @@ class Fri:
         return a_indices + b_indices
 
     def prove(self, codeword, proof_stream):
-        assert(self.domain_length == len(
+        assert(self.domain.length == len(
             codeword)), "initial codeword length does not match length of initial codeword"
 
         # commit phase
@@ -178,16 +180,18 @@ class Fri:
         indices = [index for index in top_level_indices]
 
         # query phase
-        for i in range(len(codewords)-1):
+        print("len codewords: ", len(codewords))
+        print("len trees: ", len(trees))
+        for i in range(len(trees)-1):
             indices = [index % (len(codewords[i])//2)
                        for index in indices]  # fold
-            self.query(codewords[i], codewords[i+1], indices, proof_stream)
+            self.query(trees[i], trees[i+1], indices, proof_stream)
 
         return top_level_indices
 
     def verify(self, proof_stream, polynomial_values):
-        omega = self.omega
-        offset = self.offset
+        omega = self.field.lift(self.domain.omega)
+        offset = self.field.lift(self.domain.offset)
 
         # extract all roots and alphas
         roots = []
@@ -236,18 +240,18 @@ class Fri:
 
         # get indices
         top_level_indices = self.sample_indices(proof_stream.verifier_fiat_shamir(
-        ), self.domain_length >> 1, self.domain_length >> (self.num_rounds()-1), self.num_colinearity_tests)
+        ), self.domain.length >> 1, self.domain.length >> (self.num_rounds()-1), self.num_colinearity_tests)
 
         # for every round, check consistency of subsequent layers
         for r in range(0, self.num_rounds()-1):
 
             # fold c indices
-            c_indices = [index % (self.domain_length >> (r+1))
+            c_indices = [index % (self.domain.length >> (r+1))
                          for index in top_level_indices]
 
             # infer a and b indices
             a_indices = [index for index in c_indices]
-            b_indices = [index + (self.domain_length >> (r+1))
+            b_indices = [index + (self.domain.length >> (r+1))
                          for index in a_indices]
 
             # read values and check colinearity

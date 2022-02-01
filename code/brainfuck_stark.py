@@ -164,7 +164,7 @@ class BrainfuckStark:
 
         # instantiate helper objects
         fri = Fri(generator, omega, fri_domain_length,
-                  self.expansion_factor, self.num_colinearity_checks)
+                  self.expansion_factor, self.num_colinearity_checks, self.xfield)
 
         if proof_stream == None:
             proof_stream = ProofStream()
