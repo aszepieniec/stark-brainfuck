@@ -6,7 +6,7 @@ def test_fri():
     field = BaseField.main()
     xfield = ExtensionField.main()
     degree = 63
-    expansion_factor = 4
+    expansion_factor = 16
     num_colinearity_tests = 17
 
     initial_codeword_length = (degree + 1) * expansion_factor
@@ -47,19 +47,20 @@ def test_fri():
         return
 
     for (x, y) in points:
-        if polynomial.evaluate(omega ^ x) != y:
+        if polynomial.evaluate(xfield.lift(fri.domain(x))) != y:
             print("polynomial evaluates to wrong value")
-            assert(False)
+            assert(
+                False), f"polynomial evaluates to {polynomial.evaluate(xfield.lift(fri.domain(x)))} but should evaluate to {y}"
     print("success! \\o/")
 
     # disturb then test for failure
     print("testing invalid codeword ...")
     proof_stream = ProofStream()
     for i in range(0, degree//3):
-        codeword[i] = field.zero()
+        codeword[i] = xfield.zero()
 
     fri.prove(codeword, proof_stream)
     points = []
-    assert False == fri.verify(
+    assert not fri.verify(
         proof_stream, points), "proof should fail, but is accepted ..."
     print("success! \\o/")

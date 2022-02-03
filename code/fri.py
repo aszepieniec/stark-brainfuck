@@ -121,7 +121,6 @@ class Fri:
             tree = Merkle(codeword)
             root = tree.root()
             proof_stream.push(root)
-            print("pushed root", r)
 
             # prepare next round, but only if necessary
             if r == self.num_rounds() - 1:
@@ -143,7 +142,6 @@ class Fri:
 
         # send last codeword
         proof_stream.push(codeword)
-        print("pushed last codeword")
 
         # collect last codeword too
         codewords += [codeword]
@@ -160,14 +158,12 @@ class Fri:
         for s in range(self.num_colinearity_tests):
             proof_stream.push(
                 (current_tree.leafs[a_indices[s]], current_tree.leafs[b_indices[s]], next_tree.leafs[c_indices[s]]))
-            print("pushed leaf set", s)
 
         # reveal authentication paths
         for s in range(self.num_colinearity_tests):
             proof_stream.push(current_tree.open(a_indices[s]))
             proof_stream.push(current_tree.open(b_indices[s]))
             proof_stream.push(next_tree.open(c_indices[s]))
-            print("pushed (3x) authentication paths", s)
 
         return a_indices + b_indices
 
@@ -181,13 +177,11 @@ class Fri:
         for s in range(self.num_colinearity_tests):
             proof_stream.push(
                 (current_tree.leafs[a_indices[s]], current_tree.leafs[b_indices[s]], last_codeword[c_indices[s]]))
-            print("pushed leaf set", s)
 
         # reveal authentication paths
         for s in range(self.num_colinearity_tests):
             proof_stream.push(current_tree.open(a_indices[s]))
             proof_stream.push(current_tree.open(b_indices[s]))
-            print("pushed (2x) authentication paths", s)
 
         return a_indices + b_indices
 
@@ -208,6 +202,8 @@ class Fri:
             indices = [index % (len(codewords[i])//2)
                        for index in indices]  # fold
             self.query(trees[i], trees[i+1], indices, proof_stream)
+        indices = [index % (len(codewords[-1]))
+                   for index in indices]  # fold for last codeword
         self.query_last(trees[-1], codewords[-1], indices, proof_stream)
 
         return top_level_indices
@@ -221,12 +217,10 @@ class Fri:
         alphas = []
         for r in range(self.num_rounds()):
             roots += [proof_stream.pull()]
-            print("pulled root", r)
             alphas += [self.field.sample(proof_stream.verifier_fiat_shamir())]
 
         # extract last codeword
         last_codeword = proof_stream.pull()
-        print("pulled last codeword")
 
         # check if it matches the given root
         # how?! We don't have the salts!
@@ -267,8 +261,8 @@ class Fri:
         top_level_indices = self.sample_indices(proof_stream.verifier_fiat_shamir(
         ), self.domain.length >> 1, self.domain.length >> (self.num_rounds()-1), self.num_colinearity_tests)
 
-        # for every round, check consistency of subsequent layers
-        for r in range(self.num_rounds()):
+        # for every pair of consecutive rounds, check consistency of subsequent layers
+        for r in range(self.num_rounds()-1):
 
             # fold c indices
             c_indices = [index % (self.domain.length >> (r+1))
@@ -285,7 +279,6 @@ class Fri:
             cc = []
             for s in range(self.num_colinearity_tests):
                 (ay, by, cy) = proof_stream.pull()
-                print("pulled leaf set", s)
                 aa += [ay]
                 bb += [by]
                 cc += [cy]
@@ -306,18 +299,15 @@ class Fri:
             # verify authentication paths
             for i in range(self.num_colinearity_tests):
                 path = proof_stream.pull()
-                print("pulled authentication path 0", i)
                 if Merkle.verify(roots[r], a_indices[i], path, aa[i]) == False:
                     print("merkle authentication path verification fails for aa")
                     return False
                 path = proof_stream.pull()
-                print("pulled authentication path 1", i)
                 if Merkle.verify(roots[r], b_indices[i], path, bb[i]) == False:
                     print("merkle authentication path verification fails for bb")
                     return False
-                if r != self.num_rounds()-1:
+                if r+1 != self.num_rounds()-1:
                     path = proof_stream.pull()
-                    print("pulled authentication path 2", i)
                     if Merkle.verify(roots[r+1], c_indices[i], path, cc[i]) == False:
                         print("merkle authentication path verification fails for cc")
                         return False
@@ -325,7 +315,7 @@ class Fri:
             # if we are in the last round, we did not check the Merkle paths
             # but we did get the last codeword, so we should check the "leafs"
             # against that instead
-            if r == self.num_rounds()-1:
+            if r+1 == self.num_rounds()-1:
                 for i in range(self.num_colinearity_tests):
                     if cc[i] != last_codeword[c_indices[i]]:
                         print(
