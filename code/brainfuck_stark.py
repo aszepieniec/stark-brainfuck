@@ -9,6 +9,7 @@ from memory_table import MemoryTable
 from processor_extension import ProcessorExtension
 from io_extension import IOExtension
 from processor_table import ProcessorTable
+from salted_merkle import SaltedMerkle
 from univariate import *
 from multivariate import *
 from ntt import *
@@ -226,8 +227,25 @@ class BrainfuckStark:
             fri.domain.evaluate(p) for p in input_polynomials]
         output_base_codewords = [
             fri.domain.evaluate(p) for p in output_polynomials]
-        zipped_codeword = list(zip(processor_base_codewords + instruction_base_codewords +
-                               memory_base_codewords + input_base_codewords + output_base_codewords + [randomizer_codeword]))
+        print("length processor base codewords:", [
+              len(c) for c in processor_base_codewords])
+        print("length instruction base codewords:", [
+              len(c) for c in instruction_base_codewords])
+        print("length memory base codewords:", [
+              len(c) for c in memory_base_codewords])
+        print("length input base codewords:", [
+              len(c) for c in input_base_codewords])
+        print("length output base codewords:", [
+              len(c) for c in output_base_codewords])
+        print("length randomizer base codeword:", len(randomizer_codeword))
+        all_base_codewords = processor_base_codewords + instruction_base_codewords + \
+            memory_base_codewords + input_base_codewords + \
+            output_base_codewords + [randomizer_codeword]
+        print(type(all_base_codewords))
+        assert(min(len(c) for c in all_base_codewords) == max(len(c)
+               for c in all_base_codewords))
+        zipped_codeword = list(zip(*all_base_codewords))
+        print("len(zipped_codeword)", len(zipped_codeword))
         base_tree = SaltedMerkle(zipped_codeword)
         proof_stream.push(base_tree.root())
         tock = time.time()
@@ -295,7 +313,7 @@ class BrainfuckStark:
                                       for p in output_extension_polynomials]
         extension_codewords = processor_extension_codewords + instruction_extension_codewords + \
             memory_extension_codewords + input_extension_codewords + output_extension_codewords
-        zipped_extension_codeword = list(zip(extension_codewords))
+        zipped_extension_codeword = list(zip(*extension_codewords))
         extension_tree = SaltedMerkle(zipped_extension_codeword)
         proof_stream.push(extension_tree.root())
         tock = time.time()
@@ -448,12 +466,17 @@ class BrainfuckStark:
         # process indices
         duplicated_indices = [i for i in indices] + \
             [(i + self.expansion_factor) %
-             fri.domain_length for i in indices]
+             fri.domain.length for i in indices]
         quadrupled_indices = [i for i in duplicated_indices] + [
-            (i + (fri.domain_length // 2)) % fri.domain_length for i in duplicated_indices]
+            (i + (fri.domain.length // 2)) % fri.domain.length for i in duplicated_indices]
         quadrupled_indices.sort()
 
         # open indicated leafs in both trees
+        print("indices:", indices)
+        print("len leafs:", len(base_tree.leafs))
+        print(type(base_tree.leafs))
+        print(type(base_tree.leafs[0]))
+        # print(base_tree.leafs)
         for i in quadrupled_indices:
             proof_stream.push(base_tree.leafs[i])
             proof_stream.push(extension_tree.leafs[i])
@@ -532,11 +555,11 @@ class BrainfuckStark:
 
         # prepare to verify tables
         processor_extension = ProcessorExtension.prepare_verify(log_time, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[
-                                                                processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal])
+            processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal])
         instruction_extension = InstructionExtension.prepare_verify(log_time, challenges=[a, b, c, alpha, eta], terminals=[
-                                                                    processor_instruction_permutation_terminal, instruction_evaluation_terminal])
+            processor_instruction_permutation_terminal, instruction_evaluation_terminal])
         memory_extension = MemoryExtension.prepare_verify(log_time, challenges=[
-                                                          d, e, f, beta], terminals=[processor_memory_permutation_terminal])
+            d, e, f, beta], terminals=[processor_memory_permutation_terminal])
         input_extension = IOExtension.prepare_verify(
             log_input, challenges=[gamma], terminals=[processor_input_evaluation_terminal])
         output_extension = IOExtension.prepare_verify(
@@ -568,9 +591,9 @@ class BrainfuckStark:
         # process indices
         duplicated_indices = [i for i in indices] + \
             [(i + self.expansion_factor) %
-             fri.domain_length for i in indices]
+             fri.domain.length for i in indices]
         quadrupled_indices = [i for i in duplicated_indices] + [
-            (i + (fri.domain_length // 2)) % fri.domain_length for i in duplicated_indices]
+            (i + (fri.domain.length // 2)) % fri.domain.length for i in duplicated_indices]
         quadrupled_indices.sort()
 
         # get leafs
