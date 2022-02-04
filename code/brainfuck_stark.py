@@ -1,3 +1,4 @@
+from dataclasses import field
 from email.mime import base
 from extension_field import ExtensionField, ExtensionFieldElement
 from fri import *
@@ -104,6 +105,9 @@ class BrainfuckStark:
             [transformed_lists[i][j] for j in range(3)]), field) for i in range(order)]
         return codeword
 
+    def air_degree(self):
+        return 9  # TODO: verify
+
     def prove(self, log_time, program, processor_table, instruction_table, memory_table, input_table, output_table, proof_stream=None):
         assert(len(processor_table.table) & (len(processor_table.table)-1)
                == 0), "length of table must be power of two"
@@ -137,7 +141,7 @@ class BrainfuckStark:
         print("log output length:", log_output)
 
         # compute fri domain length
-        air_degree = 9  # TODO verify me
+        air_degree = self.air_degree()
         trace_degree = BrainfuckStark.roundup_npo2(randomized_trace_length) - 1
         tp_degree = air_degree * trace_degree
         tz_degree = rounded_trace_length - 1
@@ -193,8 +197,8 @@ class BrainfuckStark:
         tock = time.time()
         print("base table interpolation took", (tock - tick), "seconds")
 
-        base_polynomials = processor_polynomials + instruction_polynomials + \
-            memory_polynomials + input_polynomials + output_polynomials
+        # base_polynomials = processor_polynomials + instruction_polynomials + \
+        #      memory_polynomials + input_polynomials + output_polynomials
         base_degree_bounds = [processor_table.get_height()-1] * ProcessorTable.width + [instruction_table.get_height()-1] * \
             InstructionTable.width + \
             [memory_table.get_height()-1] * MemoryTable.width
@@ -397,12 +401,18 @@ class BrainfuckStark:
         print(len(quotient_degree_bounds))
 
         # ... and equal initial values
-        # quotient_codewords += [[(processor_codewords[ProcessorExtension.instruction_permutation][i] -
-        #                          instruction_codewords[InstructionExtension.permutation][i]) * self.xfield.lift((fri.domain(i) - self.field.one()).inverse()) for i in range(fri.domain.length)]]
-        # quotient_codewords += [[(processor_codewords[ProcessorExtension.memory_permutation][i] -
-        #                         memory_codewords[MemoryExtension.permutation][i]) * self.xfield.lift((fri.domain(i) - self.field.one()).inverse()) for i in range(fri.domain.length)]]
-        # quotient_degree_bounds += [(1 << log_time) - 2] * 2
+        quotient_codewords += [[(processor_codewords[ProcessorExtension.instruction_permutation][i] -
+                                 instruction_codewords[InstructionExtension.permutation][i]) * self.xfield.lift((fri.domain(i) - self.field.one()).inverse()) for i in range(fri.domain.length)]]
+        quotient_codewords += [[(processor_codewords[ProcessorExtension.memory_permutation][i] -
+                                memory_codewords[MemoryExtension.permutation][i]) * self.xfield.lift((fri.domain(i) - self.field.one()).inverse()) for i in range(fri.domain.length)]]
+        quotient_degree_bounds += [(1 << log_instructions) -
+                                   2, (1 << log_time) - 2]
         # (don't need to subtract equal values for the io evaluations because they're not randomized)
+        # (but we do need to assert their correctness)
+        assert(fri.domain.xinterpolate(quotient_codewords[-2]).degree(
+        ) <= quotient_degree_bounds[-2]), "difference quotient 0: bound not satisfied"
+        assert(fri.domain.xinterpolate(quotient_codewords[-1]).degree(
+        ) <= quotient_degree_bounds[-1]), "difference quotient 1: bound not satisfied"
         tock = time.time()
         print("computing quotients took", (tock - tick), "seconds")
 
@@ -489,40 +499,70 @@ class BrainfuckStark:
         # the final proof is just the serialized stream
         return proof_stream.serialize()
 
-    def verify(self, proof, log_time, program, input_symbols, output_symbols, proof_stream=None):
+    def verify(self, proof, time, program, input_symbols, output_symbols, proof_stream=None):
+
         # infer details about computation
-        rounded_trace_length = 1 << log_time
+        log_time = 0
+        while 1 << log_time < time:
+            log_time = log_time << 1
+
+        log_instructions = 0
+        while 1 << log_instructions < time + len(program):
+            log_instructions = log_instructions << 1
+
+        original_trace_length = 1 + time
+        rounded_trace_length = BrainfuckStark.roundup_npo2(
+            original_trace_length + len(program))
         randomized_trace_length = rounded_trace_length + self.num_randomizers
-        base_degree_bound = 1
-        while base_degree_bound < rounded_trace_length + self.num_randomizers:
-            base_degree_bound = base_degree_bound << 1
-        base_degree_bound -= 1
 
         # infer table lengths (=# rows)
-        log_input = 1
-        while (1 << log_input) < len(input_symbols):
-            log_input += 1
-        log_output = 1
-        while (1 << log_output) < len(output_symbols):
-            log_output += 1
+        log_input = 0
+        if len(input_symbols) == 0:
+            log_input -= 1
+        else:
+            while (1 << log_input) < len(input_symbols):
+                log_input += 1
+        log_output = 0
+        if len(output_symbols) == 0:
+            log_output -= 1
+        else:
+            while (1 << log_output) < len(output_symbols):
+                log_output += 1
+
+        print("log time:", log_time)
+        print("log input length:", log_input)
+        print("log output length:", log_output)
 
         # compute fri domain length
-        air_degree = 10  # TODO verify me
-        tp_degree = air_degree * (randomized_trace_length - 1)
-        tq_degree = tp_degree - (rounded_trace_length - 1)
+        air_degree = self.air_degree()
+        trace_degree = BrainfuckStark.roundup_npo2(randomized_trace_length) - 1
+        tp_degree = air_degree * trace_degree
+        tz_degree = rounded_trace_length - 1
+        tq_degree = tp_degree - tz_degree
         max_degree = BrainfuckStark.roundup_npo2(
             tq_degree + 1) - 1  # The max degree bound provable by FRI
         fri_domain_length = (max_degree+1) * self.expansion_factor
 
+        print("original trace length:", original_trace_length)
+        print("rounded trace length:", rounded_trace_length)
+        print("randomized trace length:", randomized_trace_length)
+        print("trace degree:", trace_degree)
+        print("air degree:", air_degree)
+        print("transition polynomials degree:", tp_degree)
+        print("transition quotients degree:", tq_degree)
+        print("transition zerofier degree:", tz_degree)
+        print("max degree:", max_degree)
+        print("fri domain length:", fri_domain_length)
+
         # compute generators
         generator = self.field.generator()
         omega = self.field.primitive_nth_root(fri_domain_length)
-        omicron = self.field.primitive_nth_root(
-            rounded_trace_length)
+        omidi = self.field.primitive_nth_root(max_degree+1)
+        omicron = self.field.primitive_nth_root(rounded_trace_length)
 
-        # instantiate subprotocol objects
+        # instantiate helper objects
         fri = Fri(generator, omega, fri_domain_length,
-                  self.expansion_factor, self.num_colinearity_checks)
+                  self.expansion_factor, self.num_colinearity_checks, self.xfield)
 
         # deserialize with right proof stream
         if proof_stream == None:
@@ -543,8 +583,8 @@ class BrainfuckStark:
         processor_output_evaluation_terminal = proof_stream.pull()
         instruction_evaluation_terminal = proof_stream.pull()
 
-        # get root of table extensions and quotients
-        second_root = proof_stream.pull()
+        # get root of table extensions
+        extension_root = proof_stream.pull()
 
         # get terminal values
         processor_instruction_permutation_terminal = proof_stream.pull()
