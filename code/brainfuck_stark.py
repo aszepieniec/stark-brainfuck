@@ -472,11 +472,6 @@ class BrainfuckStark:
         quadrupled_indices.sort()
 
         # open indicated leafs in both trees
-        print("indices:", indices)
-        print("len leafs:", len(base_tree.leafs))
-        print(type(base_tree.leafs))
-        print(type(base_tree.leafs[0]))
-        # print(base_tree.leafs)
         for i in quadrupled_indices:
             proof_stream.push(base_tree.leafs[i])
             proof_stream.push(extension_tree.leafs[i])
