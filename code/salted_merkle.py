@@ -20,7 +20,7 @@ class SaltedMerkle:
         self.depth -= 1
 
         # append salt to leafs
-        self.leafs = [(leaf, urandom(24)) for leaf in data_array]
+        self.leafs = [(element, urandom(24)) for element in data_array]
 
         # make room for nodes
         self.nodes = [bytes([0]*32)] * (2 * next_power_of_two)
