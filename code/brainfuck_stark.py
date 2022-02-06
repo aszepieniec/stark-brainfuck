@@ -83,6 +83,17 @@ class BrainfuckStark:
         return [self.xfield.sample(blake2b(randomness + bytes(i)).digest()) for i in range(number)]
 
     @staticmethod
+    def sample_indices(number, randomness, bound):
+        indices = []
+        for i in range(number):
+            byte_array = blake2b(randomness + bytes(i)).digest()
+            integer = 0
+            for b in byte_array:
+                integer = integer * 256 + int(b)
+            indices += [integer % bound]
+        return indices
+
+    @staticmethod
     def roundup_npo2(integer):
         if integer == 0 or integer == 1:
             return 1
@@ -466,8 +477,8 @@ class BrainfuckStark:
         # get indices of leafs to prove nonlinear combination
         indices_seed = proof_stream.prover_fiat_shamir()
         print("** indices for nonlicombo")
-        indices = BrainfuckStark.sample_indices(indices_seed, self.security_level)
-        unit_distances = [BrainfuckStark.roundup_npo2(height) / fri.domain.length for height in [table.get_height() for table in [processor_table, instruction_table, memory_table, input_table, output_table]]]
+        indices = BrainfuckStark.sample_indices(self.security_level, indices_seed, fri.domain.length)
+        unit_distances = [BrainfuckStark.roundup_npo2(height) // fri.domain.length for height in [table.get_height() for table in [processor_table, instruction_table, memory_table, input_table, output_table]]]
         unit_distances = list(set(unit_distances))
 
         # open leafs at indicated positions
@@ -679,7 +690,7 @@ class BrainfuckStark:
         # get indices of leafs to verify nonlinear combinatoin
         indices_seed = proof_stream.verifier_fiat_shamir()
         print("** indices for nonlicombo")
-        indices = BrainfuckStark.sample_indices(indices_seed, self.security_level)
+        indices = BrainfuckStark.sample_indices(self.security_level, indices_seed, fri.domain.length)
         unit_distances = [BrainfuckStark.roundup_npo2(height) / fri.domain.length for height in [table.get_height() for table in [processor_extension, instruction_extension, memory_extension, input_extension, output_extension]]]
         unit_distances = list(set(unit_distances))
 
