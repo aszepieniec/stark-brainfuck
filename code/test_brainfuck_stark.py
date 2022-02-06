@@ -11,8 +11,8 @@ def test_bfs():
     log_time, processor_table, instruction_table, memory_table, input_table, output_table = bfs.vm.simulate(
         program)
     log_time = len(bin(len(processor_table.table)-1)[2:])
-    print("lengh of processor table:", len(processor_table.table))
-    print("log time:", log_time)
+    # print("lengh of processor table:", len(processor_table.table))
+    # print("log time:", log_time)
 
     filename = "proof.dump"
     if exists(filename):

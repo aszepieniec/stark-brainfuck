@@ -24,7 +24,6 @@ class TableExtension(Table):
 
         quotient_codewords = []
         boundary_constraints = self.boundary_constraints_ext()
-        print("got", len(boundary_constraints), "boundary constraints")
         zerofier = [fri_domain(i) - fri_domain.omega.field.one()
                     for i in range(fri_domain.length)]
         zerofier_inverse = batch_inverse(zerofier)
@@ -144,8 +143,6 @@ class TableExtension(Table):
             log_num_rows, domain, codewords, challenges)
         terminal_quotients = self.terminal_quotients(log_num_rows,
                                                      domain, codewords, challenges, terminals)
-        print("have quotients:", len(boundary_quotients), "boundary,", len(
-            transition_quotients), "transition, and", len(terminal_quotients), "terminal")
         return boundary_quotients + transition_quotients + terminal_quotients
 
     def all_quotient_degree_bounds(self, log_num_rows, challenges, terminals):
