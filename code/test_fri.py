@@ -33,6 +33,7 @@ def test_fri():
     polynomial = Polynomial([xfield(i) for i in range(degree+1)])
 
     codeword = fri.domain.xevaluate(polynomial)
+    root = Merkle(codeword).root()
 
     # test valid codeword
     print("testing valid codeword ...")
@@ -40,18 +41,10 @@ def test_fri():
 
     fri.prove(codeword, proof_stream)
     print("")
-    points = []
-    verdict = fri.verify(proof_stream, points)
+    verdict = fri.verify(proof_stream, root)
     if verdict == False:
         print("rejecting proof, but proof should be valid!")
         return
-
-    for (x, y) in points:
-        if polynomial.evaluate(xfield.lift(fri.domain(x))) != y:
-            print("polynomial evaluates to wrong value")
-            assert(
-                False), f"polynomial evaluates to {polynomial.evaluate(xfield.lift(fri.domain(x)))} but should evaluate to {y}"
-    print("success! \\o/")
 
     # disturb then test for failure
     print("testing invalid codeword ...")

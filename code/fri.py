@@ -120,7 +120,10 @@ class Fri:
             # compute and send Merkle root
             tree = Merkle(codeword)
             root = tree.root()
-            proof_stream.push(root)
+
+            # but don't send root in first round
+            if r > 0:
+                proof_stream.push(root)
 
             # prepare next round, but only if necessary
             if r == self.num_rounds() - 1:
@@ -208,15 +211,16 @@ class Fri:
 
         return top_level_indices
 
-    def verify(self, proof_stream, polynomial_values):
+    def verify(self, proof_stream, root):
         omega = self.field.lift(self.domain.omega)
         offset = self.field.lift(self.domain.offset)
 
         # extract all roots and alphas
-        roots = []
+        roots = [root]
         alphas = []
         for r in range(self.num_rounds()):
-            roots += [proof_stream.pull()]
+            if r > 0:
+                roots += [proof_stream.pull()]
             alphas += [self.field.sample(proof_stream.verifier_fiat_shamir())]
 
         # extract last codeword
@@ -282,11 +286,6 @@ class Fri:
                 aa += [ay]
                 bb += [by]
                 cc += [cy]
-
-                # record top-layer values for later verification
-                if r == 0:
-                    polynomial_values += [(a_indices[s], ay),
-                                          (b_indices[s], by)]
 
                 # colinearity check
                 ax = offset * (omega ^ a_indices[s])
