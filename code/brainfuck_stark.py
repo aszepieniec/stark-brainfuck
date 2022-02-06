@@ -1,5 +1,6 @@
 from dataclasses import field
 from email.mime import base
+from platform import processor
 from extension_field import ExtensionField, ExtensionFieldElement
 from fri import *
 from instruction_extension import InstructionExtension
@@ -224,40 +225,28 @@ class BrainfuckStark:
             fri.domain.evaluate(p) for p in processor_polynomials]
         instruction_base_codewords = [
             fri.domain.evaluate(p) for p in instruction_polynomials]
-        print("instruction polynomial 0:", instruction_polynomials[0])
         memory_base_codewords = [
             fri.domain.evaluate(p) for p in memory_polynomials]
         input_base_codewords = [
             fri.domain.evaluate(p) for p in input_polynomials]
         output_base_codewords = [
             fri.domain.evaluate(p) for p in output_polynomials]
-        print("length processor base codewords:", [
-              len(c) for c in processor_base_codewords])
-        print("length instruction base codewords:", [
-              len(c) for c in instruction_base_codewords])
-        print("length memory base codewords:", [
-              len(c) for c in memory_base_codewords])
-        print("length input base codewords:", [
-              len(c) for c in input_base_codewords])
-        print("length output base codewords:", [
-              len(c) for c in output_base_codewords])
-        print("length randomizer base codeword:", len(randomizer_codeword))
+        
         all_base_codewords = processor_base_codewords + instruction_base_codewords + \
             memory_base_codewords + input_base_codewords + \
             output_base_codewords + [randomizer_codeword]
-        print(type(all_base_codewords))
-        assert(min(len(c) for c in all_base_codewords) == max(len(c)
-               for c in all_base_codewords))
+            
         zipped_codeword = list(zip(*all_base_codewords))
-        print("len(zipped_codeword)", len(zipped_codeword))
         base_tree = SaltedMerkle(zipped_codeword)
         proof_stream.push(base_tree.root())
+        print("-> base tree root")
         tock = time.time()
         print("commitment to base polynomials took", (tock - tick), "seconds")
 
         # get coefficients for table extensions
         a, b, c, d, e, f, alpha, beta, gamma, delta, eta = self.sample_weights(
             11, proof_stream.prover_fiat_shamir())
+        print("** challenges for extension")
 
         print("extending ...")
         tick = time.time()
@@ -313,6 +302,7 @@ class BrainfuckStark:
         zipped_extension_codeword = list(zip(*extension_codewords))
         extension_tree = SaltedMerkle(zipped_extension_codeword)
         proof_stream.push(extension_tree.root())
+        print("-> extension tree root")
         tock = time.time()
 
         extension_degree_bounds = []
@@ -330,9 +320,6 @@ class BrainfuckStark:
                 (IOExtension.width - IOTable.width)
         print("commitment to extension polynomials took",
               (tock - tick), "seconds")
-
-        print("first instruction pointeR:",
-              processor_extension.table[0][ProcessorExtension.instruction_pointer])
 
         processor_table.test()
         processor_extension.test()
@@ -415,6 +402,11 @@ class BrainfuckStark:
         proof_stream.push(processor_extension.input_evaluation_terminal)
         proof_stream.push(processor_extension.output_evaluation_terminal)
         proof_stream.push(instruction_extension.evaluation)
+        print("-> processor instruction permutation terminal")
+        print("-> processor memory permutation terminal")
+        print("-> processor input permutation terminal")
+        print("-> processor output permutation terminal")
+        print("-> instruction program evaluation terminal")
 
         # get weights for nonlinear combination
         #  - 1 randomizer
@@ -427,14 +419,18 @@ class BrainfuckStark:
         weights = self.sample_weights(2*num_base_polynomials + 2*num_extension_polynomials +
                                       num_randomizer_polynomials, proof_stream.prover_fiat_shamir())
 
-        polynomials = []
-        for i in range(len(quotient_codewords)):
-            polynomials += [fri.domain.xinterpolate(quotient_codewords[i])]
-            assert(polynomials[i].degree() <=
-                   max_degree), f"degree violation for quotient polynomial {i}; max degree: {max_degree}; observed degree: {polynomials[i].degree()}"
+        print("** challenges for weights")
+
+        # polynomials = []
+        # for i in range(len(quotient_codewords)):
+        #     polynomials += [fri.domain.xinterpolate(quotient_codewords[i])]
+        #     assert(polynomials[i].degree() <=
+        #            max_degree), f"degree violation for quotient polynomial {i}; max degree: {max_degree}; observed degree: {polynomials[i].degree()}"
 
         # compute terms of nonlinear combination polynomial
         # TODO: memoize shifted fri domains
+        print("computing nonlinear combination ...")
+        tick = time.time()
         terms = []
         base_codewords = processor_base_codewords + instruction_base_codewords + \
             memory_base_codewords + input_base_codewords + output_base_codewords
@@ -454,48 +450,88 @@ class BrainfuckStark:
             terms += [[self.xfield.lift(fri.domain(j) ^ shift) * quotient_codewords[i][j]
                       for j in range(fri.domain.length)]]
         terms += [randomizer_codeword]
+        print("got terms after", (time.time() - tick), "seconds")
 
         # take weighted sum
         # combination = sum(weights[i] * terms[i] for i)
         combination_codeword = reduce(
             lambda lhs, rhs: [l+r for l, r in zip(lhs, rhs)], [[w * e for e in t] for w, t in zip(weights, terms)], [self.xfield.zero()] * fri.domain.length)
+        print("finished computing nonlinear combination; calculation took", time.time() - tick, "seconds")
+
+        # commit to combination codeword
+        combination_tree = Merkle(combination_codeword)
+        proof_stream.push(combination_tree.root())
+        print("-> combination codeword tree root")
+
+        # get indices of leafs to prove nonlinear combination
+        indices_seed = proof_stream.prover_fiat_shamir()
+        print("** indices for nonlicombo")
+        indices = BrainfuckStark.sample_indices(indices_seed, self.security_level)
+        unit_distances = [BrainfuckStark.roundup_npo2(height) / fri.domain.length for height in [table.get_height() for table in [processor_table, instruction_table, memory_table, input_table, output_table]]]
+        unit_distances = list(set(unit_distances))
+
+        # open leafs at indicated positions
+        for index in indices:
+            for distance in [0] + unit_distances:
+                idx = index + distance % fri.domain.length
+                proof_stream.push(base_tree.leafs[idx])
+                proof_stream.push(base_tree.open(idx))
+                proof_stream.push(extension_tree.leafs[idx])
+                proof_stream.push(extension_tree.open(idx))
+                print("-> leafs and path for index", index, "+", distance, "=", idx, "mod", fri.domain.length)
 
         # prove low degree of combination polynomial, and collect indices
-        indices = fri.prove(combination_codeword, proof_stream)
+        tick = time.time()
+        print("starting FRI")
+        indices = fri.prove(combination_codeword, proof_stream) # TODO: update to drop first codeword
+        tock = time.time()
+        print("FRI took ", (tock - tick), "seconds")
 
-        # process indices
-        duplicated_indices = [i for i in indices] + \
-            [(i + self.expansion_factor) %
-             fri.domain.length for i in indices]
-        quadrupled_indices = [i for i in duplicated_indices] + [
-            (i + (fri.domain.length // 2)) % fri.domain.length for i in duplicated_indices]
-        quadrupled_indices.sort()
+        # deprecate: use FRI indices to prove nonlicombo
 
-        # open indicated leafs in both trees
-        for i in quadrupled_indices:
-            proof_stream.push(base_tree.leafs[i])
-            proof_stream.push(extension_tree.leafs[i])
+        # tick = time.time()
+        # print("opening top level leafs")
+        # # process indices
+        # duplicated_indices = [i for i in indices] + \
+        #     [(i + fri.domain.length) %
+        #      fri.domain.length for i in indices]
+        # quadrupled_indices = [i for i in duplicated_indices] + [
+        #     (i + (fri.domain.length // 2)) % fri.domain.length for i in duplicated_indices]
+        # quadrupled_indices.sort()
 
-        # authenticate indicated leafs in both trees
-        for i in quadrupled_indices:
-            proof_stream.push(base_tree.open(i))
-            proof_stream.push(extension_tree.open(i))
+        # # open indicated leafs in both trees
+        # for i in quadrupled_indices:
+        #     proof_stream.push(base_tree.leafs[i])
+        #     print("-> base tree leaf", i)
+        #     proof_stream.push(extension_tree.leafs[i])
+        #     print("-> extension tree leaf", i)
+
+        # # authenticate indicated leafs in both trees
+        # for i in quadrupled_indices:
+        #     proof_stream.push(base_tree.open(i))
+        #     print("-> base tree path", i)
+        #     proof_stream.push(extension_tree.open(i))
+        #     print("-> extension tree path", i)
+
+        # tock = time.time()
+        # print("opening top level leafs took", (tock - tick), "seconds")
 
         # the final proof is just the serialized stream
         return proof_stream.serialize()
 
-    def verify(self, proof, time, program, input_symbols, output_symbols, proof_stream=None):
+    def verify(self, proof, duration, program, input_symbols, output_symbols, proof_stream=None):
+        print("inside verifier \\o/")
 
         # infer details about computation
         log_time = 0
-        while 1 << log_time < time:
-            log_time = log_time << 1
+        while 1 << log_time < duration:
+            log_time += 1
 
         log_instructions = 0
-        while 1 << log_instructions < time + len(program):
-            log_instructions = log_instructions << 1
+        while 1 << log_instructions < duration + len(program):
+            log_instructions += 1
 
-        original_trace_length = 1 + time
+        original_trace_length = 1 + duration
         rounded_trace_length = BrainfuckStark.roundup_npo2(
             original_trace_length + len(program))
         randomized_trace_length = rounded_trace_length + self.num_randomizers
@@ -556,13 +592,14 @@ class BrainfuckStark:
 
         # get Merkle root of base tables
         base_root = proof_stream.pull()
+        print("<- base tree root")
 
         # get matching degree bounds
         # base_polynomials = processor_polynomials + instruction_polynomials + \
         #      memory_polynomials + input_polynomials + output_polynomials
-        base_degree_bounds = [time-1] * ProcessorTable.width + [time+len(program)-1] * \
+        base_degree_bounds = [duration-1] * ProcessorTable.width + [duration+len(program)-1] * \
             InstructionTable.width + \
-            [time-1] * MemoryTable.width
+            [duration-1] * MemoryTable.width
         if len(input_symbols) != 0:
             base_degree_bounds += [len(input_symbols)-1] * IOTable.width
         if len(output_symbols) != 0:
@@ -571,9 +608,24 @@ class BrainfuckStark:
         # get coefficients for table extensions
         a, b, c, d, e, f, alpha, beta, gamma, delta, eta = self.sample_weights(
             11, proof_stream.verifier_fiat_shamir())
+        print("** challenges for extension coefficients")
 
         # get root of table extensions
         extension_root = proof_stream.pull()
+        print("<- extension tree root")
+
+        # generate extension tables for type information
+        # i.e., do not populate tables
+        processor_extension = ProcessorExtension(a, b, c, d, e, f, alpha, beta, gamma, delta)
+        processor_extension.height = 1 << log_time
+        instruction_extension = InstructionExtension(a, b, c, alpha, eta)
+        instruction_extension.height = 1 << log_instructions
+        memory_extension = MemoryExtension(d, e, f, beta)
+        memory_extension.height = 1 << log_time
+        input_extension = IOExtension(gamma)
+        input_extension.height = len(input_symbols)
+        output_extension = IOExtension(delta)
+        output_extension.height = len(output_symbols)
 
         # get terminals
         processor_instruction_permutation_terminal = proof_stream.pull()
@@ -592,6 +644,8 @@ class BrainfuckStark:
         num_randomizer_polynomials = 1
         weights = self.sample_weights(2*num_base_polynomials + 2*num_extension_polynomials +
                                       num_randomizer_polynomials, proof_stream.prover_fiat_shamir())
+
+        print("** challenges for weights")
 
         # # prepare to verify tables
         # processor_extension = ProcessorExtension.prepare_verify(log_time, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[
@@ -618,125 +672,191 @@ class BrainfuckStark:
         # weights = self.sample_weights(2*num_base_polynomials + 2*num_extension_polynomials +
         #                               num_randomizer_polynomials, proof_stream.verifier_fiat_shamir())
 
+        # pull Merkle root of combination codeword
+        combination_root = proof_stream.pull()
+        print("<- combination codeword root")
+
+        # get indices of leafs to verify nonlinear combinatoin
+        indices_seed = proof_stream.verifier_fiat_shamir()
+        print("** indices for nonlicombo")
+        indices = BrainfuckStark.sample_indices(indices_seed, self.security_level)
+        unit_distances = [BrainfuckStark.roundup_npo2(height) / fri.domain.length for height in [table.get_height() for table in [processor_extension, instruction_extension, memory_extension, input_extension, output_extension]]]
+        unit_distances = list(set(unit_distances))
+
+        # get leafs at indicated positions
+        tuples = dict()
+        for index in indices:
+            for distance in [0] + unit_distances:
+                idx = index + distance % fri.domain.length
+
+                element, salt = proof_stream.pull()
+                path = proof_stream.pull()
+                verifier_verdict = verifier_verdict and SaltedMerkle.verify(base_root, idx, salt, path, element)
+                tuples[idx] = list(element)
+
+                element, salt = proof_stream.pull()
+                path = proof_stream.pull()
+                verifier_verdict = verifier_verdict and SaltedMerkle.verify(base_root, idx, salt, path, element)
+                tuples[idx] = tuples[idx] + list(element)
+
+                print("-> leafs and path for index", index, "+", distance, "=", idx, "mod", fri.domain.length)
+
+        # verify nonlinear combination
+
+        # TODO
+
         # verify low degree of combination polynomial
+        print("starting FRI verification ...")
+        tick = time.time()
         polynomial_points = []
-        verifier_verdict = fri.verify(proof_stream, polynomial_points)
+        verifier_verdict = fri.verify(proof_stream, combination_root)
         polynomial_points.sort(key=lambda iv: iv[0])
         if verifier_verdict == False:
             return False
+        tock = time.time()
+        print("FRI verification took", (tock - tick), "seconds")
 
-        indices = [i for i, _ in polynomial_points]
-        values = [v for _, v in polynomial_points]
+        # deprecate: use FRI-indices to verify nonlicombo
 
-        # process indices
-        duplicated_indices = [i for i in indices] + \
-            [(i + self.expansion_factor) %
-             fri.domain.length for i in indices]
-        quadrupled_indices = [i for i in duplicated_indices] + [
-            (i + (fri.domain.length // 2)) % fri.domain.length for i in duplicated_indices]
-        quadrupled_indices.sort()
+        # indices = [i for i, _ in polynomial_points]
+        # values = [v for _, v in polynomial_points]
 
-        # get leafs
-        base_leafs = []
-        secondary_leafs = []
-        for _ in quadrupled_indices:
-            base_leafs += [proof_stream.pull()]
-            secondary_leafs += [proof_stream.pull()]
+        # # process indices
+        # duplicated_indices = [i for i in indices] + \
+        #     [(i + self.expansion_factor) %
+        #      fri.domain.length for i in indices]
+        # quadrupled_indices = [i for i in duplicated_indices] + [
+        #     (i + (fri.domain.length // 2)) % fri.domain.length for i in duplicated_indices]
+        # quadrupled_indices.sort()
 
-        # get authentication paths
-        base_paths = []
-        secondary_paths = []
-        for _ in quadrupled_indices:
-            base_paths += [proof_stream.pull()]
-            secondary_paths += [proof_stream.pull()]
+        # # get leafs
+        # print("number of quadrupled indices:", len(quadrupled_indices))
+        # base_leafs = []
+        # extension_leafs = []
+        # for i in quadrupled_indices:
+        #     base_leafs += [proof_stream.pull()]
+        #     print("<- base leaf", i)
+        #     extension_leafs += [proof_stream.pull()]
+        #     print("<- extension leaf", i)
 
-        # verify authentication paths
-        for qi, (elm, salt), path in zip(quadrupled_indices, base_leafs, base_paths):
-            SaltedMerkle.verify(base_root, qi, salt, path, elm)
-        for qi, (elm, salt), path in zip(quadrupled_indices, secondary_leafs, secondary_paths):
-            SaltedMerkle.verify(base_root, qi, salt, path, elm)
+        # # get authentication paths
+        # base_paths = []
+        # extension_paths = []
+        # for i in quadrupled_indices:
+        #     base_paths += [proof_stream.pull()]
+        #     print("<- base path", i)
+        #     extension_paths += [proof_stream.pull()]
+        #     print("<- extension path", i)
 
-        # compute degree bounds
-        # base_degree_bounds = [base_degree_bound] * num_base_polynomials
-        extension_degree_bounds = [
-            base_degree_bound] * num_extension_polynomials
-        quotient_degree_bounds = []
+        # # verify authentication paths
+        # for qi, (elm, salt), path in zip(quadrupled_indices, base_leafs, base_paths):
+        #     SaltedMerkle.verify(base_root, qi, salt, path, elm)
+        # for qi, (elm, salt), path in zip(quadrupled_indices, extension_leafs, extension_paths):
+        #     SaltedMerkle.verify(base_root, qi, salt, path, elm)
 
-        quotient_degree_bounds += processor_extension.all_quotient_degree_bounds()
-        quotient_degree_bounds += instruction_extension.all_quotient_degree_bounds()
-        quotient_degree_bounds += memory_extension.all_quotient_degree_bounds()
-        quotient_degree_bounds += input_extension.all_quotient_degree_bounds()
-        quotient_degree_bounds += output_extension.all_quotient_degree_bounds()
+        # # compute extension degree bounds
+        # extension_degree_bounds = []
+        # extension_degree_bounds += [processor_extension.get_height()-1] * (
+        #     ProcessorExtension.width - ProcessorTable.width)
+        # extension_degree_bounds += [instruction_extension.get_height()-1] * (
+        #     InstructionExtension.width - InstructionTable.width)
+        # extension_degree_bounds += [memory_extension.get_height()-1] * \
+        #     (MemoryExtension.width - MemoryTable.width)
+        # if input_extension.get_height() != 0:
+        #     extension_degree_bounds += [input_extension.get_height()-1] * \
+        #         (IOExtension.width - IOTable.width)
+        # if output_extension.get_height() != 0:
+        #     extension_degree_bounds += [output_extension.get_height()-1] * \
+        #         (IOExtension.width - IOTable.width)
 
-        quotient_degree_bounds += [(1 << log_time) - 2] * 2
+        # # compute quotient degree bounds
+        # quotient_degree_bounds = []
+        # print("number of degree bounds:")
+        # quotient_degree_bounds += processor_extension.all_quotient_degree_bounds(log_time, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[
+        #     processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal])
+        # print(len(quotient_degree_bounds))
+        # quotient_degree_bounds += instruction_extension.all_quotient_degree_bounds(log_time, challenges=[a, b, c, alpha, eta], terminals=[
+        #     processor_instruction_permutation_terminal, instruction_evaluation_terminal])
+        # print(len(quotient_degree_bounds))
+        # quotient_degree_bounds += memory_extension.all_quotient_degree_bounds(log_time, challenges=[
+        #     d, e, f, beta], terminals=[processor_memory_permutation_terminal])
+        # print(len(quotient_degree_bounds))
+        # quotient_degree_bounds += input_extension.all_quotient_degree_bounds(
+        #     log_input, challenges=[gamma], terminals=[processor_input_evaluation_terminal])
+        # print(len(quotient_degree_bounds))
+        # quotient_degree_bounds += output_extension.all_quotient_degree_bounds(
+        #     log_output, challenges=[delta], terminals=[processor_output_evaluation_terminal])
+        # print(len(quotient_degree_bounds))
+        # quotient_degree_bounds += [(1 << log_instructions) -
+        #                            2, (1 << log_time) - 2]
 
-        # verify nonlinear combination
-        for pv in polynomial_points:
+        # # verify nonlinear combination
+        # for index, y in polynomial_points:
 
-            sum = self.xfield.zero()
-            for j in range(num_base_polynomials):
-                shiftj = max_degree - base_degree_bounds[j]
-                sum += weights[2*j] * base_leafs[0][j] + \
-                    weights[2*j+1] * base_leafs[0][j] * (omega ^ shiftj)
-            for j in range(num_randomizer_polynomials):
-                sum += weights[2*num_base_polynomials+j] * \
-                    base_leafs[0][2*num_base_polynomials+j]
-            for j in range(num_extension_polynomials):
-                shiftj = max_degree - extension_degree_bounds[j]
-                sum += weights[2*num_base_polynomials + num_randomizer_polynomials + 2*j] * secondary_leafs[0][j] + \
-                    weights[2*num_base_polynomials + num_randomizer_polynomials +
-                            2*j+1] * secondary_leafs[0][j] * (omega ^ shiftj)
-            for j in range(num_quotient_polynomials):
-                shiftj = max_degree - quotient_degree_bounds[j]
-                sum += weights[2*num_base_polynomials + num_randomizer_polynomials + 2*num_extension_polynomials + 2*j] * secondary_leafs[0][num_extension_polynomials+j] + \
-                    weights[2*num_base_polynomials + num_randomizer_polynomials + 2 *
-                            num_extension_polynomials + 2*j + 1] * secondary_leafs[0][num_extension_polynomials+j] * (omega ^ shiftj)
+        #     sum = self.xfield.zero()
+        #     for j in range(num_base_polynomials):
+        #         shiftj = max_degree - base_degree_bounds[j]
+        #         sum += weights[2*j] * base_leafs[0][j] + \
+        #             weights[2*j+1] * base_leafs[0][j] * (omega ^ shiftj)
+        #     for j in range(num_randomizer_polynomials):
+        #         sum += weights[2*num_base_polynomials+j] * \
+        #             base_leafs[0][2*num_base_polynomials+j]
+        #     for j in range(num_extension_polynomials):
+        #         shiftj = max_degree - extension_degree_bounds[j]
+        #         sum += weights[2*num_base_polynomials + num_randomizer_polynomials + 2*j] * extension_leafs[0][j] + \
+        #             weights[2*num_base_polynomials + num_randomizer_polynomials +
+        #                     2*j+1] * extension_leafs[0][j] * (omega ^ shiftj)
+        #     for j in range(len(quotient_degree_bounds)):
+        #         shiftj = max_degree - quotient_degree_bounds[j]
+        #         sum += weights[2*num_base_polynomials + num_randomizer_polynomials + 2*num_extension_polynomials + 2*j] * extension_leafs[0][num_extension_polynomials+j] + \
+        #             weights[2*num_base_polynomials + num_randomizer_polynomials + 2 *
+        #                     num_extension_polynomials + 2*j + 1] * extension_leafs[0][num_extension_polynomials+j] * (omega ^ shiftj)
 
-            verifier_verdict = verifier_verdict and (pv == sum)
-            if not verifier_verdict:
-                return False
+        #     verifier_verdict = verifier_verdict and (y == sum)
+        #     if not verifier_verdict:
+        #         return False
 
-        # verify air constraints
-        for i in range(len(quadrupled_indices)-1):
-            qi, (base_elm, _), (sec_elm, _) = zip(
-                quadrupled_indices, base_leafs, secondary_leafs)[i]
-            qi_next, (base_elm_next, _), (sec_elm_next, _) = zip(
-                quadrupled_indices, base_leafs, secondary_leafs)[i+1]
+        # # verify air constraints
+        # for i in range(len(quadrupled_indices)-1):
+        #     qi, (base_elm, _), (sec_elm, _) = zip(
+        #         quadrupled_indices, base_leafs, extension_leafs)[i]
+        #     qi_next, (base_elm_next, _), (sec_elm_next, _) = zip(
+        #         quadrupled_indices, base_leafs, extension_leafs)[i+1]
 
-            if qi_next == qi + 1:
-                current_index = qi
+        #     if qi_next == qi + 1:
+        #         current_index = qi
 
-                point = base_elm + \
-                    sec_elm[0:num_extension_polynomials]
-                quotients_from_leafs = sec_elm[num_extension_polynomials:]
-                shifted_point = base_elm_next + \
-                    sec_elm_next[0:num_extension_polynomials]
+        #         point = base_elm + \
+        #             sec_elm[0:num_extension_polynomials]
+        #         quotients_from_leafs = sec_elm[num_extension_polynomials:]
+        #         shifted_point = base_elm_next + \
+        #             sec_elm_next[0:num_extension_polynomials]
 
-                # internal airs
-                evaluated_quotients = []
-                evaluated_quotients += [processor_extension.evaluate_quotients(
-                    omicron, omega ^ current_index, point, shifted_point)]
-                evaluated_quotients += [instruction_extension.evaluate_quotients(
-                    omicron, omega ^ current_index, point, shifted_point)]
-                evaluated_quotients += [memory_extension.evaluate_quotients(
-                    omicron, omega ^ current_index, point, shifted_point)]
-                evaluated_quotients += [input_extension.evaluate_quotients(
-                    omicron, omega ^ current_index, point, shifted_point)]
-                evaluated_quotients += [output_extension.evaluate_quotients(
-                    omicron, omega ^ current_index, point, shifted_point)]
+        #         # internal airs
+        #         evaluated_quotients = []
+        #         evaluated_quotients += [processor_extension.evaluate_quotients(
+        #             omicron, omega ^ current_index, point, shifted_point)]
+        #         evaluated_quotients += [instruction_extension.evaluate_quotients(
+        #             omicron, omega ^ current_index, point, shifted_point)]
+        #         evaluated_quotients += [memory_extension.evaluate_quotients(
+        #             omicron, omega ^ current_index, point, shifted_point)]
+        #         evaluated_quotients += [input_extension.evaluate_quotients(
+        #             omicron, omega ^ current_index, point, shifted_point)]
+        #         evaluated_quotients += [output_extension.evaluate_quotients(
+        #             omicron, omega ^ current_index, point, shifted_point)]
 
-                # table relations
-                # X = Polynomial([self.xfield.zero(), self.xfield.one()])
-                # quotient_polynomials += [(processor_extension_polynomials[ProcessorExtension.instruction_permutation] -
-                #                         instruction_extension_polynomials[InstructionExtension.permutation]) / (X - self.xfield.one())]
-                # quotient_polynomials += [(processor_extension_polynomials[ProcessorExtension.memory_permutation] -
-                #                         memory_extension_polynomials[MemoryExtension.permutation]) / (X - self.xfield.one())]
-                evaluated_quotients += [(sec_elm[ProcessorExtension.instruction_permutation - ProcessorTable().width] - sec_elm
-                                         [processor_extension.width - ProcessorTable().width + InstructionExtension.permutation - InstructionTable().width]) / ((omega ^ current_index) - self.xfield.one())]
-                evaluated_quotients += [(sec_elm[ProcessorExtension.memory_permutation - ProcessorTable().width] - sec_elm
-                                         [processor_extension.width - ProcessorTable().width + instruction_extension.width - InstructionTable().width + MemoryExtension.permutation - MemoryTable().width]) / ((omega ^ current_index) - self.xfield.one())]
+        #         # table relations
+        #         # X = Polynomial([self.xfield.zero(), self.xfield.one()])
+        #         # quotient_polynomials += [(processor_extension_polynomials[ProcessorExtension.instruction_permutation] -
+        #         #                         instruction_extension_polynomials[InstructionExtension.permutation]) / (X - self.xfield.one())]
+        #         # quotient_polynomials += [(processor_extension_polynomials[ProcessorExtension.memory_permutation] -
+        #         #                         memory_extension_polynomials[MemoryExtension.permutation]) / (X - self.xfield.one())]
+        #         evaluated_quotients += [(sec_elm[ProcessorExtension.instruction_permutation - ProcessorTable().width] - sec_elm
+        #                                  [processor_extension.width - ProcessorTable().width + InstructionExtension.permutation - InstructionTable().width]) / ((omega ^ current_index) - self.xfield.one())]
+        #         evaluated_quotients += [(sec_elm[ProcessorExtension.memory_permutation - ProcessorTable().width] - sec_elm
+        #                                  [processor_extension.width - ProcessorTable().width + instruction_extension.width - InstructionTable().width + MemoryExtension.permutation - MemoryTable().width]) / ((omega ^ current_index) - self.xfield.one())]
 
-                verifier_verdict = verifier_verdict and evaluated_quotients == quotients_from_leafs
+        #         verifier_verdict = verifier_verdict and evaluated_quotients == quotients_from_leafs
 
         # verify external terminals:
         # input

@@ -88,8 +88,8 @@ class TableExtension(Table):
 
             quotients += [quotient_codeword]
 
-            assert(domain.xinterpolate(
-                quotients[-1]).degree() < domain.length-1), f"quotient polynomial has maximal degree in table {type(self)}"
+            # assert(domain.xinterpolate(
+            #     quotients[-1]).degree() < domain.length-1), f"quotient polynomial has maximal degree in table {type(self)}"
 
         return quotients
 
@@ -121,8 +121,8 @@ class TableExtension(Table):
             quotient_codewords += [[mpo.evaluate([codewords[j][i] for j in range(
                 self.width)]) * self.field.lift(zerofier_inverse[i]) for i in range(domain.length)]]
 
-        for qc in quotient_codewords:
-            assert(domain.xinterpolate(qc).degree() < domain.length - 1)
+        # for qc in quotient_codewords:
+        #     assert(domain.xinterpolate(qc).degree() < domain.length - 1)
 
         return quotient_codewords
 
