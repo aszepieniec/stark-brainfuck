@@ -137,6 +137,9 @@ class TableExtension(Table):
         return [air_degree * degree - 1] * len(self.terminal_constraints_ext(challenges, terminals))
 
     def all_quotients(self, domain, codewords, log_num_rows, challenges, terminals):
+        if log_num_rows == -1:
+            return []
+
         boundary_quotients = self.boundary_quotients(
             domain, codewords)
         transition_quotients = self.transition_quotients(
@@ -146,6 +149,9 @@ class TableExtension(Table):
         return boundary_quotients + transition_quotients + terminal_quotients
 
     def all_quotient_degree_bounds(self, log_num_rows, challenges, terminals):
+        if log_num_rows == -1:
+            return []
+            
         bounds = self.boundary_quotient_degree_bounds(log_num_rows) + self.transition_quotient_degree_bounds(
             log_num_rows, challenges) + self.terminal_quotient_degree_bounds(log_num_rows, challenges, terminals)
         return bounds
