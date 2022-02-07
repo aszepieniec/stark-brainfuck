@@ -40,6 +40,9 @@ class TableExtension(Table):
         return quotient_codewords
 
     def boundary_quotient_degree_bounds(self, log_num_rows):
+        if self.get_height() == 0:
+            return []
+
         if log_num_rows >= 0:
             composition_degree = (1 << log_num_rows) - 1
         else:
@@ -93,6 +96,9 @@ class TableExtension(Table):
         return quotients
 
     def transition_quotient_degree_bounds(self, log_num_rows, challenges):
+        if self.get_height() == 0:
+            return []
+
         if log_num_rows >= 0:
             trace_degree = (1 << log_num_rows)-1
         else:
@@ -151,7 +157,7 @@ class TableExtension(Table):
     def all_quotient_degree_bounds(self, log_num_rows, challenges, terminals):
         if log_num_rows == -1:
             return []
-            
+
         bounds = self.boundary_quotient_degree_bounds(log_num_rows) + self.transition_quotient_degree_bounds(
             log_num_rows, challenges) + self.terminal_quotient_degree_bounds(log_num_rows, challenges, terminals)
         return bounds
