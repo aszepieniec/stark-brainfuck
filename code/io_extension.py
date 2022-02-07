@@ -61,6 +61,9 @@ class IOExtension(TableExtension):
         return extended_io_table
 
     def transition_constraints_ext(self, challenges):
+        if self.get_height() == 0:
+            return []
+
         input_, evaluation, \
             input_next, evaluation_next = MPolynomial.variables(4, self.field)
         gamma = MPolynomial.constant(challenges[0])
@@ -72,12 +75,16 @@ class IOExtension(TableExtension):
         return polynomials
 
     def boundary_constraints_ext(self):
+        if self.get_height() == 0:
+            return []
         # format: mpolynomial
         x = MPolynomial.variables(self.width, self.field)
         zero = MPolynomial.zero()
-        return [x[1] - zero]  # evaluation
+        return [x[IOExtension.evaluation] - zero]  # evaluation
 
     def terminal_constraints_ext(self, challenges, terminals):
+        if self.get_height() == 0:
+            return []
         gamma = MPolynomial.constant(challenges[0])
         evaluation_terminal = MPolynomial.constant(terminals[0])
         x = MPolynomial.variables(self.width, self.field)
