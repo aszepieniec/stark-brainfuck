@@ -20,8 +20,9 @@ class ProcessorExtension(TableExtension):
 
     width = 11
 
-    def __init__(self, a, b, c, d, e, f, alpha, beta, gamma, delta):
-        super(ProcessorExtension, self).__init__(a.field, 7, 11)
+    def __init__(self, height, generator, order, a, b, c, d, e, f, alpha, beta, gamma, delta, instruction_permutation_terminal, memory_permutation_terminal, input_evaluation_terminal, output_evaluation_terminal):
+        super(ProcessorExtension, self).__init__(
+            a.field, 7, 11, height, generator, order)
         field = a.field
 
         # terminal values (placeholders)
@@ -43,19 +44,23 @@ class ProcessorExtension(TableExtension):
         self.delta = MPolynomial.constant(delta)
         self.challenges = [a, b, c, d, e, f, alpha, beta, gamma, delta]
 
+        # terminals
+        self.instruction_permutation_terminal = instruction_permutation_terminal
+        self.memory_permutation_terminal = memory_permutation_terminal
+        self.input_evaluation_terminal = input_evaluation_terminal
+        self.output_evaluation_terminal = output_evaluation_terminal
+        self.terminals = [instruction_permutation_terminal, memory_permutation_terminal,
+                          input_evaluation_terminal, output_evaluation_terminal]
+
         self.width = 7 + 4
 
     @staticmethod
     def prepare_verify(log_num_rows, challenges, terminals):
         a, b, c, d, e, f, alpha, beta, gamma, delta = challenges
         processor_extension = ProcessorExtension(
-            a, b, c, d, e, f, alpha, beta, gamma, delta)
-        processor_extension.instruction_permutation_terminal = terminals[0]
-        processor_extension.memory_permutation_terminal = terminals[1]
-        processor_extension.input_evaluation_terminal = terminals[2]
-        processor_extension.output_evaluation_terminal = terminals[3]
+            a, b, c, d, e, f, alpha, beta, gamma, delta, terminals[0], terminals[1], terminals[2], terminals[3])
+
         processor_extension.log_num_rows = log_num_rows
-        processor_extension.terminals = terminals
         return processor_extension
 
     @staticmethod
@@ -112,17 +117,10 @@ class ProcessorExtension(TableExtension):
 
             table_extension += [new_row]
 
-        extended_processor_table = ProcessorExtension(
-            a, b, c, d, e, f, alpha, beta, gamma, delta)
+        extended_processor_table = ProcessorExtension(processor_table.height, processor_table.generator, processor_table.order,
+                                                      a, b, c, d, e, f, alpha, beta, gamma, delta, instruction_permutation_running_product, memory_permutation_running_product, input_evaluation_running_evaluation, output_evaluation_running_evaluation)
         extended_processor_table.table = table_extension
 
-        # append terminal values
-        extended_processor_table.instruction_permutation_terminal = instruction_permutation_running_product
-        extended_processor_table.memory_permutation_terminal = memory_permutation_running_product
-        extended_processor_table.input_evaluation_terminal = input_evaluation_running_evaluation
-        extended_processor_table.output_evaluation_terminal = output_evaluation_running_evaluation
-        extended_processor_table.terminals = [instruction_permutation_running_product,
-                                              memory_permutation_running_product, input_evaluation_running_evaluation, output_evaluation_running_evaluation]
         extended_processor_table.field = xfield
 
         return extended_processor_table

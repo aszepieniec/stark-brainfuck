@@ -7,8 +7,8 @@ class IOTable(Table):
 
     width = 1
 
-    def __init__(self, field):
-        super(IOTable, self).__init__(field, 1)
+    def __init__(self, field, height, generator, order):
+        super(IOTable, self).__init__(field, 1, height, generator, order)
 
     def pad(self):
         assert(False), "You have no idea what you're doing."

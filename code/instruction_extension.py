@@ -13,8 +13,9 @@ class InstructionExtension(TableExtension):
 
     width = 5
 
-    def __init__(self, a, b, c, alpha, eta):
-        super(InstructionExtension, self).__init__(a.field, 3, 5)
+    def __init__(self, height, generator, order, a, b, c, alpha, eta, permutation_terminal, evaluation_terminal):
+        super(InstructionExtension, self).__init__(
+            a.field, 3, 5, height, generator, order)
 
         # terminal values (placeholders)
         self.permutation_terminal = self.field.zero()
@@ -28,13 +29,17 @@ class InstructionExtension(TableExtension):
         self.eta = MPolynomial.constant(eta)
         self.challenges = [a, b, c, alpha, eta]
 
+        # terminals
+        self.permutation_terminal = permutation_terminal
+        self.evaluation_terminal = evaluation_terminal
+        self.terminals = [permutation_terminal, evaluation_terminal]
+
     @staticmethod
     def prepare_verify(log_num_rows, challenges, terminals):
         a, b, c, alpha, eta = challenges
-        instruction_extension = InstructionExtension(a, b, c, alpha, eta)
-        instruction_extension.permutation_terminal = terminals[0]
-        instruction_extension.evaluation_terminal = terminals[1]
-        instruction_extension.terminals = terminals
+        instruction_extension = InstructionExtension(
+            a, b, c, alpha, eta, terminals[0], terminals[1])
+
         instruction_extension.log_num_rows = log_num_rows
         return instruction_extension
 
@@ -81,13 +86,10 @@ class InstructionExtension(TableExtension):
 
             table_extension += [new_row]
 
-        extended_instruction_table = InstructionExtension(a, b, c, alpha, eta)
+        extended_instruction_table = InstructionExtension(
+            instruction_table.height, instruction_table.generator, instruction_table.order, a, b, c, alpha, eta, permutation_running_product, evaluation_running_sum)
         extended_instruction_table.table = table_extension
 
-        extended_instruction_table.permutation_terminal = permutation_running_product
-        extended_instruction_table.evaluation_terminal = evaluation_running_sum
-        extended_instruction_table.terminals = [
-            permutation_running_product, evaluation_running_sum]
         extended_instruction_table.field = xfield
 
         return extended_instruction_table

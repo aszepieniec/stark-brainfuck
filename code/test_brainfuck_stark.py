@@ -8,9 +8,9 @@ def test_bfs():
     xfield = ExtensionField.main()
     bfs = BrainfuckStark(generator, xfield)
     program = VirtualMachine.compile(">>[++-]<+++")
-    log_time, processor_table, instruction_table, memory_table, input_table, output_table = bfs.vm.simulate(
+    processor_table_table, instruction_table_table, memory_table_table, input_table_table, output_table_table = bfs.vm.simulate(
         program)
-    log_time = len(bin(len(processor_table.table)-1)[2:])
+    # log_time = len(bin(len(processor_table.table)-1)[2:])
     # print("lengh of processor table:", len(processor_table.table))
     # print("log time:", log_time)
 
@@ -21,11 +21,11 @@ def test_bfs():
         fh.close()
     else:
         fh = open(filename, "wb")
-        proof = bfs.prove(log_time, program, processor_table, instruction_table,
-                      memory_table, input_table, output_table)
+        proof = bfs.prove(len(processor_table_table), program, processor_table_table, instruction_table_table,
+                          memory_table_table, input_table_table, output_table_table)
         pickle.dump(proof, fh)
         fh.close()
 
-    verdict = bfs.verify(proof, log_time, program,
-                         input_table.table, output_table.table)
+    verdict = bfs.verify(proof, len(processor_table_table), program,
+                         input_table_table, output_table_table)
     assert(verdict == True), "honest proof fails to verify"

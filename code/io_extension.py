@@ -9,8 +9,9 @@ class IOExtension(TableExtension):
 
     width = 2
 
-    def __init__(self, gamma):
-        super(IOExtension, self).__init__(gamma.field, 1, 2)
+    def __init__(self, height, generator, order, gamma, evaluation_terminal):
+        super(IOExtension, self).__init__(
+            gamma.field, 1, 2, height, generator, order)
 
         # names for challenges
         self.gamma = MPolynomial.constant(gamma)
@@ -18,7 +19,8 @@ class IOExtension(TableExtension):
 
         self.width = 1+1
 
-        self.evaluation_terminal = self.field.zero()  # initial value
+        self.evaluation_terminal = evaluation_terminal
+        self.terminals = [evaluation_terminal]
 
     @staticmethod
     def prepare_verify(log_num_rows, challenges, terminals):
@@ -52,10 +54,10 @@ class IOExtension(TableExtension):
 
             table_extension += [new_row]
 
-        extended_io_table = IOExtension(gamma)
+        extended_io_table = IOExtension(
+            io_table.height, io_table.generator, io_table.order, gamma, io_running_evaluation)
         extended_io_table.table = table_extension
-        extended_io_table.evaluation_terminal = io_running_evaluation
-        extended_io_table.terminals = [io_running_evaluation]
+
         extended_io_table.field = xfield
 
         return extended_io_table

@@ -22,7 +22,7 @@ def test_vm():
 def test_states():
     code = (">>[++-]<")
     program = VirtualMachine.compile(code)
-    log_time, processor_table, instruction_table, memory_table, input_table, output_table = VirtualMachine.simulate(
+    processor_table, instruction_table, memory_table, input_table, output_table = VirtualMachine.simulate(
         program)
     print("hello, workd")
 
@@ -39,7 +39,7 @@ def test_air():
     program = VirtualMachine.compile(code)
 
     # populate AETs
-    log_time, processor_table, instruction_table, memory_table, input_table, output_table = VirtualMachine.simulate(
+    processor_table, instruction_table, memory_table, input_table, output_table = VirtualMachine.simulate(
         program)
 
     # test AETs against AIR
@@ -48,6 +48,7 @@ def test_air():
     memory_table.test()
     input_table.test()
     output_table.test()
+
 
 def test_pad():
     code = "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++."
@@ -61,7 +62,7 @@ def test_pad():
     program = VirtualMachine.compile(code)
 
     # populate AETs
-    log_time, processor_table, instruction_table, memory_table, input_table, output_table = VirtualMachine.simulate(
+    processor_table, instruction_table, memory_table, input_table, output_table = VirtualMachine.simulate(
         program)
 
     # pad tables to length 2^k
@@ -78,6 +79,7 @@ def test_pad():
     # input_table.test()
     # output_table.test()
 
+
 def test_extend():
     code = "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++."
     # code = "+[>+[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>."
@@ -90,7 +92,7 @@ def test_extend():
     program = VirtualMachine.compile(code)
 
     # populate AETs
-    log_time, processor_table, instruction_table, memory_table, input_table, output_table = VirtualMachine.simulate(
+    processor_table, instruction_table, memory_table, input_table, output_table = VirtualMachine.simulate(
         program)
 
     # pad tables to length 2^k
@@ -122,7 +124,7 @@ def test_extend():
 
     # test relations
     assert(VirtualMachine.program_permutation_cofactor(program, a, b, c, alpha, initial_value=processor_extension.instruction_permutation_terminal)
-          == instruction_extension.permutation_terminal), f"instruction permutation argument fails: processor - {str(processor_extension.instruction_permutation_terminal)} versus instruction - {str(instruction_extension.permutation_terminal)}"
+           == instruction_extension.permutation_terminal), f"instruction permutation argument fails: processor - {str(processor_extension.instruction_permutation_terminal)} versus instruction - {str(instruction_extension.permutation_terminal)}"
 
     assert(instruction_extension.evaluation_terminal ==
            VirtualMachine.program_evaluation(program, a, b, c, eta)), f"instruction table evaluation terminal = {instruction_extension.evaluation_terminal} =/= program evaluation = {VirtualMachine.program_evaluation(program, a, b, c, eta)}"

@@ -6,10 +6,31 @@ import os
 
 
 class Table:
-    def __init__(self, field, width):
+    def __init__(self, field, width, height, generator, order):
         self.field = field
         self.width = width
+        self.height = height
+        self.omicron = Table.derive_omicron(
+            generator, order, Table.roundup_npo2(height))
+        self.generator = generator
+        self.order = order
         self.table = []
+
+    @staticmethod
+    def roundup_npo2(integer):
+        if integer == 0 or integer == 1:
+            return 1
+        return 1 << (len(bin(integer-1)[2:]))
+
+    @staticmethod
+    def derive_omicron(generator, generator_order, target_order):
+        while generator_order != target_order:
+            generator = generator ^ 2
+            generator_order = generator_order // 2
+        return generator
+
+    def unit_distance(self, omega_order):
+        return omega_order // Table.roundup_npo2(self.get_height())
 
     def nrows(self):
         return len(self.table)
@@ -51,6 +72,9 @@ class Table:
         return self.interpolate_columns(omega, order, num_randomizers, column_indices=range(self.width))
 
     def interpolate_columns(self, omega, omega_order, num_randomizers, column_indices):
+        print("called interpolate_columns with omega:", omega, "order:", omega_order,
+              "num randomizers:", num_randomizers, "table length:", len(self.table))
+
         num_rows = len(self.table)
         if num_rows == 0:
             return []

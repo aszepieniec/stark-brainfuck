@@ -9,8 +9,9 @@ class InstructionTable(Table):
 
     width = 3
 
-    def __init__(self, field):
-        super(InstructionTable, self).__init__(field, 3)
+    def __init__(self, field, height, generator, order):
+        super(InstructionTable, self).__init__(
+            field, 3, height, generator, order)
 
     def pad(self):
         while len(self.table) & (len(self.table)-1):

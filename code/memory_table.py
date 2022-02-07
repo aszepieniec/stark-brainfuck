@@ -10,8 +10,8 @@ class MemoryTable(Table):
 
     width = 3
 
-    def __init__(self, field):
-        super(MemoryTable, self).__init__(field, 3)
+    def __init__(self, field, height, generator, order):
+        super(MemoryTable, self).__init__(field, 3, height, generator, order)
 
     def pad(self, padded_processor_table):
         current_cycle = max(row[MemoryTable.cycle].value for row in self.table)

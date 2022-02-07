@@ -124,25 +124,19 @@ class VirtualMachine:
         output_data = []
 
         # prepare tables
-        processor_table = ProcessorTable(field)
-        processor_table.table = []
-
-        memory_table = MemoryTable(field)
-        memory_table.table = []
-
-        instruction_table = InstructionTable(field)
-        instruction_table.table = [[BaseFieldElement(i, field), program[i], program[i+1]] for i in range(len(program)-1)] + \
+        processor_table_table = []
+        memory_table_table = []
+        instruction_table_table = [[BaseFieldElement(i, field), program[i], program[i+1]] for i in range(len(program)-1)] + \
                                   [[BaseFieldElement(
                                       len(program)-1, field), program[-1], field.zero()]]
 
-        input_table = IOTable(field)
-
-        output_table = IOTable(field)
+        input_table_table = []
+        output_table_table = []
 
         # main loop
         while register.instruction_pointer.value < len(program):
             # collect values to add new rows in execution tables
-            processor_table.table += [[register.cycle,
+            processor_table_table += [[register.cycle,
                                        register.instruction_pointer,
                                        register.current_instruction,
                                        register.next_instruction,
@@ -150,11 +144,11 @@ class VirtualMachine:
                                        register.memory_value,
                                        register.is_zero]]
 
-            memory_table.table += [[register.cycle,
+            memory_table_table += [[register.cycle,
                                     register.memory_pointer,
                                     register.memory_value]]
 
-            instruction_table.table += [[register.instruction_pointer,
+            instruction_table_table += [[register.instruction_pointer,
                                          register.current_instruction,
                                          register.next_instruction]]
 
@@ -191,9 +185,10 @@ class VirtualMachine:
 
             elif register.current_instruction == F('.'):
                 register.instruction_pointer += one
-                output_table.table += [[memory.get(register.memory_pointer, zero)]]
+                output_table_table += [
+                    [memory.get(register.memory_pointer, zero)]]
                 output_data += chr(
-                    int(memory.get(register.memory_pointer,zero).value % 256))
+                    int(memory.get(register.memory_pointer, zero).value % 256))
 
             elif register.current_instruction == F(','):
                 register.instruction_pointer += one
@@ -201,7 +196,7 @@ class VirtualMachine:
                 input_counter += 1
                 memory[register.memory_pointer] = BaseFieldElement(
                     ord(char), field)
-                input_table.table += [[memory[register.memory_pointer]]]
+                input_table_table += [[memory[register.memory_pointer]]]
 
             else:
                 assert(
@@ -224,36 +219,46 @@ class VirtualMachine:
                 register.is_zero = one
             else:
                 register.is_zero = zero
-        
-        # collect final state into execution tables
-        processor_table.table += [[register.cycle,
-                                    register.instruction_pointer,
-                                    register.current_instruction,
-                                    register.next_instruction,
-                                    register.memory_pointer,
-                                    register.memory_value,
-                                    register.is_zero]]
 
-        memory_table.table += [[register.cycle,
+        # collect final state into execution tables
+        processor_table_table += [[register.cycle,
+                                   register.instruction_pointer,
+                                   register.current_instruction,
+                                   register.next_instruction,
+                                   register.memory_pointer,
+                                   register.memory_value,
+                                   register.is_zero]]
+
+        memory_table_table += [[register.cycle,
                                 register.memory_pointer,
                                 register.memory_value]]
 
-        instruction_table.table += [[register.instruction_pointer,
-                                        register.current_instruction,
-                                        register.next_instruction]]
+        instruction_table_table += [[register.instruction_pointer,
+                                     register.current_instruction,
+                                     register.next_instruction]]
 
         # post-process context tables
         # sort by memory address
-        memory_table.table.sort(key=lambda row: row[1].value)
+        memory_table_table.sort(key=lambda row: row[1].value)
         # sort by instruction address
-        instruction_table.table.sort(key=lambda row: row[0].value)
+        instruction_table_table.sort(key=lambda row: row[0].value)
 
         # compute instance data for computation
         log_time = 0
-        while 1 << log_time < len(processor_table.table):
+        while 1 << log_time < len(processor_table_table):
             log_time += 1
 
-        return log_time, processor_table, instruction_table, memory_table, input_table, output_table
+        # order = 1 << 32
+        # generator = field.primitive_nth_root(1<<32)
+        # processor_table = ProcessorTable(field, len(processor_table_table), generator, order)
+        # processor_table.table = processor_table_table
+        # instruction_table = InstructionTable(field, len(instruction_table_table), generator, order)
+        # memory_table = MemoryTable(field, len(memory_table_table), generator, order)
+        # input_table = IOTable(field, len(input_table_table), generator, order)
+        # output_table = IOTable(field, len(
+        #     output_table_table), generator, order)
+
+        return processor_table_table, instruction_table_table, memory_table_table, input_table_table, output_table_table
 
     @staticmethod
     def num_challenges():
@@ -289,7 +294,8 @@ class VirtualMachine:
         address = xfield.lift(BaseFieldElement(index, field))
         current_instruction = padded_program[index]
         next_instruction = xfield.zero()
-        running_sum = running_sum * eta + a * address + b * current_instruction + c * next_instruction
+        running_sum = running_sum * eta + a * address + \
+            b * current_instruction + c * next_instruction
 
         return running_sum
 

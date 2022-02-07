@@ -13,8 +13,9 @@ class ProcessorTable(Table):
 
     width = 7
 
-    def __init__(self, field):
-        super(ProcessorTable, self).__init__(field, 7)
+    def __init__(self, field, height, generator, order):
+        super(ProcessorTable, self).__init__(
+            field, 7, height, generator, order)
 
     def pad(self):
         while len(self.table) & (len(self.table)-1) != 0:

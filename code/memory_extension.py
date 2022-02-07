@@ -13,13 +13,15 @@ class MemoryExtension(TableExtension):
 
     width = 4
 
-    def __init__(self, d, e, f, beta):
-        super(MemoryExtension, self).__init__(d.field, 3, 4)
+    def __init__(self, height, generator, order, d, e, f, beta, permutation_terminal):
+        super(MemoryExtension, self).__init__(
+            d.field, 3, 4, height, generator, order)
 
         field = d.field
 
-        # terminal values (placeholder)
-        self.permutation_terminal = field.zero()
+        # terminal values
+        self.permutation_terminal = permutation_terminal
+        self.terminals = [permutation_terminal]
 
         self.d = MPolynomial.constant(d)
         self.e = MPolynomial.constant(e)
@@ -61,11 +63,10 @@ class MemoryExtension(TableExtension):
 
             table_extension += [new_row]
 
-        extended_memory_table = MemoryExtension(d, e, f, beta)
+        extended_memory_table = MemoryExtension(
+            memory_table.height, memory_table.generator, memory_table.order, d, e, f, beta, memory_permutation_running_product)
         extended_memory_table.table = table_extension
 
-        extended_memory_table.permutation_terminal = memory_permutation_running_product
-        extended_memory_table.terminals = [memory_permutation_running_product]
         extended_memory_table.field = xfield
 
         return extended_memory_table

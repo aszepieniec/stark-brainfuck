@@ -6,8 +6,8 @@ from univariate import Polynomial
 
 
 class TableExtension(Table):
-    def __init__(self, xfield, original_width, width):
-        super().__init__(xfield, width)
+    def __init__(self, xfield, original_width, width, height, generator, order):
+        super().__init__(xfield, width, height, generator, order)
         self.original_width = original_width
         self.xfield = xfield
 
@@ -163,7 +163,10 @@ class TableExtension(Table):
         return bounds
 
     def num_quotients(self):
-        return len(self.all_quotient_degree_bounds())
+        log_num_rows = 1
+        while 1 << log_num_rows < self.get_height():
+            log_num_rows += 1
+        return len(self.all_quotient_degree_bounds(log_num_rows, self.challenges, self.terminals))
 
     def evaluate_boundary_quotients(self, omicron, omegai, point):
         values = []
