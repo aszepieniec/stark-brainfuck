@@ -540,8 +540,21 @@ class BrainfuckStark:
 
         # open combination codeword at the same positions
         for index in indices:
+            if index == indices[0]:
+                print("-> combination root:", hexlify(combination_tree.root()))
+                print("-> combination path:", [hexlify(p)
+                      for p in combination_tree.open(index)])
+                print("-> combination index:", index)
+                print("-> combination leaf:", combination_tree.leafs[index])
+            print("prover proof length: ", len(proof_stream.objects))
             proof_stream.push(combination_tree.leafs[index])
+            print("prover proof length: ", len(proof_stream.objects))
             proof_stream.push(combination_tree.open(index))
+            assert(Merkle.verify(combination_tree.root(), index,
+                   combination_tree.open(index), combination_tree.leafs[index]))
+            print("prover proof length: ", len(proof_stream.objects))
+            print("printed path: ", [hexlify(p)
+                  for p in combination_tree.open(index)])
 
         # prove low degree of combination polynomial, and collect indices
         tick = time.time()
@@ -789,12 +802,14 @@ class BrainfuckStark:
                 verifier_verdict = verifier_verdict and SaltedMerkle.verify(
                     base_root, idx, salt, path, element)
                 tuples[idx] = [self.xfield.lift(e) for e in list(element)]
+                assert(verifier_verdict), "salted base tree verify must success"
 
                 element = proof_stream.pull()
                 salt, path = proof_stream.pull()
                 verifier_verdict = verifier_verdict and SaltedMerkle.verify(
-                    base_root, idx, salt, path, element)
+                    extension_root, idx, salt, path, element)
                 tuples[idx] = tuples[idx] + list(element)
+                assert(verifier_verdict), "salted base tree verify must success"
 
                 print("<- leafs and path for index", index, "+",
                       distance, "=", idx, "mod", fri.domain.length)
@@ -1111,36 +1126,40 @@ class BrainfuckStark:
             assert(len(terms) == len(
                 weights)), f"length of terms ({len(terms)}) must be equal to length of weights ({len(weights)})"
 
-            print("type of terms:")
-            for t in terms:
-                print(type(t))
-            print("type of weights:")
-            for w in weights:
-                print(type(w))
-
-            print("type of xfield.zero():", type(self.xfield.zero()))
-
             # compute inner product of weights and terms
             inner_product = reduce(
                 lambda x, y: x + y, [w * t for w, t in zip(weights, terms)], self.xfield.zero())
 
             # get value of the combination codeword to test the inner product against
-            combination_at_index = proof_stream.pull()
-            combination_index_path = proof_stream.pull()
+            print("verify read_index: ", proof_stream.read_index)
+            combination_leaf = proof_stream.pull()
+            print("verify read_index: ", proof_stream.read_index)
+            combination_path = proof_stream.pull()
+            print("verify read_index: ", proof_stream.read_index)
+            print("path:", [hexlify(p) for p in combination_path])
 
             # verify Merkle authentication path
+            print("verifier_verdict:", verifier_verdict)
             verifier_verdict = verifier_verdict and Merkle.verify(
-                combination_root, index, combination_index_path, combination_at_index)
+                combination_root, index, combination_path, combination_leaf)
             if not verifier_verdict:
                 print(
                     "Merkle authentication path fails for combination codeword value at index", index)
+                print("root:", hexlify(combination_root))
+                print("index:", index)
+                print("path:", [hexlify(p) for p in combination_path])
+                print("leaf:", combination_leaf)
+                assert(False)
                 return False
 
             # checy equality
-            verifier_verdict = verifier_verdict and combination_at_index == inner_product
+            verifier_verdict = verifier_verdict and combination_leaf == inner_product
             if not verifier_verdict:
                 print(
                     "inner product does not equal combination codeword element at index", index)
+                print("combination leaf: ", combination_leaf)
+                print("inner_product: ", inner_product)
+                assert(False)
                 return False
 
         # verify low degree of combination polynomial
