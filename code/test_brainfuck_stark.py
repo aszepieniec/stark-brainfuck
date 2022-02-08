@@ -7,12 +7,11 @@ def test_bfs():
     generator = BaseField.main().generator()
     xfield = ExtensionField.main()
     bfs = BrainfuckStark(generator, xfield)
-    program = VirtualMachine.compile(">>[++-]<+++")
+    program = VirtualMachine.compile(">>[++-]<++++++++")
+    program = VirtualMachine.compile(">++++++++++[>+++><<-]>+++><<>.")
     processor_table_table, instruction_table_table, memory_table_table, input_table_table, output_table_table = bfs.vm.simulate(
         program)
-    # log_time = len(bin(len(processor_table.table)-1)[2:])
-    # print("lengh of processor table:", len(processor_table.table))
-    # print("log time:", log_time)
+    running_time = len(processor_table_table)
 
     filename = "proof.dump"
     if exists(filename):
@@ -26,7 +25,10 @@ def test_bfs():
         pickle.dump(proof, fh)
         fh.close()
 
-    verdict = bfs.verify(proof, len(processor_table_table), program,
+    # proof = bfs.prove(running_time, program, processor_table_table, instruction_table_table,
+    #                   memory_table_table, input_table_table, output_table_table)
+
+    verdict = bfs.verify(proof, running_time, program,
                          input_table_table, output_table_table)
     assert(verdict == True), "honest proof fails to verify"
-    print("\o/")
+    print([ord(t.value) for t in output_table_table])

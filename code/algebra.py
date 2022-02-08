@@ -65,6 +65,8 @@ class BaseFieldElement:
 
     def has_order_po2(self, order):
         assert(order & (order-1) == 0)
+        if self == self.field.one() and order == 1:
+            return True
         return (self ^ order) == self.field.one() and not (self ^ (order//2)) == self.field.one()
 
     def __hash__(self):

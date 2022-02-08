@@ -4,6 +4,7 @@ from univariate import *
 def ntt(primitive_root, values):
     assert(len(values) & (len(values) - 1) ==
            0), "cannot compute ntt of non-power-of-two sequence"
+
     if len(values) <= 1:
         return values
 
@@ -27,11 +28,12 @@ def intt(primitive_root, values):
            0), "cannot compute intt of non-power-of-two sequence"
     assert(primitive_root ^ len(values) == primitive_root.field.one()
            ), "supplied root does not have supplied order"
-    assert(primitive_root ^ (len(values)//2) != primitive_root.field.one()
-           ), "supplied root is not primitive root of supplied order"
 
     if len(values) == 1:
         return values
+
+    assert(primitive_root ^ (len(values)//2) != primitive_root.field.one()
+           ), "supplied root is not primitive root of supplied order"
 
     field = values[0].field
     ninv = field(len(values)).inverse()

@@ -72,6 +72,8 @@ class Table:
         return self.interpolate_columns(omega, order, num_randomizers, column_indices=range(self.width))
 
     def interpolate_columns(self, omega, omega_order, num_randomizers, column_indices):
+        assert(omega.has_order_po2(omega_order)
+               ), "omega does not have claimed order"
         print("called interpolate_columns with omega:", omega, "order:", omega_order,
               "num randomizers:", num_randomizers, "table length:", len(self.table))
 
@@ -83,11 +85,6 @@ class Table:
 
         assert(num_rows & (num_rows - 1) ==
                0), f"num_rows has value {num_rows} but must be a power of two"
-
-        assert(omega ^ omega_order == omega.field.one()
-               ), "order must match with omega"
-        assert(omega ^ (omega_order//2) != omega.field.one()
-               ), "order must be primitive"
 
         omidi_order = 1
         while omidi_order < num_rows + num_randomizers:
@@ -101,10 +98,8 @@ class Table:
             omidi = omidi ^ 2
             current_order = current_order // 2
 
-        assert(omidi ^ omidi_order == omidi.field.one()
-               ), "order must now be order of omidi"
-        assert(omidi ^ (omidi_order//2) !=
-               omidi.field.one()), "order not primitive"
+        print("current_order:", current_order)
+        print("omidi order:", omidi_order)
 
         omicron = omidi
         omicron_order = omidi_order
