@@ -111,6 +111,8 @@ class ExtensionField:
         return ExtensionFieldElement(Polynomial(coefficients), self)
 
     def lift(self, base_field_element: BaseFieldElement) -> ExtensionFieldElement:
+        if type(base_field_element) == ExtensionFieldElement:
+            return base_field_element
         return ExtensionFieldElement(Polynomial([base_field_element]), self)
 
     def __str__(self):

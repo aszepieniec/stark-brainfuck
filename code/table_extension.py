@@ -54,7 +54,7 @@ class TableExtension(Table):
         pass
 
     def transition_quotients(self, log_num_rows, domain, codewords, challenges):
-        if log_num_rows < 0:
+        if self.get_height() == 0:
             return []
 
         interpolation_subgroup_order = 1 << log_num_rows
@@ -108,12 +108,12 @@ class TableExtension(Table):
         composition_degree = trace_degree * air_degree
         return [composition_degree - trace_degree] * len(self.transition_constraints_ext(challenges))
 
-    @ abstractmethod
+    @abstractmethod
     def terminal_constraints_ext(self, challenges, terminals):
         pass
 
     def terminal_quotients(self, log_num_rows, domain, codewords, challenges, terminals):
-        if log_num_rows == -1:
+        if self.get_height() == 0:
             return []
 
         quotient_codewords = []
@@ -132,7 +132,7 @@ class TableExtension(Table):
         return quotient_codewords
 
     def terminal_quotient_degree_bounds(self, log_num_rows, challenges, terminals):
-        if log_num_rows == -1:
+        if self.get_height() == 0:
             return []
         elif log_num_rows >= 0:
             degree = (1 << log_num_rows) - 1
@@ -143,7 +143,7 @@ class TableExtension(Table):
         return [air_degree * degree - 1] * len(self.terminal_constraints_ext(challenges, terminals))
 
     def all_quotients(self, domain, codewords, log_num_rows, challenges, terminals):
-        if log_num_rows == -1:
+        if self.get_height() == 0:
             return []
 
         boundary_quotients = self.boundary_quotients(
@@ -155,7 +155,7 @@ class TableExtension(Table):
         return boundary_quotients + transition_quotients + terminal_quotients
 
     def all_quotient_degree_bounds(self, log_num_rows, challenges, terminals):
-        if log_num_rows == -1:
+        if self.get_height() == 0:
             return []
 
         bounds = self.boundary_quotient_degree_bounds(log_num_rows) + self.transition_quotient_degree_bounds(
@@ -163,6 +163,8 @@ class TableExtension(Table):
         return bounds
 
     def num_quotients(self):
+        if self.get_height() == 0:
+            return 0
         log_num_rows = 1
         while 1 << log_num_rows < self.get_height():
             log_num_rows += 1

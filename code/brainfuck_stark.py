@@ -733,8 +733,10 @@ class BrainfuckStark:
             memory_extension.num_quotients() + input_extension.num_quotients() + \
             output_extension.num_quotients()
 
+        num_difference_quotients = 2
+
         weights = self.sample_weights(2*num_base_polynomials + 2*num_extension_polynomials +
-                                      num_randomizer_polynomials + 2*num_quotient_polynomials, proof_stream.prover_fiat_shamir())
+                                      num_randomizer_polynomials + 2*num_quotient_polynomials + 2*num_difference_quotients, proof_stream.prover_fiat_shamir())
 
         print("** challenges for weights")
 
@@ -819,6 +821,10 @@ class BrainfuckStark:
                 extension_offset += IOTable.width
             if len(output_symbols) > 0:
                 extension_offset += IOTable.width
+
+            assert(len(
+                terms) == 2 * extension_offset - num_randomizer_polynomials), f"number of terms {len(terms)} does not match with extension offset {2 * extension_offset - num_randomizer_polynomials}"
+
             for i in range(num_extension_polynomials):
                 print("keys of tuples:", [k for k in tuples.keys()])
                 print("extension offset plus i = ", extension_offset + i)
@@ -1102,6 +1108,9 @@ class BrainfuckStark:
             shift = max_degree - ((1 << log_time) - 2)
             terms += [quotient * self.xfield.lift(fri.domain(index) ^ shift)]
 
+            assert(len(terms) == len(
+                weights)), f"length of terms ({len(terms)}) must be equal to length of weights ({len(weights)})"
+
             print("type of terms:")
             for t in terms:
                 print(type(t))
@@ -1109,8 +1118,7 @@ class BrainfuckStark:
             for w in weights:
                 print(type(w))
 
-            assert(len(terms) == len(
-                weights)), f"length of terms ({len(terms)}) must be equal to length of weights ({len(weights)})"
+            print("type of xfield.zero():", type(self.xfield.zero()))
 
             # compute inner product of weights and terms
             inner_product = reduce(
