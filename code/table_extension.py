@@ -68,12 +68,12 @@ class TableExtension(Table):
 
         transition_constraints = self.transition_constraints_ext(challenges)
 
-        symbolic_point = [domain.xinterpolate(c) for c in codewords]
-        symbolic_point = symbolic_point + \
-            [sp.scale(self.xfield.lift(self.omicron)) for sp in symbolic_point]
-        X = Polynomial([self.field.zero(), self.field.one()])
-        symbolic_zerofier = (((X ^ interpolation_subgroup_order)) - Polynomial(
-            [self.field.one()])) / (X - Polynomial([self.field.lift(self.omicron.inverse())]))
+        # symbolic_point = [domain.xinterpolate(c) for c in codewords]
+        # symbolic_point = symbolic_point + \
+        #     [sp.scale(self.xfield.lift(self.omicron)) for sp in symbolic_point]
+        # X = Polynomial([self.field.zero(), self.field.one()])
+        # symbolic_zerofier = (((X ^ interpolation_subgroup_order)) - Polynomial(
+        #     [self.field.one()])) / (X - Polynomial([self.field.lift(self.omicron.inverse())]))
 
         # for i in range(interpolation_subgroup_order):
         #     print("value of symbolic zerofier in omicron^%i:" % i, symbolic_zerofier.evaluate(self.field.lift(omicron^i)))
@@ -83,7 +83,7 @@ class TableExtension(Table):
             quotient_codeword = []
             for i in range(domain.length):
                 point = [codewords[j][i] for j in range(self.width)] + \
-                    [codewords[j][(i+(domain.length // interpolation_subgroup_order)) %
+                    [codewords[j][(i+self.unit_distance(domain.length)) %
                                   domain.length] for j in range(self.width)]
                 quotient_codeword += [mpo.evaluate(point)
                                       * self.field.lift(zerofier_inverse[i])]

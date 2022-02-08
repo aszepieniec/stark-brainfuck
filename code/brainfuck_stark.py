@@ -399,7 +399,7 @@ class BrainfuckStark:
         quotient_degree_bounds += processor_extension.all_quotient_degree_bounds(log_time, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[
             processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal])
         print(len(quotient_degree_bounds))
-        quotient_degree_bounds += instruction_extension.all_quotient_degree_bounds(log_time, challenges=[a, b, c, alpha, eta], terminals=[
+        quotient_degree_bounds += instruction_extension.all_quotient_degree_bounds(log_instructions, challenges=[a, b, c, alpha, eta], terminals=[
             processor_instruction_permutation_terminal, instruction_evaluation_terminal])
         print(len(quotient_degree_bounds))
         quotient_degree_bounds += memory_extension.all_quotient_degree_bounds(log_time, challenges=[
@@ -413,6 +413,7 @@ class BrainfuckStark:
         print(len(quotient_degree_bounds))
 
         # ... and equal initial values
+        # Append the difference quotients
         quotient_codewords += [[(processor_codewords[ProcessorExtension.instruction_permutation][i] -
                                  instruction_codewords[InstructionExtension.permutation][i]) * self.xfield.lift((fri.domain(i) - self.field.one()).inverse()) for i in range(fri.domain.length)]]
         quotient_codewords += [[(processor_codewords[ProcessorExtension.memory_permutation][i] -
@@ -462,8 +463,13 @@ class BrainfuckStark:
             num_extension_polynomials += 1
         num_randomizer_polynomials = 1
         num_quotient_polynomials = len(quotient_degree_bounds)
-        weights = self.sample_weights(num_randomizer_polynomials + 2 * (num_base_polynomials +
-                                      num_extension_polynomials + num_quotient_polynomials), proof_stream.prover_fiat_shamir())
+        weights_seed = proof_stream.prover_fiat_shamir()
+        weights = self.sample_weights(
+            num_randomizer_polynomials
+            + 2 * (num_base_polynomials +
+                   num_extension_polynomials +
+                   num_quotient_polynomials),
+            weights_seed)
 
         print("** challenges for weights")
 
@@ -521,6 +527,9 @@ class BrainfuckStark:
         print("** indices for nonlicombo")
         indices = BrainfuckStark.sample_indices(
             self.security_level, indices_seed, fri.domain.length)
+
+        indices = [0]  # TODO remove me when not debugging
+
         unit_distances = [table.unit_distance(fri.domain.length) for table in [
             processor_table, instruction_table, memory_table, input_table, output_table]]
         unit_distances = list(set(unit_distances))
@@ -676,9 +685,9 @@ class BrainfuckStark:
         # get matching degree bounds
         # base_polynomials = processor_polynomials + instruction_polynomials + \
         #      memory_polynomials + input_polynomials + output_polynomials
-        base_degree_bounds = [running_time-1] * ProcessorTable.width + [running_time+len(program)-1] * \
+        base_degree_bounds = [BrainfuckStark.roundup_npo2(running_time)-1] * ProcessorTable.width + [BrainfuckStark.roundup_npo2(running_time+len(program))-1] * \
             InstructionTable.width + \
-            [running_time-1] * MemoryTable.width
+            [BrainfuckStark.roundup_npo2(running_time)-1] * MemoryTable.width
         if len(input_symbols) != 0:
             base_degree_bounds += [len(input_symbols)-1] * IOTable.width
         if len(output_symbols) != 0:
@@ -722,8 +731,8 @@ class BrainfuckStark:
         output_extension = IOExtension(
             len(output_symbols), omega, fri_domain_length, delta, processor_output_evaluation_terminal)
 
-        extension_degree_bounds = [processor_extension.get_height()-1] * (ProcessorExtension.width - ProcessorTable.width) + [instruction_extension.get_height()-1] * (InstructionExtension.width - InstructionTable.width) + [
-            memory_extension.get_height()-1] * (MemoryExtension.width - MemoryTable.width) + [input_extension.get_height()-1] * (IOExtension.width - IOTable.width) + [output_extension.get_height()-1] * (IOExtension.width - IOTable.width)
+        extension_degree_bounds = [BrainfuckStark.roundup_npo2(processor_extension.get_height())-1] * (ProcessorExtension.width - ProcessorTable.width) + [BrainfuckStark.roundup_npo2(instruction_extension.get_height())-1] * (InstructionExtension.width - InstructionTable.width) + [
+            BrainfuckStark.roundup_npo2(memory_extension.get_height())-1] * (MemoryExtension.width - MemoryTable.width) + [BrainfuckStark.roundup_npo2(input_extension.get_height())-1] * (IOExtension.width - IOTable.width) + [BrainfuckStark.roundup_npo2(output_extension.get_height())-1] * (IOExtension.width - IOTable.width)
 
         # get weights for nonlinear combination
         #  - 1 randomizer
@@ -748,8 +757,14 @@ class BrainfuckStark:
 
         num_difference_quotients = 2
 
-        weights = self.sample_weights(2*num_base_polynomials + 2*num_extension_polynomials +
-                                      num_randomizer_polynomials + 2*num_quotient_polynomials + 2*num_difference_quotients, proof_stream.prover_fiat_shamir())
+        weights_seed = proof_stream.verifier_fiat_shamir()
+        weights = self.sample_weights(
+            2*num_base_polynomials +
+            2*num_extension_polynomials +
+            num_randomizer_polynomials +
+            2*num_quotient_polynomials +
+            2*num_difference_quotients,
+            weights_seed)
 
         print("** challenges for weights")
 
@@ -787,6 +802,9 @@ class BrainfuckStark:
         print("** indices for nonlicombo")
         indices = BrainfuckStark.sample_indices(
             self.security_level, indices_seed, fri.domain.length)
+
+        indices = [0]  # TODO remove me when not debugging
+
         unit_distances = [table.unit_distance(fri.domain.length) for table in [
             processor_extension, instruction_extension, memory_extension, input_extension, output_extension]]
         unit_distances = list(set(unit_distances))
@@ -827,7 +845,7 @@ class BrainfuckStark:
                 shift = max_degree - \
                     base_degree_bounds[i-num_randomizer_polynomials]
                 terms += [tuples[index][i] *
-                          self.xfield.lift(fri.domain(i) ^ shift)]
+                          self.xfield.lift(fri.domain(index) ^ shift)]
 
             # collect terms: extension
             extension_offset = num_randomizer_polynomials+ProcessorTable.width + \
@@ -848,8 +866,9 @@ class BrainfuckStark:
                 print("len of tuples at index:", len(tuples[index]))
                 terms += [tuples[index][extension_offset+i]]
                 shift = max_degree - extension_degree_bounds[i]
+                print("extension degree shift: ", shift)
                 terms += [tuples[index][extension_offset+i]
-                          * self.xfield.lift(fri.domain(i) ^ shift)]
+                          * self.xfield.lift(fri.domain(index) ^ shift)]
 
             # collect terms: quotients
             # quotients need to be computed
@@ -898,7 +917,8 @@ class BrainfuckStark:
             assert(acc_index == len(
                 tuples[index]), "Column count in verifier must match until end")
 
-            # boundary quotients
+            # ******************** processor quotients ********************
+            # boundary
             for constraint, bound in zip(processor_extension.boundary_constraints_ext(), processor_extension.boundary_quotient_degree_bounds(log_time)):
                 eval = constraint.evaluate(processor_point)
                 quotient = eval / \
@@ -907,7 +927,45 @@ class BrainfuckStark:
                 shift = max_degree - bound
                 terms += [quotient *
                           self.xfield.lift(fri.domain(index) ^ shift)]
+            print("len(terms) after processor boundaries: ", len(terms))
 
+            # transition
+            unit_distance = processor_extension.unit_distance(
+                fri.domain.length)
+            next_index = (index + unit_distance) % fri.domain.length
+            next_processor_point = tuples[next_index][num_randomizer_polynomials:(
+                num_randomizer_polynomials+ProcessorTable.width)]
+            next_processor_point += tuples[next_index][extension_offset:(
+                extension_offset+ProcessorExtension.width-ProcessorTable.width)]
+            challenges = [a, b, c, d, e, f, alpha, beta, gamma, delta]
+            for constraint, bound in zip(processor_extension.transition_constraints_ext(challenges), processor_extension.transition_quotient_degree_bounds(log_time, challenges)):
+                eval = constraint.evaluate(
+                    processor_point + next_processor_point)
+                quotient = eval * self.xfield.lift(fri.domain(index) - processor_extension.omicron.inverse()) / (
+                    self.xfield.lift(fri.domain(index) ^ BrainfuckStark.roundup_npo2(processor_extension.get_height())) - self.xfield.one())
+                terms += [quotient]
+                shift = max_degree - bound
+                terms += [quotient *
+                          self.xfield.lift(fri.domain(index) ^ shift)]
+            print("len(terms) after processor transitions: ", len(terms))
+
+            # terminal
+            challenges = [a, b, c, d, e, f, alpha, beta, gamma, delta]
+            terminals = [processor_instruction_permutation_terminal, processor_memory_permutation_terminal,
+                         processor_input_evaluation_terminal, processor_output_evaluation_terminal]
+            for constraint, bound in zip(processor_extension.terminal_constraints_ext(challenges, terminals), processor_extension.terminal_quotient_degree_bounds(log_time, challenges, terminals)):
+                eval = constraint.evaluate(processor_point)
+                quotient = eval / \
+                    (self.xfield.lift(fri.domain(index)) -
+                     self.xfield.lift(processor_extension.omicron.inverse()))
+                terms += [quotient]
+                shift = max_degree - bound
+                terms += [quotient *
+                          self.xfield.lift(fri.domain(index) ^ shift)]
+            print("len(terms) after processor terminals: ", len(terms))
+
+            # ******************** instruction quotients ********************
+            # boundary
             for constraint, bound in zip(instruction_extension.boundary_constraints_ext(), instruction_extension.boundary_quotient_degree_bounds(log_instructions)):
                 eval = constraint.evaluate(instruction_point)
                 quotient = eval / \
@@ -916,7 +974,45 @@ class BrainfuckStark:
                 shift = max_degree - bound
                 terms += [quotient *
                           self.xfield.lift(fri.domain(index) ^ shift)]
+            print("len(terms) after instruction boundaries: ", len(terms))
 
+            # transition
+            unit_distance = instruction_extension.unit_distance(
+                fri.domain.length)
+            next_index = (index + unit_distance) % fri.domain.length
+            next_instruction_point = tuples[next_index][(num_randomizer_polynomials+ProcessorTable.width):(
+                num_randomizer_polynomials+ProcessorTable.width+InstructionTable.width)]
+            next_instruction_point += tuples[next_index][(extension_offset+ProcessorExtension.width-ProcessorTable.width):(
+                extension_offset+ProcessorExtension.width-ProcessorTable.width+InstructionExtension.width-InstructionTable.width)]
+            challenges = [a, b, c, alpha, eta]
+            for constraint, bound in zip(instruction_extension.transition_constraints_ext(challenges), instruction_extension.transition_quotient_degree_bounds(log_instructions, challenges)):
+                eval = constraint.evaluate(
+                    instruction_point + next_instruction_point)
+                quotient = eval * self.xfield.lift(fri.domain(index) - instruction_extension.omicron.inverse()) / (
+                    self.xfield.lift(fri.domain(index) ^ BrainfuckStark.roundup_npo2(instruction_extension.get_height())) - self.xfield.one())
+                terms += [quotient]
+                shift = max_degree - bound
+                terms += [quotient *
+                          self.xfield.lift(fri.domain(index) ^ shift)]
+            print("len(terms) after instruction transitions: ", len(terms))
+
+            # terminal
+            challenges = [a, b, c, alpha, eta]
+            terminals = [processor_instruction_permutation_terminal,
+                         instruction_evaluation_terminal]
+            for constraint, bound in zip(instruction_extension.terminal_constraints_ext(challenges, terminals), instruction_extension.terminal_quotient_degree_bounds(log_instructions, challenges, terminals)):
+                eval = constraint.evaluate(instruction_point)
+                quotient = eval / \
+                    (self.xfield.lift(fri.domain(index)) -
+                     self.xfield.lift(instruction_extension.omicron.inverse()))
+                terms += [quotient]
+                shift = max_degree - bound
+                terms += [quotient *
+                          self.xfield.lift(fri.domain(index) ^ shift)]
+            print("len(terms) after instruction terminals: ", len(terms))
+
+            # ******************** memory quotients ********************
+            # boundary
             for constraint, bound in zip(memory_extension.boundary_constraints_ext(), memory_extension.boundary_quotient_degree_bounds(log_time)):
                 eval = constraint.evaluate(memory_point)
                 quotient = eval / \
@@ -926,6 +1022,39 @@ class BrainfuckStark:
                 terms += [quotient *
                           self.xfield.lift(fri.domain(index) ^ shift)]
 
+            # transition
+            unit_distance = memory_extension.unit_distance(fri.domain.length)
+            next_index = (index + unit_distance) % fri.domain.length
+            next_memory_point = tuples[next_index][(num_randomizer_polynomials+ProcessorTable.width+InstructionTable.width):(
+                num_randomizer_polynomials+ProcessorTable.width+InstructionTable.width+MemoryTable.width)]
+            next_memory_point += tuples[next_index][(extension_offset+ProcessorExtension.width-ProcessorTable.width+InstructionExtension.width-InstructionTable.width):(
+                extension_offset+ProcessorExtension.width-ProcessorTable.width+InstructionExtension.width-InstructionTable.width+MemoryExtension.width-MemoryTable.width)]
+            challenges = [d, e, f, beta]
+            for constraint, bound in zip(memory_extension.transition_constraints_ext(challenges), memory_extension.transition_quotient_degree_bounds(log_time, challenges)):
+                eval = constraint.evaluate(memory_point + next_memory_point)
+                quotient = eval * self.xfield.lift(fri.domain(index) - memory_extension.omicron.inverse()) / (
+                    self.xfield.lift(fri.domain(index) ^ BrainfuckStark.roundup_npo2(memory_extension.get_height())) - self.xfield.one())
+                terms += [quotient]
+                shift = max_degree - bound
+                terms += [quotient *
+                          self.xfield.lift(fri.domain(index) ^ shift)]
+
+            # terminal
+            challenges = [d, e, f, beta]
+            terminals = [processor_memory_permutation_terminal]
+            for constraint, bound in zip(memory_extension.terminal_constraints_ext(challenges, terminals), memory_extension.terminal_quotient_degree_bounds(log_time, challenges, terminals)):
+                eval = constraint.evaluate(memory_point)
+                quotient = eval / \
+                    (self.xfield.lift(fri.domain(index)) -
+                     self.xfield.lift(memory_extension.omicron.inverse()))
+                terms += [quotient]
+                shift = max_degree - bound
+                terms += [quotient *
+                          self.xfield.lift(fri.domain(index) ^ shift)]
+            print("len(terms) after memory: ", len(terms))
+
+            # ******************** input quotients ********************
+            # boundary
             for constraint, bound in zip(input_extension.boundary_constraints_ext(), input_extension.boundary_quotient_degree_bounds(log_input)):
                 eval = constraint.evaluate(input_point)
                 quotient = eval / \
@@ -935,6 +1064,41 @@ class BrainfuckStark:
                 terms += [quotient *
                           self.xfield.lift(fri.domain(index) ^ shift)]
 
+            # transition
+            if input_extension.get_height() > 0:
+                unit_distance = input_extension.unit_distance(
+                    fri.domain.length)
+                next_index = (index + unit_distance) % fri.domain.length
+                next_input_point = tuples[next_index][(num_randomizer_polynomials+ProcessorTable.width+InstructionTable.width+MemoryTable.width):(
+                    num_randomizer_polynomials+ProcessorTable.width+InstructionTable.width+MemoryTable.width+IOTable.width)]
+                next_input_point += tuples[next_index][(extension_offset+ProcessorExtension.width-ProcessorTable.width+InstructionExtension.width-InstructionTable.width+MemoryExtension.width-MemoryTable.width):(
+                    extension_offset+ProcessorExtension.width-ProcessorTable.width+InstructionExtension.width-InstructionTable.width+MemoryExtension.width-MemoryTable.width+IOExtension.width-IOTable.width)]
+                challenges = [gamma]
+                for constraint, bound in zip(input_extension.transition_constraints_ext(challenges), input_extension.transition_quotient_degree_bounds(log_input, challenges)):
+                    eval = constraint.evaluate(input_point + next_input_point)
+                    quotient = eval * self.xfield.lift(fri.domain(index) - input_extension.omicron.inverse()) / (
+                        self.xfield.lift(fri.domain(index) ^ BrainfuckStark.roundup_npo2(input_extension.get_height())) - self.xfield.one())
+                    terms += [quotient]
+                    shift = max_degree - bound
+                    terms += [quotient *
+                              self.xfield.lift(fri.domain(index) ^ shift)]
+
+            # terminal
+            challenges = [gamma]
+            terminals = [processor_input_evaluation_terminal]
+            for constraint, bound in zip(input_extension.terminal_constraints_ext(challenges, terminals), input_extension.terminal_quotient_degree_bounds(log_input, challenges, terminals)):
+                eval = constraint.evaluate(input_point)
+                quotient = eval / \
+                    (self.xfield.lift(fri.domain(index)) -
+                     self.xfield.lift(input_extension.omicron.inverse()))
+                terms += [quotient]
+                shift = max_degree - bound
+                terms += [quotient *
+                          self.xfield.lift(fri.domain(index) ^ shift)]
+            print("len(terms) after input: ", len(terms))
+
+            # ******************** output quotients ********************
+            # boundary
             for constraint, bound in zip(output_extension.boundary_constraints_ext(), output_extension.boundary_quotient_degree_bounds(log_output)):
                 eval = constraint.evaluate(output_point)
                 quotient = eval / \
@@ -944,89 +1108,11 @@ class BrainfuckStark:
                 terms += [quotient *
                           self.xfield.lift(fri.domain(index) ^ shift)]
 
-            # transition quotients
-            unit_distance = processor_extension.unit_distance(
-                fri.domain.length)
-            print("unit distance:", unit_distance)
-            next_index = (index + unit_distance) % fri.domain.length
-            print("index:", index)
-            print("next_index:", next_index)
-            omicron = processor_extension.omicron
-            next_processor_point = tuples[next_index][num_randomizer_polynomials:(
-                num_randomizer_polynomials+ProcessorTable.width)]
-            next_processor_point += tuples[next_index][extension_offset:(
-                extension_offset+ProcessorExtension.width-ProcessorTable.width)]
-            challenges = [a, b, c, d, e, f, alpha, beta, gamma, delta]
-            for constraint, bound in zip(processor_extension.transition_constraints_ext(challenges), processor_extension.transition_quotient_degree_bounds(log_time, challenges)):
-                eval = constraint.evaluate(
-                    processor_point + next_processor_point)
-                quotient = eval * self.xfield.lift(fri.domain(index) - omicron.inverse()) / (
-                    self.xfield.lift(fri.domain(index) ^ processor_extension.get_height()) - self.xfield.one())
-                terms += [quotient]
-                shift = max_degree - bound
-                terms += [quotient *
-                          self.xfield.lift(fri.domain(index) ^ shift)]
-
-            unit_distance = instruction_extension.unit_distance(
-                fri.domain.length)
-            next_index = (index + unit_distance) % fri.domain.length
-            omicron = instruction_extension.omicron
-            next_instruction_point = tuples[next_index][(num_randomizer_polynomials+ProcessorTable.width):(
-                num_randomizer_polynomials+ProcessorTable.width+InstructionTable.width)]
-            next_instruction_point += tuples[next_index][(extension_offset+ProcessorExtension.width-ProcessorTable.width):(
-                extension_offset+ProcessorExtension.width-ProcessorTable.width+InstructionExtension.width-InstructionTable.width)]
-            challenges = [a, b, c, alpha, eta]
-            for constraint, bound in zip(instruction_extension.transition_constraints_ext(challenges), instruction_extension.transition_quotient_degree_bounds(log_time, challenges)):
-                eval = constraint.evaluate(
-                    instruction_point + next_instruction_point)
-                quotient = eval * self.xfield.lift(fri.domain(index) - omicron.inverse()) / (
-                    self.xfield.lift(fri.domain(index) ^ instruction_extension.get_height()) - self.xfield.one())
-                terms += [quotient]
-                shift = max_degree - bound
-                terms += [quotient *
-                          self.xfield.lift(fri.domain(index) ^ shift)]
-
-            unit_distance = memory_extension.unit_distance(fri.domain.length)
-            next_index = (index + unit_distance) % fri.domain.length
-            omicron = memory_extension.omicron
-            next_memory_point = tuples[next_index][(num_randomizer_polynomials+ProcessorTable.width+InstructionTable.width):(
-                num_randomizer_polynomials+ProcessorTable.width+InstructionTable.width+MemoryTable.width)]
-            next_memory_point += tuples[next_index][(extension_offset+ProcessorExtension.width-ProcessorTable.width+InstructionExtension.width-InstructionTable.width):(
-                extension_offset+ProcessorExtension.width-ProcessorTable.width+InstructionExtension.width-InstructionTable.width+MemoryExtension.width-MemoryTable.width)]
-            challenges = [d, e, f, beta]
-            for constraint, bound in zip(memory_extension.transition_constraints_ext(challenges), memory_extension.transition_quotient_degree_bounds(log_time, challenges)):
-                eval = constraint.evaluate(memory_point + next_memory_point)
-                quotient = eval * self.xfield.lift(fri.domain(index) - omicron.inverse()) / (
-                    self.xfield.lift(fri.domain(index) ^ memory_extension.get_height()) - self.xfield.one())
-                terms += [quotient]
-                shift = max_degree - bound
-                terms += [quotient *
-                          self.xfield.lift(fri.domain(index) ^ shift)]
-
-            if input_extension.get_height() > 0:
-                unit_distance = input_extension.unit_distance(
-                    fri.domain.length)
-                next_index = (index + unit_distance) % fri.domain.length
-                omicron = input_extension.omicron
-                next_input_point = tuples[next_index][(num_randomizer_polynomials+ProcessorTable.width+InstructionTable.width+MemoryTable.width):(
-                    num_randomizer_polynomials+ProcessorTable.width+InstructionTable.width+MemoryTable.width+IOTable.width)]
-                next_input_point += tuples[next_index][(extension_offset+ProcessorExtension.width-ProcessorTable.width+InstructionExtension.width-InstructionTable.width+MemoryExtension.width-MemoryTable.width):(
-                    extension_offset+ProcessorExtension.width-ProcessorTable.width+InstructionExtension.width-InstructionTable.width+MemoryExtension.width-MemoryTable.width+IOExtension.width-IOTable.width)]
-                challenges = [gamma]
-                for constraint, bound in zip(input_extension.transition_constraints_ext(challenges), input_extension.transition_quotient_degree_bounds(log_input, challenges)):
-                    eval = constraint.evaluate(input_point + next_input_point)
-                    quotient = eval * self.xfield.lift(fri.domain(index) - omicron.inverse()) / (
-                        self.xfield.lift(fri.domain(index) ^ input_extension.get_height()) - self.xfield.one())
-                    terms += [quotient]
-                    shift = max_degree - bound
-                    terms += [quotient *
-                              self.xfield.lift(fri.domain(index) ^ shift)]
-
+            # transition
             if output_extension.get_height() > 0:
                 unit_distance = output_extension.unit_distance(
                     fri.domain.length)
                 next_index = (index + unit_distance) % fri.domain.length
-                omicron = output_extension.omicron
                 next_output_point = tuples[next_index][(num_randomizer_polynomials+ProcessorTable.width+InstructionTable.width+MemoryTable.width+IOTable.width):(
                     num_randomizer_polynomials+ProcessorTable.width+InstructionTable.width+MemoryTable.width+IOTable.width+IOTable.width)]
                 next_output_point += tuples[next_index][(extension_offset+ProcessorExtension.width-ProcessorTable.width+InstructionExtension.width-InstructionTable.width+MemoryExtension.width-MemoryTable.width+IOExtension.width-IOTable.width):(
@@ -1035,70 +1121,26 @@ class BrainfuckStark:
                 for constraint, bound in zip(output_extension.transition_constraints_ext(challenges), output_extension.transition_quotient_degree_bounds(log_output, challenges)):
                     eval = constraint.evaluate(
                         output_point + next_output_point)
-                    quotient = eval * self.xfield.lift(fri.domain(index) - omicron.inverse()) / (
-                        self.xfield.lift(fri.domain(index) ^ output_extension.get_height()) - self.xfield.one())
+                    quotient = eval * self.xfield.lift(fri.domain(index) - output_extension.omicron.inverse()) / (
+                        self.xfield.lift(fri.domain(index) ^ BrainfuckStark.roundup_npo2(output_extension.get_height())) - self.xfield.one())
                     terms += [quotient]
                     shift = max_degree - bound
                     terms += [quotient *
                               self.xfield.lift(fri.domain(index) ^ shift)]
 
-            # terminal quotients
-            challenges = [a, b, c, d, e, f, alpha, beta, gamma, delta]
-            terminals = [processor_instruction_permutation_terminal, processor_memory_permutation_terminal,
-                         processor_input_evaluation_terminal, processor_output_evaluation_terminal]
-            for constraint, bound in zip(processor_extension.terminal_constraints_ext(challenges, terminals), processor_extension.terminal_quotient_degree_bounds(log_time, challenges, terminals)):
-                eval = constraint.evaluate(processor_point)
-                quotient = eval / \
-                    (self.xfield.lift(fri.domain(index)) - self.xfield.one())
-                terms += [quotient]
-                shift = max_degree - bound
-                terms += [quotient *
-                          self.xfield.lift(fri.domain(index) ^ shift)]
-
-            challenges = [a, b, c, alpha, eta]
-            terminals = [processor_instruction_permutation_terminal,
-                         instruction_evaluation_terminal]
-            for constraint, bound in zip(instruction_extension.terminal_constraints_ext(challenges, terminals), instruction_extension.terminal_quotient_degree_bounds(log_instructions, challenges, terminals)):
-                eval = constraint.evaluate(instruction_point)
-                quotient = eval / \
-                    (self.xfield.lift(fri.domain(index)) - self.xfield.one())
-                terms += [quotient]
-                shift = max_degree - bound
-                terms += [quotient *
-                          self.xfield.lift(fri.domain(index) ^ shift)]
-
-            challenges = [d, e, f, beta]
-            terminals = [processor_memory_permutation_terminal]
-            for constraint, bound in zip(memory_extension.terminal_constraints_ext(challenges, terminals), memory_extension.terminal_quotient_degree_bounds(log_time, challenges, terminals)):
-                eval = constraint.evaluate(memory_point)
-                quotient = eval / \
-                    (self.xfield.lift(fri.domain(index)) - self.xfield.one())
-                terms += [quotient]
-                shift = max_degree - bound
-                terms += [quotient *
-                          self.xfield.lift(fri.domain(index) ^ shift)]
-
-            challenges = [gamma]
-            terminals = [processor_input_evaluation_terminal]
-            for constraint, bound in zip(input_extension.terminal_constraints_ext(challenges, terminals), input_extension.terminal_quotient_degree_bounds(log_input, challenges, terminals)):
-                eval = constraint.evaluate(input_point)
-                quotient = eval / \
-                    (self.xfield.lift(fri.domain(index)) - self.xfield.one())
-                terms += [quotient]
-                shift = max_degree - bound
-                terms += [quotient *
-                          self.xfield.lift(fri.domain(index) ^ shift)]
-
+            # terminal
             challenges = [delta]
             terminals = [processor_output_evaluation_terminal]
             for constraint, bound in zip(output_extension.terminal_constraints_ext(challenges, terminals), output_extension.terminal_quotient_degree_bounds(log_output, challenges, terminals)):
                 eval = constraint.evaluate(output_point)
                 quotient = eval / \
-                    (self.xfield.lift(fri.domain(index)) - self.xfield.one())
+                    (self.xfield.lift(fri.domain(index)) -
+                     self.xfield.lift(output_extension.omicron.inverse()))
                 terms += [quotient]
                 shift = max_degree - bound
                 terms += [quotient *
                           self.xfield.lift(fri.domain(index) ^ shift)]
+            print("len(terms) after output: ", len(terms))
 
             # differences
             # quotient_codewords += [[(processor_codewords[ProcessorExtension.instruction_permutation][i] -
@@ -1125,6 +1167,10 @@ class BrainfuckStark:
 
             assert(len(terms) == len(
                 weights)), f"length of terms ({len(terms)}) must be equal to length of weights ({len(weights)})"
+
+            print("verifier terms:")
+            for t in terms:
+                print(t)
 
             # compute inner product of weights and terms
             inner_product = reduce(

@@ -29,3 +29,4 @@ def test_bfs():
     verdict = bfs.verify(proof, len(processor_table_table), program,
                          input_table_table, output_table_table)
     assert(verdict == True), "honest proof fails to verify"
+    print("\o/")
