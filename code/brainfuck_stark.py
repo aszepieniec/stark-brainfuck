@@ -132,26 +132,26 @@ class BrainfuckStark:
         randomized_trace_length = rounded_trace_length + self.num_randomizers
 
         # infer table lengths (=# rows)
-        log_time = 0
-        while 1 << log_time < len(processor_table_table):
-            log_time += 1
+        # log_time = 0
+        # while 1 << log_time < len(processor_table_table):
+        #     log_time += 1
 
-        log_instructions = 0
-        while 1 << log_instructions < len(instruction_table_table):
-            log_instructions += 1
+        # log_instructions = 0
+        # while 1 << log_instructions < len(instruction_table_table):
+        #     log_instructions += 1
 
-        log_input = 0
-        if len(input_table_table) == 0:
-            log_input -= 1
-        else:
-            while (1 << log_input) < len(input_table_table):
-                log_input += 1
-        log_output = 0
-        if len(output_table_table) == 0:
-            log_output -= 1
-        else:
-            while (1 << log_output) < len(output_table_table):
-                log_output += 1
+        # log_input = 0
+        # if len(input_table_table) == 0:
+        #     log_input -= 1
+        # else:
+        #     while (1 << log_input) < len(input_table_table):
+        #         log_input += 1
+        # log_output = 0
+        # if len(output_table_table) == 0:
+        #     log_output -= 1
+        # else:
+        #     while (1 << log_output) < len(output_table_table):
+        #         log_output += 1
 
         # print("log time:", log_time)
         # print("log input length:", log_input)
@@ -379,37 +379,37 @@ class BrainfuckStark:
         # gather polynomials derived from generalized AIR constraints relating to boundary, transition, and terminals
         quotient_codewords = []
         # print("processor table:")
-        quotient_codewords += processor_extension.all_quotients(fri.domain, processor_codewords, log_time, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[
+        quotient_codewords += processor_extension.all_quotients(fri.domain, processor_codewords, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[
             processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal])
         # print("instruction table:")
-        quotient_codewords += instruction_extension.all_quotients(fri.domain, instruction_codewords, log_instructions, challenges=[a, b, c, alpha, eta], terminals=[
+        quotient_codewords += instruction_extension.all_quotients(fri.domain, instruction_codewords, challenges=[a, b, c, alpha, eta], terminals=[
             processor_instruction_permutation_terminal, instruction_evaluation_terminal])
         # print("memory table:")
-        quotient_codewords += memory_extension.all_quotients(fri.domain, memory_codewords, log_time, challenges=[
+        quotient_codewords += memory_extension.all_quotients(fri.domain, memory_codewords, challenges=[
             d, e, f, beta], terminals=[processor_memory_permutation_terminal])
         # print("input table:")
         quotient_codewords += input_extension.all_quotients(fri.domain, input_codewords,
-                                                            log_input, challenges=[gamma], terminals=[processor_input_evaluation_terminal])
+                                                            challenges=[gamma], terminals=[processor_input_evaluation_terminal])
         # print("output table:")
         quotient_codewords += output_extension.all_quotients(fri.domain, output_codewords,
-                                                             log_output, challenges=[delta], terminals=[processor_output_evaluation_terminal])
+                                                             challenges=[delta], terminals=[processor_output_evaluation_terminal])
 
         quotient_degree_bounds = []
         # print("number of degree bounds:")
-        quotient_degree_bounds += processor_extension.all_quotient_degree_bounds(log_time, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[
+        quotient_degree_bounds += processor_extension.all_quotient_degree_bounds(challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[
             processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal])
         print(len(quotient_degree_bounds))
-        quotient_degree_bounds += instruction_extension.all_quotient_degree_bounds(log_instructions, challenges=[a, b, c, alpha, eta], terminals=[
+        quotient_degree_bounds += instruction_extension.all_quotient_degree_bounds(challenges=[a, b, c, alpha, eta], terminals=[
             processor_instruction_permutation_terminal, instruction_evaluation_terminal])
         print(len(quotient_degree_bounds))
-        quotient_degree_bounds += memory_extension.all_quotient_degree_bounds(log_time, challenges=[
+        quotient_degree_bounds += memory_extension.all_quotient_degree_bounds(challenges=[
             d, e, f, beta], terminals=[processor_memory_permutation_terminal])
         print(len(quotient_degree_bounds))
         quotient_degree_bounds += input_extension.all_quotient_degree_bounds(
-            log_input, challenges=[gamma], terminals=[processor_input_evaluation_terminal])
+            challenges=[gamma], terminals=[processor_input_evaluation_terminal])
         print(len(quotient_degree_bounds))
         quotient_degree_bounds += output_extension.all_quotient_degree_bounds(
-            log_output, challenges=[delta], terminals=[processor_output_evaluation_terminal])
+            challenges=[delta], terminals=[processor_output_evaluation_terminal])
         print(len(quotient_degree_bounds))
 
         # ... and equal initial values
@@ -418,8 +418,8 @@ class BrainfuckStark:
                                  instruction_codewords[InstructionExtension.permutation][i]) * self.xfield.lift((fri.domain(i) - self.field.one()).inverse()) for i in range(fri.domain.length)]]
         quotient_codewords += [[(processor_codewords[ProcessorExtension.memory_permutation][i] -
                                 memory_codewords[MemoryExtension.permutation][i]) * self.xfield.lift((fri.domain(i) - self.field.one()).inverse()) for i in range(fri.domain.length)]]
-        quotient_degree_bounds += [(1 << log_instructions) -
-                                   2, (1 << log_time) - 2]
+        quotient_degree_bounds += [BrainfuckStark.roundup_npo2(running_time + len(program)) -
+                                   2, BrainfuckStark.roundup_npo2(running_time) - 2]
         # (don't need to subtract equal values for the io evaluations because they're not randomized)
         # (but we do need to assert their correctness)
         # assert(fri.domain.xinterpolate(quotient_codewords[-2]).degree(
@@ -451,17 +451,13 @@ class BrainfuckStark:
         #  - 2 for every other polynomial (base, extension, quotients)
         num_base_polynomials = ProcessorTable.width + \
             InstructionTable.width + MemoryTable.width
-        if len(input_table.table) != 0:
-            num_base_polynomials += 1
-        if len(output_table.table) != 0:
-            num_base_polynomials += 1
+
+        num_base_polynomials += IOTable.width
+        num_base_polynomials += IOTable.width
         num_extension_polynomials = ProcessorExtension.width + InstructionExtension.width + \
             MemoryExtension.width - num_base_polynomials
-        if len(input_table.table) != 0:
-            num_extension_polynomials += 2  # one for processor and one for input table
-        if len(output_table.table) != 0:
-            print("output table is not empty")
-            num_extension_polynomials += 2  # one for processor and one for input table
+        num_extension_polynomials += IOExtension.width - IOTable.width
+        num_extension_polynomials += IOExtension.width - IOTable.width
         num_randomizer_polynomials = 1
         num_quotient_polynomials = len(quotient_degree_bounds)
         weights_seed = proof_stream.prover_fiat_shamir()
@@ -700,15 +696,16 @@ class BrainfuckStark:
         print("<- base tree root:", hexlify(base_root))
 
         # get matching degree bounds
+        # TODO: take randomizers into account
         # base_polynomials = processor_polynomials + instruction_polynomials + \
         #      memory_polynomials + input_polynomials + output_polynomials
         base_degree_bounds = [BrainfuckStark.roundup_npo2(running_time)-1] * ProcessorTable.width + [BrainfuckStark.roundup_npo2(running_time+len(program))-1] * \
             InstructionTable.width + \
             [BrainfuckStark.roundup_npo2(running_time)-1] * MemoryTable.width
-        if len(input_symbols) != 0:
-            base_degree_bounds += [len(input_symbols)-1] * IOTable.width
-        if len(output_symbols) != 0:
-            base_degree_bounds += [len(output_symbols)-1] * IOTable.width
+
+        base_degree_bounds += [len(input_symbols)-1] * IOTable.width
+
+        base_degree_bounds += [len(output_symbols)-1] * IOTable.width
 
         # get coefficients for table extensions
         a, b, c, d, e, f, alpha, beta, gamma, delta, eta = self.sample_weights(
@@ -756,16 +753,12 @@ class BrainfuckStark:
         #  - 2 for every other polynomial (base, extension, quotients)
         num_base_polynomials = ProcessorTable.width + \
             InstructionTable.width + MemoryTable.width
-        if len(input_symbols) > 0:
-            num_base_polynomials += IOTable.width
-        if len(output_symbols) > 0:
-            num_base_polynomials += IOTable.width
+        num_base_polynomials += IOTable.width
+        num_base_polynomials += IOTable.width
         num_extension_polynomials = ProcessorExtension.width + InstructionExtension.width + \
             MemoryExtension.width - num_base_polynomials
-        if len(input_symbols) > 0:
-            num_extension_polynomials += IOExtension.width - IOTable.width
-        if len(output_symbols) > 0:
-            num_extension_polynomials += IOExtension.width - IOTable.width
+        num_extension_polynomials += IOExtension.width - IOTable.width
+        num_extension_polynomials += IOExtension.width - IOTable.width
         num_randomizer_polynomials = 1
 
         num_quotient_polynomials = processor_extension.num_quotients() + instruction_extension.num_quotients() + \

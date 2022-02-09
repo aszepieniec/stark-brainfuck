@@ -1,4 +1,4 @@
-from aet import *
+from table import *
 
 
 class InstructionTable(Table):

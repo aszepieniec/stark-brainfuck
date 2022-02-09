@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from aet import Table
+from table import Table
 from ntt import batch_inverse
 from processor_table import ProcessorTable
 from univariate import Polynomial
@@ -19,8 +19,8 @@ class TableExtension(Table):
         pass
 
     def boundary_quotients(self, fri_domain, codewords):
-        if len(codewords) == 0:
-            return []
+        assert(len(codewords) !=
+               0), "'codewords' argument must have nonzero length"
 
         quotient_codewords = []
         boundary_constraints = self.boundary_constraints_ext()
@@ -39,25 +39,18 @@ class TableExtension(Table):
 
         return quotient_codewords
 
-    def boundary_quotient_degree_bounds(self, log_num_rows):
-        if self.get_height() == 0:
-            return []
-
-        if log_num_rows >= 0:
-            composition_degree = (1 << log_num_rows) - 1
-        else:
-            composition_degree = -1
+    def boundary_quotient_degree_bounds(self):
+        composition_degree = self.get_interpolant_degree() - 1
         return [composition_degree - 1] * len(self.boundary_constraints_ext())
 
     @abstractmethod
     def transition_constraints_ext(self, challenges):
         pass
 
-    def transition_quotients(self, log_num_rows, domain, codewords, challenges):
-        if self.get_height() == 0:
-            return []
+    def transition_quotients(self, domain, codewords, challenges):
 
-        interpolation_subgroup_order = 1 << log_num_rows
+        # TODO: include number of randomizers in calculation
+        interpolation_subgroup_order = self.get_interpolation_domain_length()
         quotients = []
         field = domain.omega.field
         subgroup_zerofier = [(domain(
@@ -95,14 +88,8 @@ class TableExtension(Table):
 
         return quotients
 
-    def transition_quotient_degree_bounds(self, log_num_rows, challenges):
-        if self.get_height() == 0:
-            return []
-
-        if log_num_rows >= 0:
-            trace_degree = (1 << log_num_rows)-1
-        else:
-            trace_degree = -1
+    def transition_quotient_degree_bounds(self, challenges):
+        trace_degree = self.get_interpolant_degree()
         air_degree = max(air.degree()
                          for air in self.transition_constraints_ext(challenges))
         composition_degree = trace_degree * air_degree
@@ -112,10 +99,7 @@ class TableExtension(Table):
     def terminal_constraints_ext(self, challenges, terminals):
         pass
 
-    def terminal_quotients(self, log_num_rows, domain, codewords, challenges, terminals):
-        if self.get_height() == 0:
-            return []
-
+    def terminal_quotients(self, domain, codewords, challenges, terminals):
         quotient_codewords = []
 
         zerofier_codeword = [domain(i) - self.omicron.inverse()
@@ -131,44 +115,28 @@ class TableExtension(Table):
 
         return quotient_codewords
 
-    def terminal_quotient_degree_bounds(self, log_num_rows, challenges, terminals):
-        if self.get_height() == 0:
-            return []
-        elif log_num_rows >= 0:
-            degree = (1 << log_num_rows) - 1
-        else:
-            degree = -1
+    def terminal_quotient_degree_bounds(self, challenges, terminals):
+        degree = self.get_interpolant_degree()
         air_degree = max(tc.degree()
                          for tc in self.terminal_constraints_ext(challenges, terminals))
         return [air_degree * degree - 1] * len(self.terminal_constraints_ext(challenges, terminals))
 
-    def all_quotients(self, domain, codewords, log_num_rows, challenges, terminals):
-        if self.get_height() == 0:
-            return []
-
+    def all_quotients(self, domain, codewords, challenges, terminals):
         boundary_quotients = self.boundary_quotients(
             domain, codewords)
         transition_quotients = self.transition_quotients(
-            log_num_rows, domain, codewords, challenges)
-        terminal_quotients = self.terminal_quotients(log_num_rows,
-                                                     domain, codewords, challenges, terminals)
+            domain, codewords, challenges)
+        terminal_quotients = self.terminal_quotients(
+            domain, codewords, challenges, terminals)
         return boundary_quotients + transition_quotients + terminal_quotients
 
-    def all_quotient_degree_bounds(self, log_num_rows, challenges, terminals):
-        if self.get_height() == 0:
-            return []
-
-        bounds = self.boundary_quotient_degree_bounds(log_num_rows) + self.transition_quotient_degree_bounds(
-            log_num_rows, challenges) + self.terminal_quotient_degree_bounds(log_num_rows, challenges, terminals)
+    def all_quotient_degree_bounds(self, challenges, terminals):
+        bounds = self.boundary_quotient_degree_bounds() + self.transition_quotient_degree_bounds(
+            challenges) + self.terminal_quotient_degree_bounds(challenges, terminals)
         return bounds
 
     def num_quotients(self):
-        if self.get_height() == 0:
-            return 0
-        log_num_rows = 1
-        while 1 << log_num_rows < self.get_height():
-            log_num_rows += 1
-        return len(self.all_quotient_degree_bounds(log_num_rows, self.challenges, self.terminals))
+        return len(self.all_quotient_degree_bounds(self.challenges, self.terminals))
 
     def evaluate_boundary_quotients(self, omicron, omegai, point):
         values = []
@@ -176,19 +144,19 @@ class TableExtension(Table):
             values += mpo.evaluate(point) / (omegai - (omicron ^ cycle))
         return values
 
-    def evaluate_transition_quotients(self, omicron, omegai, point, shifted_point, log_num_rows, challenges):
+    def evaluate_transition_quotients(self, omicron, omegai, point, next_point, challenges):
         values = []
-        zerofier = (omegai ^ (1 << log_num_rows) - 1) / \
+        zerofier = (omegai ^ Table.roundup_npo2(self.get_height()) - 1) / \
             (omegai - omicron.inverse())
         for mpo in self.transition_constraints_ext(challenges):
-            values += [mpo.evaluate(point + shifted_point) / zerofier]
+            values += [mpo.evaluate(point + next_point) / zerofier]
         return values
 
-    def evaluate_terminal_quotients(self, omicron, omegai, point, shifted_point, challenges, terminals):
+    def evaluate_terminal_quotients(self, omicron, omegai, point, next_point, challenges, terminals):
         values = []
         zerofier = omegai - omicron.inverse()
         for mpo in self.terminal_constraints_ext(challenges, terminals):
-            values += [mpo.evaluate(point+shifted_point) / zerofier]
+            values += [mpo.evaluate(point+next_point) / zerofier]
         return values
 
     def evaluate_quotients(self, omicron, omegai, point, shifted_point):
