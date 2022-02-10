@@ -22,7 +22,7 @@ class ProcessorExtension(TableExtension):
 
     def __init__(self, height, generator, order, a, b, c, d, e, f, alpha, beta, gamma, delta, instruction_permutation_terminal, memory_permutation_terminal, input_evaluation_terminal, output_evaluation_terminal):
         super(ProcessorExtension, self).__init__(
-            a.field, 7, 11, height, generator, order)
+            a.field, ProcessorTable.width, ProcessorExtension.width, height, generator, order)
         field = a.field
 
         # terminal values (placeholders)
@@ -51,8 +51,6 @@ class ProcessorExtension(TableExtension):
         self.output_evaluation_terminal = output_evaluation_terminal
         self.terminals = [instruction_permutation_terminal, memory_permutation_terminal,
                           input_evaluation_terminal, output_evaluation_terminal]
-
-        self.width = 7 + 4
 
     @staticmethod
     def prepare_verify(log_num_rows, challenges, terminals):
@@ -196,9 +194,6 @@ class ProcessorExtension(TableExtension):
                        x[self.output_evaluation] - zero
                        ]
         return constraints
-
-    def interpolate_extension(self, omega, order, num_randomizers):
-        return self.interpolate_columns(omega, order, num_randomizers, range(ProcessorTable.width, self.width))
 
     def terminal_constraints_ext(self, challenges, terminals):
         a, b, c, d, e, f, alpha, beta, gamma, delta = [

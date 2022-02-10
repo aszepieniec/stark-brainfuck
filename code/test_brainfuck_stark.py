@@ -19,9 +19,9 @@ def test_bfs():
         proof = pickle.load(fh)
         fh.close()
     else:
-        fh = open(filename, "wb")
         proof = bfs.prove(len(processor_table_table), program, processor_table_table, instruction_table_table,
                           memory_table_table, input_table_table, output_table_table)
+        fh = open(filename, "wb")
         pickle.dump(proof, fh)
         fh.close()
 

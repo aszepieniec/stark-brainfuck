@@ -10,8 +10,9 @@ class Table:
         self.field = field
         self.width = width
         self.height = height
+        self.omicron_order = Table.roundup_npo2(height)
         self.omicron = Table.derive_omicron(
-            generator, order, Table.roundup_npo2(height))
+            generator, order, self.omicron_order)
         self.generator = generator
         self.order = order
         self.table = []
@@ -79,11 +80,12 @@ class Table:
               "num randomizers:", num_randomizers, "table length:", len(self.table))
 
         if self.get_height() == 0:
-            return [Polynomial([])] * self.width
+            return [Polynomial([])] * len(column_indices)
 
         polynomials = []
-        omicron_domain = [self.omicron ^ i for i in range(self.omicron_order)]
-        randomizer_domain = [omega * omicron_domain[i]
+        omicron_domain = [self.field.lift(self.omicron ^ i)
+                          for i in range(self.omicron_order)]
+        randomizer_domain = [self.field.lift(omega) * omicron_domain[i]
                              for i in range(num_randomizers)]
         domain = omicron_domain + randomizer_domain
         for c in column_indices:
@@ -93,7 +95,7 @@ class Table:
             values = trace + randomizers
             polynomials += [fast_interpolate(domain,
                                              values,
-                                             omega, omega_order)]
+                                             self.field.lift(omega), omega_order)]
 
         return polynomials
 

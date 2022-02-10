@@ -6,13 +6,14 @@ from univariate import Polynomial
 
 
 class TableExtension(Table):
-    def __init__(self, xfield, original_width, width, height, generator, order):
+    def __init__(self, xfield, base_width, width, height, generator, order):
         super().__init__(xfield, width, height, generator, order)
-        self.original_width = original_width
+        self.base_width = base_width
         self.xfield = xfield
 
     def interpolate_extension(self, omega, order, num_randomizers):
-        return self.interpolate_columns(omega, order, num_randomizers, range(self.original_width, self.width))
+        print("hi from table_extension")
+        return self.interpolate_columns(omega, order, num_randomizers, range(self.base_width, self.width))
 
     @abstractmethod
     def boundary_constraints_ext(self):

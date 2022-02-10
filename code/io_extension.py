@@ -11,13 +11,11 @@ class IOExtension(TableExtension):
 
     def __init__(self, height, generator, order, gamma, evaluation_terminal):
         super(IOExtension, self).__init__(
-            gamma.field, 1, 2, height, generator, order)
+            gamma.field, IOTable.width, IOExtension.width, height, generator, order)
 
         # names for challenges
         self.gamma = MPolynomial.constant(gamma)
         self.challenges = [gamma]
-
-        self.width = 1+1
 
         self.evaluation_terminal = evaluation_terminal
         self.terminals = [evaluation_terminal]
@@ -63,11 +61,9 @@ class IOExtension(TableExtension):
         return extended_io_table
 
     def transition_constraints_ext(self, challenges):
-        if self.get_height() == 0:
-            return []
-
         input_, evaluation, \
-            input_next, evaluation_next = MPolynomial.variables(4, self.field)
+            input_next, evaluation_next = MPolynomial.variables(
+                2*IOExtension.width, self.field)
         gamma = MPolynomial.constant(challenges[0])
 
         polynomials = []
@@ -77,8 +73,6 @@ class IOExtension(TableExtension):
         return polynomials
 
     def boundary_constraints_ext(self):
-        if self.get_height() == 0:
-            return []
         # format: mpolynomial
         x = MPolynomial.variables(self.width, self.field)
         zero = MPolynomial.zero()
@@ -86,7 +80,9 @@ class IOExtension(TableExtension):
 
     def terminal_constraints_ext(self, challenges, terminals):
         if self.get_height() == 0:
-            return []
+            assert(terminals[0].is_zero(
+            )), "evaluation terminal for IOExtension has to be zero when the table has zero rows"
+
         gamma = MPolynomial.constant(challenges[0])
         evaluation_terminal = MPolynomial.constant(terminals[0])
         x = MPolynomial.variables(self.width, self.field)

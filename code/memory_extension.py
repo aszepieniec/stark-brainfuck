@@ -15,7 +15,7 @@ class MemoryExtension(TableExtension):
 
     def __init__(self, height, generator, order, d, e, f, beta, permutation_terminal):
         super(MemoryExtension, self).__init__(
-            d.field, 3, 4, height, generator, order)
+            d.field, MemoryTable.width, MemoryExtension.width, height, generator, order)
 
         field = d.field
 
@@ -98,9 +98,6 @@ class MemoryExtension(TableExtension):
                 x[MemoryExtension.memory_value] - zero,  # memory value
                 x[MemoryExtension.permutation] - one   # permutation
                 ]
-
-    def interpolate_extension(self, omega, order, num_randomizers):
-        return self.interpolate_columns(omega, order, num_randomizers, range(MemoryTable.width, self.width))
 
     def terminal_constraints_ext(self, challenges, terminals):
         d, e, f, beta = [MPolynomial.constant(c) for c in challenges]

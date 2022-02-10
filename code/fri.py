@@ -29,7 +29,7 @@ class Fri:
                 (self.length - len(coefficients))
             return ntt(self.omega, coefficients)
 
-        def xevaluate(self, polynomial):
+        def xevaluate(self, polynomial, xfield=None):
             # xfield = polynomial.coefficients[0].field
             # coefficients = [[self.omega.field.zero()] * xfield.modulus.degree()] * (1 + polynomial.degree())
             # for i in range(len(coefficients)):
@@ -46,7 +46,8 @@ class Fri:
             # xcdwd = [ExtensionFieldElement(Polynomial(
             #     [values[j][i] for j in range(xfield.modulus.degree())]), xfield) for i in range(self.length)]
             # return xcdwd
-            xfield = polynomial.coefficients[0].field
+            if xfield == None:
+                xfield = polynomial.coefficients[0].field
             return fast_coset_evaluate(polynomial, xfield.lift(self.offset), xfield.lift(self.omega), self.length)
 
         def interpolate(self, values):

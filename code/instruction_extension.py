@@ -15,7 +15,7 @@ class InstructionExtension(TableExtension):
 
     def __init__(self, height, generator, order, a, b, c, alpha, eta, permutation_terminal, evaluation_terminal):
         super(InstructionExtension, self).__init__(
-            a.field, 3, 5, height, generator, order)
+            a.field, InstructionTable.width, InstructionExtension.width, height, generator, order)
 
         # terminal values (placeholders)
         self.permutation_terminal = self.field.zero()
