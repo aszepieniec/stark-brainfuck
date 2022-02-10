@@ -404,19 +404,24 @@ class BrainfuckStark:
         # print("number of degree bounds:")
         quotient_degree_bounds += processor_extension.all_quotient_degree_bounds(challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[
             processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal])
-        print(len(quotient_degree_bounds))
+        print("quotient_degree_bounds length after processor_extension",
+              len(quotient_degree_bounds))
         quotient_degree_bounds += instruction_extension.all_quotient_degree_bounds(challenges=[a, b, c, alpha, eta], terminals=[
             processor_instruction_permutation_terminal, instruction_evaluation_terminal])
-        print(len(quotient_degree_bounds))
+        print("quotient_degree_bounds length after instruction_extension",
+              len(quotient_degree_bounds))
         quotient_degree_bounds += memory_extension.all_quotient_degree_bounds(challenges=[
             d, e, f, beta], terminals=[processor_memory_permutation_terminal])
-        print(len(quotient_degree_bounds))
+        print("quotient_degree_bounds length after memory_extension",
+              len(quotient_degree_bounds))
         quotient_degree_bounds += input_extension.all_quotient_degree_bounds(
             challenges=[gamma], terminals=[processor_input_evaluation_terminal])
-        print(len(quotient_degree_bounds))
+        print("quotient_degree_bounds length after input_extension = ",
+              len(quotient_degree_bounds))
         quotient_degree_bounds += output_extension.all_quotient_degree_bounds(
             challenges=[delta], terminals=[processor_output_evaluation_terminal])
-        print(len(quotient_degree_bounds))
+        print("quotient_degree_bounds length after output_extension = ",
+              len(quotient_degree_bounds))
 
         # ... and equal initial values
         # Append the difference quotients
@@ -426,6 +431,8 @@ class BrainfuckStark:
                                 memory_codewords[MemoryExtension.permutation][i]) * self.xfield.lift((fri.domain(i) - self.field.one()).inverse()) for i in range(fri.domain.length)]]
         quotient_degree_bounds += [BrainfuckStark.roundup_npo2(running_time + len(program)) -
                                    2, BrainfuckStark.roundup_npo2(running_time) - 2]
+        print("quotient_degree_bounds length after difference quotients = ",
+              len(quotient_degree_bounds))
         # (don't need to subtract equal values for the io evaluations because they're not randomized)
         # (but we do need to assert their correctness)
         # assert(fri.domain.xinterpolate(quotient_codewords[-2]).degree(
@@ -495,7 +502,7 @@ class BrainfuckStark:
         for i in range(len(base_codewords)):
             terms += [[self.xfield.lift(c) for c in base_codewords[i]]]
             shift = max_degree - base_degree_bounds[i]
-            # print("base codeword shift", shift)
+            print("base codeword shift", shift)
             # print("max degree:", max_degree)
             # print("bound:", base_degree_bounds[i])
             # print("term:", terms[-1][0])
@@ -507,7 +514,7 @@ class BrainfuckStark:
         for i in range(len(extension_codewords)):
             terms += [extension_codewords[i]]
             shift = max_degree - extension_degree_bounds[i]
-            print("extension degree shift: ", shift)
+            print("extension codeword shift: ", shift)
             terms += [[self.xfield.lift(fri.domain(j) ^ shift) * extension_codewords[i][j]
                       for j in range(fri.domain.length)]]
         assert(len(quotient_codewords) ==
@@ -516,6 +523,8 @@ class BrainfuckStark:
         for i in range(len(quotient_codewords)):
             terms += [quotient_codewords[i]]
             shift = max_degree - quotient_degree_bounds[i]
+            print("quotient_codewords codeword shift: ", shift)
+            print("quotient_degree_bounds : ", quotient_degree_bounds[i])
             terms += [[self.xfield.lift(fri.domain(j) ^ shift) * quotient_codewords[i][j]
                       for j in range(fri.domain.length)]]
         # print("got terms after", (time.time() - tick), "seconds")

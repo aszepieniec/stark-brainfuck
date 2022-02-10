@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from table import Table
 from ntt import batch_inverse
+from os import environ
 from processor_table import ProcessorTable
 from univariate import Polynomial
 
@@ -34,9 +35,13 @@ class TableExtension(Table):
             quotient_codewords += [[mpo.evaluate([codewords[j][i] for j in range(
                 self.width)]) * self.xfield.lift(zerofier_inverse[i]) for i in range(fri_domain.length)]]
 
-        for qc in quotient_codewords:
-            assert(fri_domain.xinterpolate(
-                qc).degree() < fri_domain.length - 1)
+        if environ.get('DEBUG') is not None:
+            print(f"before domain interpolation of bq in {type(self)}")
+            for qc in quotient_codewords:
+                interpolated = fri_domain.xinterpolate(qc)
+                print(f"degree of interpolation: {interpolated.degree()}")
+                assert(interpolated.degree() < fri_domain.length - 1)
+            print("Done!")
 
         return quotient_codewords
 
@@ -84,8 +89,14 @@ class TableExtension(Table):
 
             quotients += [quotient_codeword]
 
-            # assert(domain.xinterpolate(
-            #     quotients[-1]).degree() < domain.length-1), f"quotient polynomial has maximal degree in table {type(self)}"
+            if environ.get('DEBUG') is not None:
+                print(f"before domain interpolation of tq in {type(self)}")
+                interpolated = domain.xinterpolate(quotients[-1])
+                print(f"degree of interpolation: {interpolated.degree()}")
+                assert(interpolated.degree() < domain.length - 1)
+                assert(domain.xinterpolate(
+                    quotients[-1]).degree() < domain.length-1), f"quotient polynomial has maximal degree in table {type(self)}"
+                print("Done!")
 
         return quotients
 
@@ -111,8 +122,14 @@ class TableExtension(Table):
             quotient_codewords += [[mpo.evaluate([codewords[j][i] for j in range(
                 self.width)]) * self.field.lift(zerofier_inverse[i]) for i in range(domain.length)]]
 
-        # for qc in quotient_codewords:
-        #     assert(domain.xinterpolate(qc).degree() < domain.length - 1)
+        if environ.get('DEBUG') is not None:
+            print(
+                f"before domain interpolation of term quotients in {type(self)}")
+            for qc in quotient_codewords:
+                interpolated = domain.xinterpolate(qc)
+                print(f"degree of interpolation: {interpolated.degree()}")
+                assert(interpolated.degree() < domain.length - 1)
+            print("Done!")
 
         return quotient_codewords
 
