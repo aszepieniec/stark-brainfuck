@@ -359,14 +359,15 @@ class BrainfuckStark:
         # print("commitment to extension polynomials took",
         #   (tock - tick), "seconds")
 
-        # processor_table.test()
-        # processor_extension.test()
+        if os.environ.get('DEBUG') is not None:
+            processor_table.test()
+            processor_extension.test()
 
-        # instruction_table.test()
-        # instruction_extension.test()
+            instruction_table.test()
+            instruction_extension.test()
 
-        # memory_table.test()
-        # memory_extension.test()
+            memory_table.test()
+            memory_extension.test()
 
         # combine base + extension
         processor_codewords = [[self.xfield.lift(
@@ -508,7 +509,12 @@ class BrainfuckStark:
             # print("term:", terms[-1][0])
             terms += [[self.xfield.lift((fri.domain(j) ^ shift) * base_codewords[i][j])
                       for j in range(fri.domain.length)]]
-            # print("shifted term:", terms[-1][0])
+            if os.environ.get('DEBUG') is not None:
+                print(f"before domain interpolation")
+                interpolated = fri.domain.xinterpolate(terms[-1])
+                print(
+                    f"degree of interpolation, base_codewords({i}): {interpolated.degree()}")
+                assert(interpolated.degree() <= max_degree)
         assert(len(extension_codewords) ==
                num_extension_polynomials), f"number of extension codewords {len(extension_codewords)} =/= number of extension polynomials {num_extension_polynomials}"
         for i in range(len(extension_codewords)):
@@ -517,6 +523,12 @@ class BrainfuckStark:
             print("extension codeword shift: ", shift)
             terms += [[self.xfield.lift(fri.domain(j) ^ shift) * extension_codewords[i][j]
                       for j in range(fri.domain.length)]]
+            if os.environ.get('DEBUG') is not None:
+                print(f"before domain interpolation")
+                interpolated = fri.domain.xinterpolate(terms[-1])
+                print(
+                    f"degree of interpolation, extension_codewords({i}): {interpolated.degree()}")
+                assert(interpolated.degree() <= max_degree)
         assert(len(quotient_codewords) ==
                num_quotient_polynomials), f"number of quotient codewords {len(quotient_codewords)} =/= number of quotient polynomials {num_quotient_polynomials}"
 
@@ -527,6 +539,12 @@ class BrainfuckStark:
             print("quotient_degree_bounds : ", quotient_degree_bounds[i])
             terms += [[self.xfield.lift(fri.domain(j) ^ shift) * quotient_codewords[i][j]
                       for j in range(fri.domain.length)]]
+            if os.environ.get('DEBUG') is not None:
+                print(f"before domain interpolation")
+                interpolated = fri.domain.xinterpolate(terms[-1])
+                print(
+                    f"degree of interpolation, , quotient_codewords({i}): {interpolated.degree()}")
+                assert(interpolated.degree() <= max_degree)
         # print("got terms after", (time.time() - tick), "seconds")
 
         # take weighted sum

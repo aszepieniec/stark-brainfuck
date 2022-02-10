@@ -46,8 +46,8 @@ class TableExtension(Table):
         return quotient_codewords
 
     def boundary_quotient_degree_bounds(self):
-        composition_degree = self.get_interpolant_degree() - 1
-        return [composition_degree - 1] * len(self.boundary_constraints_ext())
+        degree = self.get_interpolant_degree()
+        return [degree-1] * len(self.boundary_constraints_ext())
 
     @abstractmethod
     def transition_constraints_ext(self, challenges):
@@ -105,7 +105,7 @@ class TableExtension(Table):
         air_degree = max(air.degree()
                          for air in self.transition_constraints_ext(challenges))
         composition_degree = trace_degree * air_degree
-        return [composition_degree - trace_degree] * len(self.transition_constraints_ext(challenges))
+        return [composition_degree - Table.roundup_npo2(self.get_height()) + 1] * len(self.transition_constraints_ext(challenges))
 
     @abstractmethod
     def terminal_constraints_ext(self, challenges, terminals):
@@ -135,9 +135,10 @@ class TableExtension(Table):
 
     def terminal_quotient_degree_bounds(self, challenges, terminals):
         degree = self.get_interpolant_degree()
-        air_degree = max(tc.degree()
-                         for tc in self.terminal_constraints_ext(challenges, terminals))
-        return [air_degree * degree - 1] * len(self.terminal_constraints_ext(challenges, terminals))
+        # air_degree = max(tc.degree()
+        #                  for tc in self.terminal_constraints_ext(challenges, terminals))
+        # return [air_degree * degree - 1] * len(self.terminal_constraints_ext(challenges, terminals))
+        return [degree - 1] * len(self.terminal_constraints_ext(challenges, terminals))
 
     def all_quotients(self, domain, codewords, challenges, terminals):
         boundary_quotients = self.boundary_quotients(
@@ -200,7 +201,7 @@ class TableExtension(Table):
             self.challenges)
         for i in range(len(transition_constraints)):
             mpo = transition_constraints[i]
-            for rowidx in range(self.nrows()-1):
+            for rowidx in range(len(self.table)-1):
                 assert(len(self.table[rowidx]) == len(
                     self.table[rowidx+1])), "table has consecutive rows of different length"
                 point = self.table[rowidx] + self.table[rowidx+1]

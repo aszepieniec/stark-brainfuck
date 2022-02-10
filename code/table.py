@@ -61,7 +61,7 @@ class Table:
         transition_constraints = self.transition_constraints()
         for i in range(len(transition_constraints)):
             mpo = transition_constraints[i]
-            for rowidx in range(self.nrows()-1):
+            for rowidx in range(len(self.table)-1):
                 assert(len(self.table[rowidx]) == len(
                     self.table[rowidx+1])), "table has consecutive rows of different length"
                 point = self.table[rowidx] + self.table[rowidx+1]
