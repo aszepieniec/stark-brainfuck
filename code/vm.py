@@ -265,12 +265,11 @@ class VirtualMachine:
         return 11
 
     @staticmethod
-    def evaluation_terminal(table, alpha):
+    def evaluation_terminal(vector, alpha):
         xfield = alpha.field
         acc = xfield.zero()
-        for i in range(len(table)):
-            t = table[i]
-            acc = alpha * acc + xfield.lift(t[0])
+        for v in vector:
+            acc = alpha * acc + xfield.lift(v)
         return acc
 
     @staticmethod

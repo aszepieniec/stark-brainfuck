@@ -53,15 +53,6 @@ class ProcessorExtension(TableExtension):
                           input_evaluation_terminal, output_evaluation_terminal]
 
     @staticmethod
-    def prepare_verify(log_num_rows, challenges, terminals):
-        a, b, c, d, e, f, alpha, beta, gamma, delta = challenges
-        processor_extension = ProcessorExtension(
-            a, b, c, d, e, f, alpha, beta, gamma, delta, terminals[0], terminals[1], terminals[2], terminals[3])
-
-        processor_extension.log_num_rows = log_num_rows
-        return processor_extension
-
-    @staticmethod
     def extend(processor_table, a, b, c, d, e, f, alpha, beta, gamma, delta):
         # algebra stuff
         field = processor_table.field
@@ -174,7 +165,9 @@ class ProcessorExtension(TableExtension):
         polynomials += [(output_evaluation_next - output_evaluation * self.delta - memory_value) * ProcessorTable.ifnot_instruction(
             '.', current_instruction) * current_instruction + (output_evaluation_next - output_evaluation) * ProcessorTable.if_instruction('.', current_instruction)]
 
-        return polynomials
+        assert(len(polynomials) == 10), f"number of transition constraints ({len(polynomials)}) does not match with expectation (10)"
+
+        return polynomials # max degree 11
 
     def boundary_constraints_ext(self):
         # format: mpolynomial
@@ -193,6 +186,7 @@ class ProcessorExtension(TableExtension):
                        x[self.input_evaluation] - zero,
                        x[self.output_evaluation] - zero
                        ]
+        assert(len(constraints) == 9), "number of boundary constraints does not match with expectation"
         return constraints
 
     def terminal_constraints_ext(self, challenges, terminals):
@@ -232,4 +226,9 @@ class ProcessorExtension(TableExtension):
         airs += [MPolynomial.constant(terminals[3]) -
                  x[ProcessorExtension.output_evaluation]]
 
+        assert(len(airs) == 4), "number of terminal airs did not match with expectation"
         return airs
+
+    @staticmethod
+    def air_degree():
+        return 11

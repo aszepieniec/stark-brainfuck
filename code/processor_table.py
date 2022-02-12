@@ -35,7 +35,7 @@ class ProcessorTable(Table):
         '''if_instruction(instr, X)
         returns a polynomial in X that evaluates to 0 in X=FieldElement(instr)'''
         field = list(indeterminate.dictionary.values())[0].field
-        return MPolynomial.constant(field(ord(instruction))) - indeterminate
+        return MPolynomial.constant(field(ord(instruction))) - indeterminate # max degree 1
 
     @staticmethod
     def ifnot_instruction(instruction, indeterminate: MPolynomial):
@@ -48,7 +48,7 @@ class ProcessorTable(Table):
             if c != instruction:
                 acc *= indeterminate - \
                     MPolynomial.constant(field(ord(c)))
-        return acc
+        return acc # max degree: 8
 
     @staticmethod
     def instruction_polynomials(instr, cycle, instruction_pointer, current_instruction, next_instruction, memory_pointer, memory_value, is_zero, cycle_next, instruction_pointer_next, current_instruction_next, next_instruction_next, memory_pointer_next, memory_value_next, is_zero_next):
@@ -118,7 +118,7 @@ class ProcessorTable(Table):
         for i in range(len(polynomials)):
             polynomials[i] *= current_instruction
 
-        return polynomials
+        return polynomials # max degree: 3
 
     @staticmethod
     def transition_constraints_afo_named_variables(cycle, instruction_pointer, current_instruction, next_instruction, memory_pointer, memory_value, is_zero, cycle_next, instruction_pointer_next, current_instruction_next, next_instruction_next, memory_pointer_next, memory_value_next, is_zero_next):
@@ -129,6 +129,7 @@ class ProcessorTable(Table):
 
         # instruction-specific polynomials
         for c in "[]<>+-,.":
+            # max deg 3
             instr = ProcessorTable.instruction_polynomials(c,
                                                            cycle,
                                                            instruction_pointer,
@@ -144,10 +145,12 @@ class ProcessorTable(Table):
                                                            memory_pointer_next,
                                                            memory_value_next,
                                                            is_zero_next)
+            # max deg: 8
             deselector = ProcessorTable.ifnot_instruction(
                 c, current_instruction)
 
             for i in range(len(instr)):
+                # max deg: 11
                 polynomials[i] += deselector * instr[i]
 
         # instruction-independent polynomials
@@ -155,7 +158,7 @@ class ProcessorTable(Table):
         polynomials += [is_zero * memory_value]  # at least one is zero
         polynomials += [is_zero * (one - is_zero)]  # 0 or 1
 
-        return polynomials
+        return polynomials # max deg 11
 
     def transition_constraints(self):
         cycle, \
@@ -173,7 +176,7 @@ class ProcessorTable(Table):
             memory_value_next, \
             is_zero_next = MPolynomial.variables(14, self.field)
 
-        return self.transition_constraints_afo_named_variables(cycle, instruction_pointer, current_instruction, next_instruction, memory_pointer, memory_value, is_zero, cycle_next, instruction_pointer_next, current_instruction_next, next_instruction_next, memory_pointer_next, memory_value_next, is_zero_next)
+        return ProcessorTable.transition_constraints_afo_named_variables(cycle, instruction_pointer, current_instruction, next_instruction, memory_pointer, memory_value, is_zero, cycle_next, instruction_pointer_next, current_instruction_next, next_instruction_next, memory_pointer_next, memory_value_next, is_zero_next)
 
     def boundary_constraints(self):
         # format: (cycle, polynomial)

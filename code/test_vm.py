@@ -133,7 +133,7 @@ def test_extend():
            memory_extension.permutation_terminal), f"processor memory permutation terminal == {processor_extension.memory_permutation_terminal} =/= memory extension permutation terminal == {memory_extension.permutation_terminal}"
 
     assert(processor_extension.input_evaluation_terminal ==
-           VirtualMachine.evaluation_terminal(input_table.table, gamma)), f"processor input evaluation == {processor_extension.input_evaluation_terminal} =/= locally computed input evaluation == {VirtualMachine.evaluation_terminal(input_table.table, gamma)}"
+           VirtualMachine.evaluation_terminal([row[0] for row in input_table.table], gamma)), f"processor input evaluation == {processor_extension.input_evaluation_terminal} =/= locally computed input evaluation == {VirtualMachine.evaluation_terminal(input_table.table, gamma)}"
 
     assert(processor_extension.output_evaluation_terminal ==
-           VirtualMachine.evaluation_terminal(output_table.table, delta)), f"processor output evaluation == {processor_extension.output_evaluation_terminal} =/= locally computed output evaluation == {VirtualMachine.evaluation_terminal(output_table.table, delta)}"
+           VirtualMachine.evaluation_terminal([row[0] for row in output_table.table], delta)), f"processor output evaluation == {processor_extension.output_evaluation_terminal} =/= locally computed output evaluation == {VirtualMachine.evaluation_terminal(output_table.table, delta)}"

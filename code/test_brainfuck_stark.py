@@ -28,7 +28,11 @@ def test_bfs():
     # proof = bfs.prove(running_time, program, processor_table_table, instruction_table_table,
     #                   memory_table_table, input_table_table, output_table_table)
 
+    # collapse matrix into list for input and output
+    input_symbols = [row[0] for row in input_table_table]
+    output_symbols = [row[0] for row in output_table_table]
+
     verdict = bfs.verify(proof, running_time, program,
-                         input_table_table, output_table_table)
+                         input_symbols, output_symbols)
     assert(verdict == True), "honest proof fails to verify"
-    print([ord(t.value) for t in output_table_table])
+    print("proof verified with output:", "".join([chr(t.value) for t in output_symbols]))

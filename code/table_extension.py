@@ -46,8 +46,9 @@ class TableExtension(Table):
         return quotient_codewords
 
     def boundary_quotient_degree_bounds(self):
-        degree = self.get_interpolant_degree()
-        return [degree-1] * len(self.boundary_constraints_ext())
+        max_degrees = [self.get_interpolant_degree()] * self.width
+        degree_bounds = [mpo.symbolic_degree_bound(max_degrees) for mpo in self.boundary_constraints_ext()]
+        return degree_bounds
 
     @abstractmethod
     def transition_constraints_ext(self, challenges):
@@ -101,11 +102,14 @@ class TableExtension(Table):
         return quotients
 
     def transition_quotient_degree_bounds(self, challenges):
-        trace_degree = self.get_interpolant_degree()
-        air_degree = max(air.degree()
-                         for air in self.transition_constraints_ext(challenges))
-        composition_degree = trace_degree * air_degree
-        return [composition_degree - Table.roundup_npo2(self.get_height()) + 1] * len(self.transition_constraints_ext(challenges))
+        max_degrees = [self.get_interpolant_degree()] * self.width
+        degree_bounds = [mpo.symbolic_degree_bound(max_degrees) for mpo in self.transition_constraints_ext(challenges)]
+        return degree_bounds
+        # trace_degree = self.get_interpolant_degree()
+        # air_degree = max(air.degree()
+        #                  for air in self.transition_constraints_ext(challenges))
+        # composition_degree = trace_degree * air_degree
+        # return [composition_degree - Table.roundup_npo2(self.get_height()) + 1] * len(self.transition_constraints_ext(challenges))
 
     @abstractmethod
     def terminal_constraints_ext(self, challenges, terminals):
@@ -134,11 +138,9 @@ class TableExtension(Table):
         return quotient_codewords
 
     def terminal_quotient_degree_bounds(self, challenges, terminals):
-        degree = self.get_interpolant_degree()
-        # air_degree = max(tc.degree()
-        #                  for tc in self.terminal_constraints_ext(challenges, terminals))
-        # return [air_degree * degree - 1] * len(self.terminal_constraints_ext(challenges, terminals))
-        return [degree - 1] * len(self.terminal_constraints_ext(challenges, terminals))
+        max_degrees = [self.get_interpolant_degree()] * self.width
+        degree_bounds = [mpo.symbolic_degree_bound(max_degrees) for mpo in self.terminal_constraints_ext(challenges, terminals)]
+        return degree_bounds
 
     def all_quotients(self, domain, codewords, challenges, terminals):
         boundary_quotients = self.boundary_quotients(
@@ -184,10 +186,6 @@ class TableExtension(Table):
                                                  omegai, point, shifted_point, self.log_num_rows, self.challenges) \
             + self.evaluate_terminal_quotients(omicron,
                                                point, self.log_num_rows, self.challenges, self.terminals)
-
-    @ staticmethod
-    def prepare_verify(log_num_rows, challenges, terminals):
-        pass
 
     def test(self):
         for i in range(len(self.boundary_constraints_ext())):

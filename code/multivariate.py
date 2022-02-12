@@ -135,6 +135,26 @@ class MPolynomial:
             acc += prod * Polynomial([v])
         return acc
 
+    def symbolic_degree_bound( self, max_degrees ):
+        """Given a vector `max_degrees` of degree bounds on the arguments,
+        compute the smallest degree bound on the univariate polynomial
+        resulting from symbolic evaluation in a vector of polynomials
+        satisfying the degree bounds `max_degrees`.
+        Specifically, if `self.evaluate_symbolic` computes the map
+            (f_0(x), f_1(x), f_2(x)) ---> u(x)
+        and
+            forall i . degree(f_i(x)) <= `max_degrees[i]`
+        then
+            degree(u(x)) <= `self.symbolic_degree(max_degrees)`
+        """
+        total_degree_bound = -1
+        for exponents, _ in self.dictionary.items():
+            term_degree_bound = 0
+            for e, md in zip(exponents, max_degrees):
+                term_degree_bound += e * md
+            total_degree_bound = max(total_degree_bound, term_degree_bound)
+        return total_degree_bound
+
     def lift(polynomial, variable_index):
         if polynomial.is_zero():
             return MPolynomial({})
