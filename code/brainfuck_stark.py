@@ -7,6 +7,7 @@ from fri import *
 from instruction_extension import InstructionExtension
 from instruction_table import InstructionTable
 from io_table import IOTable
+from labeled_list import LabeledList
 from memory_extension import MemoryExtension
 from memory_table import MemoryTable
 from processor_extension import ProcessorExtension
@@ -155,7 +156,8 @@ class BrainfuckStark:
         # print("log output length:", log_output)
 
         # compute fri domain length
-        air_degree = ProcessorExtension.air_degree() # consider taking max air degree across all tables
+        # consider taking max air degree across all tables
+        air_degree = ProcessorExtension.air_degree()
         trace_degree = BrainfuckStark.roundup_npo2(randomized_trace_length) - 1
         tp_degree = air_degree * trace_degree
         tz_degree = rounded_trace_length - 1
@@ -381,56 +383,51 @@ class BrainfuckStark:
         # tick = time.time()
         # print("computing quotients ...")
         # gather polynomials derived from generalized AIR constraints relating to boundary, transition, and terminals
-        quotient_codewords = []
+        quotient_codewords = LabeledList()
         # print("processor table:")
-        quotient_codewords += processor_extension.all_quotients(fri.domain, processor_codewords, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[
-            processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal])
+        quotient_codewords.concatenate(processor_extension.all_quotients_labeled(fri.domain, processor_codewords, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[
+            processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal]))
         # print("instruction table:")
-        quotient_codewords += instruction_extension.all_quotients(fri.domain, instruction_codewords, challenges=[a, b, c, alpha, eta], terminals=[
-            processor_instruction_permutation_terminal, instruction_evaluation_terminal])
+        quotient_codewords.concatenate(instruction_extension.all_quotients_labeled(fri.domain, instruction_codewords, challenges=[a, b, c, alpha, eta], terminals=[
+            processor_instruction_permutation_terminal, instruction_evaluation_terminal]))
         # print("memory table:")
-        quotient_codewords += memory_extension.all_quotients(fri.domain, memory_codewords, challenges=[
-            d, e, f, beta], terminals=[processor_memory_permutation_terminal])
+        quotient_codewords.concatenate(memory_extension.all_quotients_labeled(fri.domain, memory_codewords, challenges=[
+            d, e, f, beta], terminals=[processor_memory_permutation_terminal]))
         # print("input table:")
-        quotient_codewords += input_extension.all_quotients(fri.domain, input_codewords,
-                                                            challenges=[gamma], terminals=[processor_input_evaluation_terminal])
+        quotient_codewords.concatenate(input_extension.all_quotients_labeled(fri.domain, input_codewords,
+                                                                             challenges=[gamma], terminals=[processor_input_evaluation_terminal]))
         # print("output table:")
-        quotient_codewords += output_extension.all_quotients(fri.domain, output_codewords,
-                                                             challenges=[delta], terminals=[processor_output_evaluation_terminal])
+        quotient_codewords.concatenate(output_extension.all_quotients_labeled(fri.domain, output_codewords,
+                                                                              challenges=[delta], terminals=[processor_output_evaluation_terminal]))
 
-        quotient_degree_bounds = []
+        quotient_degree_bounds = LabeledList()
         # print("number of degree bounds:")
-        quotient_degree_bounds += processor_extension.all_quotient_degree_bounds(challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[
-            processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal])
-        print("quotient_degree_bounds length after processor_extension",
-              len(quotient_degree_bounds))
-        quotient_degree_bounds += instruction_extension.all_quotient_degree_bounds(challenges=[a, b, c, alpha, eta], terminals=[
-            processor_instruction_permutation_terminal, instruction_evaluation_terminal])
-        print("quotient_degree_bounds length after instruction_extension",
-              len(quotient_degree_bounds))
-        quotient_degree_bounds += memory_extension.all_quotient_degree_bounds(challenges=[
-            d, e, f, beta], terminals=[processor_memory_permutation_terminal])
-        print("quotient_degree_bounds length after memory_extension",
-              len(quotient_degree_bounds))
-        quotient_degree_bounds += input_extension.all_quotient_degree_bounds(
-            challenges=[gamma], terminals=[processor_input_evaluation_terminal])
-        print("quotient_degree_bounds length after input_extension = ",
-              len(quotient_degree_bounds))
-        quotient_degree_bounds += output_extension.all_quotient_degree_bounds(
-            challenges=[delta], terminals=[processor_output_evaluation_terminal])
-        print("quotient_degree_bounds length after output_extension = ",
-              len(quotient_degree_bounds))
+        quotient_degree_bounds.concatenate(processor_extension.all_quotient_degree_bounds_labeled(challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[
+            processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal]))
+
+        quotient_degree_bounds.concatenate(instruction_extension.all_quotient_degree_bounds_labeled(challenges=[a, b, c, alpha, eta], terminals=[
+            processor_instruction_permutation_terminal, instruction_evaluation_terminal]))
+
+        quotient_degree_bounds.concatenate(memory_extension.all_quotient_degree_bounds_labeled(challenges=[
+            d, e, f, beta], terminals=[processor_memory_permutation_terminal]))
+
+        quotient_degree_bounds.concatenate(input_extension.all_quotient_degree_bounds_labeled(
+            challenges=[gamma], terminals=[processor_input_evaluation_terminal]))
+
+        quotient_degree_bounds.concatenate(output_extension.all_quotient_degree_bounds_labeled(
+            challenges=[delta], terminals=[processor_output_evaluation_terminal]))
 
         # ... and equal initial values
         # Append the difference quotients
-        quotient_codewords += [[(processor_codewords[ProcessorExtension.instruction_permutation][i] -
-                                 instruction_codewords[InstructionExtension.permutation][i]) * self.xfield.lift((fri.domain(i) - self.field.one()).inverse()) for i in range(fri.domain.length)]]
-        quotient_codewords += [[(processor_codewords[ProcessorExtension.memory_permutation][i] -
-                                memory_codewords[MemoryExtension.permutation][i]) * self.xfield.lift((fri.domain(i) - self.field.one()).inverse()) for i in range(fri.domain.length)]]
-        quotient_degree_bounds += [BrainfuckStark.roundup_npo2(running_time + len(program)) -
-                                   2, BrainfuckStark.roundup_npo2(running_time) - 2]
-        print("quotient_degree_bounds length after difference quotients = ",
-              len(quotient_degree_bounds))
+        quotient_codewords.append([(processor_codewords[ProcessorExtension.instruction_permutation][i] -
+                                    instruction_codewords[InstructionExtension.permutation][i]) * self.xfield.lift((fri.domain(i) - self.field.one()).inverse()) for i in range(fri.domain.length)], "difference quotient 0")
+        quotient_codewords.append([(processor_codewords[ProcessorExtension.memory_permutation][i] -
+                                    memory_codewords[MemoryExtension.permutation][i]) * self.xfield.lift((fri.domain(i) - self.field.one()).inverse()) for i in range(fri.domain.length)], "difference quotient 1")
+        quotient_degree_bounds.append(BrainfuckStark.roundup_npo2(running_time + len(program)) -
+                                      2, "difference bound 0")
+        quotient_degree_bounds.append(BrainfuckStark.roundup_npo2(
+            running_time) - 2, "difference bound 1")
+
         # (don't need to subtract equal values for the io evaluations because they're not randomized)
         # (but we do need to assert their correctness)
         # assert(fri.domain.xinterpolate(quotient_codewords[-2]).degree(
@@ -530,19 +527,24 @@ class BrainfuckStark:
                num_quotient_polynomials), f"number of quotient codewords {len(quotient_codewords)} =/= number of quotient polynomials {num_quotient_polynomials}"
 
         for i in range(len(quotient_codewords)):
-            terms += [quotient_codewords[i]]
-            shift = max_degree - quotient_degree_bounds[i]
+            quotient_codeword_i = quotient_codewords.get(i)
+            quotient_degree_bound_i = quotient_degree_bounds.get(i)
+            terms += [quotient_codeword_i]
+            shift = max_degree - quotient_degree_bound_i
+            print("", i, ".", quotient_codewords.label(i))
+            print("", i, ".", quotient_degree_bounds.label(i))
             print("quotient_codewords codeword shift: ", shift)
-            print("quotient_degree_bounds : ", quotient_degree_bounds[i])
-            terms += [[self.xfield.lift(fri.domain(j) ^ shift) * quotient_codewords[i][j]
+            print("quotient_degree_bounds : ", quotient_degree_bound_i)
+            terms += [[self.xfield.lift(fri.domain(j) ^ shift) * quotient_codeword_i[j]
                       for j in range(fri.domain.length)]]
-            if os.environ.get('DEBUG') is not None:
+            if os.environ.get('DEBUG_QUOTIENT_DEGREES') is not None:
                 print(f"before domain interpolation")
                 interpolated = fri.domain.xinterpolate(terms[-1])
                 print(
                     f"degree of interpolation, , quotient_codewords({i}): {interpolated.degree()}")
-                print("quotient  degree bound:", quotient_degree_bounds[i])
-                assert(interpolated.degree() <= max_degree), f"for quotient polynomial {i}, interpolated degree is {interpolated.degree()} but > max_degree = {max_degree}"
+                print("quotient  degree bound:", quotient_degree_bound_i)
+                assert(interpolated.degree(
+                ) == -1 or interpolated.degree() == max_degree), f"for quotient polynomial {i}, interpolated degree is {interpolated.degree()} but > max_degree = {max_degree}"
         # print("got terms after", (time.time() - tick), "seconds")
 
         # take weighted sum
@@ -661,7 +663,8 @@ class BrainfuckStark:
         print("log output length:", log_output)
 
         # compute fri domain length
-        air_degree = ProcessorExtension.air_degree() # consider taking the max across all tables
+        # consider taking the max across all tables
+        air_degree = ProcessorExtension.air_degree()
         trace_degree = BrainfuckStark.roundup_npo2(randomized_trace_length) - 1
         tp_degree = air_degree * trace_degree
         tz_degree = rounded_trace_length - 1
@@ -1247,7 +1250,8 @@ class BrainfuckStark:
             [self.xfield.lift(t) for t in input_symbols], gamma)
         assert(verifier_verdict), "processor input evaluation argument failed"
         # output
-        print("type of output symbols:", type(output_symbols), "and first element:", type(output_symbols[0]))
+        print("type of output symbols:", type(output_symbols),
+              "and first element:", type(output_symbols[0]))
         verifier_verdict = verifier_verdict and processor_extension.output_evaluation_terminal == VirtualMachine.evaluation_terminal(
             [self.xfield.lift(t) for t in output_symbols], delta)
         assert(verifier_verdict), "processor output evaluation argument failed"

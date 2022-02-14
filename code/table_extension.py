@@ -1,4 +1,6 @@
 from abc import abstractmethod
+from cProfile import label
+from labeled_list import LabeledList
 from table import Table
 from ntt import batch_inverse
 from os import environ
@@ -47,7 +49,8 @@ class TableExtension(Table):
 
     def boundary_quotient_degree_bounds(self):
         max_degrees = [self.get_interpolant_degree()] * self.width
-        degree_bounds = [mpo.symbolic_degree_bound(max_degrees) for mpo in self.boundary_constraints_ext()]
+        degree_bounds = [mpo.symbolic_degree_bound(
+            max_degrees) - 1 for mpo in self.boundary_constraints_ext()]
         return degree_bounds
 
     @abstractmethod
@@ -103,7 +106,8 @@ class TableExtension(Table):
 
     def transition_quotient_degree_bounds(self, challenges):
         max_degrees = [self.get_interpolant_degree()] * self.width
-        degree_bounds = [mpo.symbolic_degree_bound(max_degrees) for mpo in self.transition_constraints_ext(challenges)]
+        degree_bounds = [mpo.symbolic_degree_bound(
+            max_degrees) for mpo in self.transition_constraints_ext(challenges)]
         return degree_bounds
         # trace_degree = self.get_interpolant_degree()
         # air_degree = max(air.degree()
@@ -139,22 +143,42 @@ class TableExtension(Table):
 
     def terminal_quotient_degree_bounds(self, challenges, terminals):
         max_degrees = [self.get_interpolant_degree()] * self.width
-        degree_bounds = [mpo.symbolic_degree_bound(max_degrees) for mpo in self.terminal_constraints_ext(challenges, terminals)]
+        degree_bounds = [mpo.symbolic_degree_bound(
+            max_degrees) for mpo in self.terminal_constraints_ext(challenges, terminals)]
         return degree_bounds
 
-    def all_quotients(self, domain, codewords, challenges, terminals):
+    def all_quotients_labeled(self, domain, codewords, challenges, terminals):
+        labeled_list = LabeledList()
         boundary_quotients = self.boundary_quotients(
             domain, codewords)
+        labeled_list.add(
+            boundary_quotients, str(type(self)) + " / boundary quotients")
         transition_quotients = self.transition_quotients(
             domain, codewords, challenges)
+        labeled_list.add(transition_quotients,
+                         str(type(self)) + " / transition quotients")
         terminal_quotients = self.terminal_quotients(
             domain, codewords, challenges, terminals)
-        return boundary_quotients + transition_quotients + terminal_quotients
+        labeled_list.add(
+            terminal_quotients, str(type(self)) + " / terminal quotients")
+        return labeled_list
+
+    def all_quotients(self, domain, codewords, challenges, terminals):
+        return self.all_quotients_labeled(
+            domain, codewords, challenges, terminals).bare()
+
+    def all_quotient_degree_bounds_labeled(self, challenges, terminals):
+        labeled_list = LabeledList()
+        labeled_list.add(self.boundary_quotient_degree_bounds(), str(
+            type(self)) + " / boundary bounds")
+        labeled_list.add(self.transition_quotient_degree_bounds(
+            challenges), str(type(self)) + " / transition bounds")
+        labeled_list.add(self.terminal_quotient_degree_bounds(
+            challenges, terminals), str(type(self)) + " / terminal bounds")
+        return labeled_list
 
     def all_quotient_degree_bounds(self, challenges, terminals):
-        bounds = self.boundary_quotient_degree_bounds() + self.transition_quotient_degree_bounds(
-            challenges) + self.terminal_quotient_degree_bounds(challenges, terminals)
-        return bounds
+        return self.all_quotient_degree_bounds_labeled(challenges, terminals).bare()
 
     def num_quotients(self):
         return len(self.all_quotient_degree_bounds(self.challenges, self.terminals))
