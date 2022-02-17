@@ -1,3 +1,4 @@
+from processor_table import ProcessorTable
 from table import *
 
 
@@ -11,7 +12,7 @@ class InstructionTable(Table):
 
     def __init__(self, field, height, generator, order):
         super(InstructionTable, self).__init__(
-            field, 3, height, generator, order)
+            field, InstructionTable.width, height, generator, order)
 
     def pad(self):
         while len(self.table) & (len(self.table)-1):

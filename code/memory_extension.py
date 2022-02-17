@@ -17,8 +17,6 @@ class MemoryExtension(TableExtension):
         super(MemoryExtension, self).__init__(
             d.field, MemoryTable.width, MemoryExtension.width, height, generator, order)
 
-        field = d.field
-
         # terminal values
         self.permutation_terminal = permutation_terminal
         self.terminals = [permutation_terminal]
@@ -79,6 +77,9 @@ class MemoryExtension(TableExtension):
 
         polynomials = MemoryTable.transition_constraints_afo_named_variables(
             cycle, address, value, cycle_next, address_next, value_next)
+
+        assert(len(polynomials) ==
+               3), f"number of transition constraints from MemoryTable is {len(polynomials)}, but expected 3"
 
         polynomials += [permutation *
                         (beta - d * cycle

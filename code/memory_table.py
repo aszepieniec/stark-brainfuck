@@ -11,19 +11,33 @@ class MemoryTable(Table):
     width = 3
 
     def __init__(self, field, height, generator, order):
-        super(MemoryTable, self).__init__(field, 3, height, generator, order)
+        super(MemoryTable, self).__init__(
+            field, MemoryTable.width, height, generator, order)
 
-    def pad(self, padded_processor_table):
-        current_cycle = max(row[MemoryTable.cycle].value for row in self.table)
-        while len(self.table) & (len(self.table)-1):
-            current_cycle += 1
-            new_row = [self.field.zero()] * self.width
-            new_row[MemoryTable.cycle] = padded_processor_table.table[current_cycle][ProcessorTable.cycle]
-            new_row[MemoryTable.memory_pointer] = padded_processor_table.table[current_cycle][ProcessorTable.memory_pointer]
-            new_row[MemoryTable.memory_value] = padded_processor_table.table[current_cycle][ProcessorTable.memory_value]
-            self.table += [new_row]
+    # def pad(self, padded_processor_table):
+    #     current_cycle = max(row[MemoryTable.cycle].value for row in self.table)
+    #     while len(self.table) != len(padded_processor_table.table):
+    #         current_cycle += 1
+    #         new_row = [self.field.zero()] * self.width
+    #         new_row[MemoryTable.cycle] = padded_processor_table.table[current_cycle][ProcessorTable.cycle]
+    #         new_row[MemoryTable.memory_pointer] = padded_processor_table.table[current_cycle][ProcessorTable.memory_pointer]
+    #         new_row[MemoryTable.memory_value] = padded_processor_table.table[current_cycle][ProcessorTable.memory_value]
+    #         self.table += [new_row]
 
-        self.table.sort(key=lambda r: r[1].value)
+    #     self.table.sort(key=lambda r: r[1].value)
+
+    #     assert(len(self.table) & (len(self.table)-1) ==
+    #            0), "after padding memory table, number of rows is not a power of two ..."
+
+    @staticmethod
+    def derive(processor_table):
+        table = [[pt[ProcessorTable.cycle], pt[ProcessorTable.memory_pointer],
+                  pt[ProcessorTable.memory_value]] for pt in processor_table.table]
+        table.sort(key=lambda mt: mt[MemoryTable.memory_pointer].value)
+        memory_table = MemoryTable(processor_table.field, len(
+            table), processor_table.generator, processor_table.order)
+        memory_table.table = table
+        return memory_table
 
     @staticmethod
     def transition_constraints_afo_named_variables(cycle, address, value, cycle_next, address_next, value_next):

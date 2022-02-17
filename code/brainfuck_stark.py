@@ -190,26 +190,28 @@ class BrainfuckStark:
         if proof_stream == None:
             proof_stream = ProofStream()
 
+        # instantiate processor and instruction table objects
         processor_table = ProcessorTable(self.field, len(
             processor_table_table), omega, fri_domain_length)
         processor_table.table = [row for row in processor_table_table]
+
         instruction_table = InstructionTable(self.field, len(
             instruction_table_table), omega, fri_domain_length)
         instruction_table.table = [row for row in instruction_table_table]
-        memory_table = MemoryTable(self.field, len(
-            memory_table_table), omega, fri_domain_length)
-        memory_table.table = [row for row in memory_table_table]
+
+        # pad table to height 2^k
+        processor_table.pad()
+        instruction_table.pad()
+
+        # instantiate other table objects
+        memory_table = MemoryTable.derive(processor_table)
+
         input_table = IOTable(self.field, len(
             input_table_table), omega, fri_domain_length)
         input_table.table = [row for row in input_table_table]
         output_table = IOTable(self.field, len(
             output_table_table), omega, fri_domain_length)
         output_table.table = [row for row in output_table_table]
-
-        # pad tables to height 2^k
-        processor_table.pad()
-        instruction_table.pad()
-        memory_table.pad(processor_table)
 
         # instruction_table.test()  # will fail if some AIR does not evaluate to zero
 
@@ -530,11 +532,17 @@ class BrainfuckStark:
             quotient_codeword_i = quotient_codewords.get(i)
             quotient_degree_bound_i = quotient_degree_bounds.get(i)
             terms += [quotient_codeword_i]
-            shift = max_degree - quotient_degree_bound_i
             print("", i, ".", quotient_codewords.label(i))
             print("", i, ".", quotient_degree_bounds.label(i))
             print("quotient_codewords codeword shift: ", shift)
             print("quotient_degree_bounds : ", quotient_degree_bound_i)
+            print()
+            if os.environ.get('DEBUG_QUOTIENT_DEGREES') is not None:
+                interpolated = fri.domain.xinterpolate(terms[-1])
+                assert(interpolated.degree() == -1 or interpolated.degree() ==
+                       quotient_degree_bound_i), f"for quotient polynomial {i}, interpolated degree is {interpolated.degree()} but =/= degree bound i = {quotient_degree_bound_i}"
+            shift = max_degree - quotient_degree_bound_i
+
             terms += [[self.xfield.lift(fri.domain(j) ^ shift) * quotient_codeword_i[j]
                       for j in range(fri.domain.length)]]
             if os.environ.get('DEBUG_QUOTIENT_DEGREES') is not None:
@@ -544,7 +552,7 @@ class BrainfuckStark:
                     f"degree of interpolation, , quotient_codewords({i}): {interpolated.degree()}")
                 print("quotient  degree bound:", quotient_degree_bound_i)
                 assert(interpolated.degree(
-                ) == -1 or interpolated.degree() == max_degree), f"for quotient polynomial {i}, interpolated degree is {interpolated.degree()} but > max_degree = {max_degree}"
+                ) == -1 or interpolated.degree() == max_degree), f"for quotient polynomial {i}, interpolated degree is {interpolated.degree()} but =/= max_degree = {max_degree}"
         # print("got terms after", (time.time() - tick), "seconds")
 
         # take weighted sum

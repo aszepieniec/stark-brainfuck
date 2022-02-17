@@ -135,7 +135,7 @@ class MPolynomial:
             acc += prod * Polynomial([v])
         return acc
 
-    def symbolic_degree_bound( self, max_degrees ):
+    def symbolic_degree_bound(self, max_degrees):
         """Given a vector `max_degrees` of degree bounds on the arguments,
         compute the smallest degree bound on the univariate polynomial
         resulting from symbolic evaluation in a vector of polynomials
@@ -148,6 +148,10 @@ class MPolynomial:
             degree(u(x)) <= `self.symbolic_degree(max_degrees)`
         """
         total_degree_bound = -1
+        assert(len(max_degrees) >= len(list(self.dictionary.keys())[
+               0])), f"max degrees length ({len(max_degrees)}) does not match with number of variables (key for first term: {list(self.dictionary.keys())[0]})"
+        assert(max_degrees == [max_degrees[0]] * len(max_degrees)
+               ), "max degrees must be n repetitions of the same integer"
         for exponents, _ in self.dictionary.items():
             term_degree_bound = 0
             for e, md in zip(exponents, max_degrees):

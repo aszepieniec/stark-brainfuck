@@ -105,9 +105,18 @@ class TableExtension(Table):
         return quotients
 
     def transition_quotient_degree_bounds(self, challenges):
-        max_degrees = [self.get_interpolant_degree()] * self.width
-        degree_bounds = [mpo.symbolic_degree_bound(
-            max_degrees) for mpo in self.transition_constraints_ext(challenges)]
+        max_degrees = [self.get_interpolant_degree()] * (2*self.width)
+        print("in ", str(type(self)),
+              "transition_quotient_degree_bounds, I believe that self.width is", self.width)
+
+        degree_bounds = []
+        transition_constraints = self.transition_constraints_ext(challenges)
+        for i in range(len(transition_constraints)):
+            mpo = transition_constraints[i]
+            symbolic_degree_bound = mpo.symbolic_degree_bound(max_degrees)
+            degree_bounds += [symbolic_degree_bound - self.get_height() + 1]
+            print("symbolic degree bound for transition quotient",
+                  i, ": ", symbolic_degree_bound, "; matching degree bound:", degree_bounds[-1])
         return degree_bounds
         # trace_degree = self.get_interpolant_degree()
         # air_degree = max(air.degree()
@@ -144,7 +153,7 @@ class TableExtension(Table):
     def terminal_quotient_degree_bounds(self, challenges, terminals):
         max_degrees = [self.get_interpolant_degree()] * self.width
         degree_bounds = [mpo.symbolic_degree_bound(
-            max_degrees) for mpo in self.terminal_constraints_ext(challenges, terminals)]
+            max_degrees) - 1 for mpo in self.terminal_constraints_ext(challenges, terminals)]
         return degree_bounds
 
     def all_quotients_labeled(self, domain, codewords, challenges, terminals):
