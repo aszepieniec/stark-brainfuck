@@ -124,6 +124,7 @@ class BrainfuckStark:
         #        == 0), "length of table must be power of two"
 
         # infer details about computation
+        start_time_prover = time.time()
         original_trace_length = running_time
         rounded_trace_length = BrainfuckStark.roundup_npo2(
             original_trace_length + len(program))
@@ -635,7 +636,11 @@ class BrainfuckStark:
         print("FRI took ", (tock - tick), "seconds")
 
         # the final proof is just the serialized stream
-        return proof_stream.serialize()
+        ret = proof_stream.serialize()
+        end_time_prover = time.time()
+        print("STARK proof took ", (end_time_prover - start_time_prover), "seconds")
+
+        return ret
 
     def verify(self, proof, running_time, program, input_symbols, output_symbols, proof_stream=None):
         print("inside verifier \\o/")
