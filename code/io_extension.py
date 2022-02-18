@@ -9,9 +9,12 @@ class IOExtension(TableExtension):
 
     width = 2
 
-    def __init__(self, height, generator, order, gamma, evaluation_terminal):
+    def __init__(self, height, length, generator, order, gamma, evaluation_terminal):
         super(IOExtension, self).__init__(
             gamma.field, IOTable.width, IOExtension.width, height, generator, order)
+
+        # length is before, height is after, rounding to the next power of two
+        self.length = length
 
         # names for challenges
         self.gamma = MPolynomial.constant(gamma)
@@ -39,6 +42,7 @@ class IOExtension(TableExtension):
         # prepare loop
         table_extension = []
         io_running_evaluation = zero
+        evaluation_terminal = zero
 
         # loop over all rows of table
         for i in range(len(io_table.table)):
@@ -50,10 +54,15 @@ class IOExtension(TableExtension):
             io_running_evaluation = io_running_evaluation * \
                 gamma + new_row[0]
 
+            if i == io_table.length - 1:
+                evaluation_terminal = io_running_evaluation
+
             table_extension += [new_row]
 
+        assert(io_table.height & (io_table.height - 1)
+               == 0), f"height of io_table must be 2^k"
         extended_io_table = IOExtension(
-            io_table.height, io_table.generator, io_table.order, gamma, io_running_evaluation)
+            io_table.height, io_table.length, io_table.generator, io_table.order, gamma, evaluation_terminal)
         extended_io_table.table = table_extension
 
         extended_io_table.field = xfield
@@ -87,6 +96,13 @@ class IOExtension(TableExtension):
         evaluation_terminal = MPolynomial.constant(terminals[0])
         x = MPolynomial.variables(self.width, self.field)
 
+        # `evaluation_terminal` is the value of the running sum variable
+        # after the `self.length`th row. In every additional row, it is
+        # multiplied by another factor gamma. So we multiply by gamma^diff
+        # to get the value of the evaluation terminal after all 2^k rows.
+        actual_terminal = evaluation_terminal * \
+            (gamma ^ (self.get_height() - self.length))
+
         # polynomials += [evaluation * gamma + input_ - evaluation_next]
 
-        return [x[IOExtension.evaluation] * gamma + x[IOTable.column] - evaluation_terminal]
+        return [x[IOExtension.evaluation] * gamma + x[IOTable.column] - actual_terminal]

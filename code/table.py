@@ -77,7 +77,7 @@ class Table:
         assert(omega.has_order_po2(omega_order)
                ), "omega does not have claimed order"
         print("called interpolate_columns with omega:", omega, "order:", omega_order,
-              "num randomizers:", num_randomizers, "table length:", len(self.table))
+              "num randomizers:", num_randomizers, "table height:", len(self.table))
 
         if self.get_height() == 0:
             return [Polynomial([])] * len(column_indices)
@@ -85,14 +85,18 @@ class Table:
         polynomials = []
         omicron_domain = [self.field.lift(self.omicron ^ i)
                           for i in range(self.omicron_order)]
+        print("length of omicron domain:", len(omicron_domain))
         randomizer_domain = [self.field.lift(omega) * omicron_domain[i]
                              for i in range(num_randomizers)]
+        print("length of randomizer domain:", len(randomizer_domain))
         domain = omicron_domain + randomizer_domain
         for c in column_indices:
             trace = [row[c] for row in self.table]
             randomizers = [self.field.sample(os.urandom(3*8))
                            for i in range(num_randomizers)]
             values = trace + randomizers
+            # assert(len(values) == len(
+            #     domain)), f"length of domain {len(domain)} and values {len(values)} are unequal"
             polynomials += [fast_interpolate(domain,
                                              values,
                                              self.field.lift(omega), omega_order)]

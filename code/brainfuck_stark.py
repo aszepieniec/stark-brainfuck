@@ -213,6 +213,9 @@ class BrainfuckStark:
             output_table_table), omega, fri_domain_length)
         output_table.table = [row for row in output_table_table]
 
+        input_table.pad()
+        output_table.pad()
+
         # instruction_table.test()  # will fail if some AIR does not evaluate to zero
 
         # print("interpolating base tables ...")
@@ -499,7 +502,7 @@ class BrainfuckStark:
         for i in range(len(base_codewords)):
             terms += [[self.xfield.lift(c) for c in base_codewords[i]]]
             shift = max_degree - base_degree_bounds[i]
-            # print("base codeword shift", shift)
+            print("prover shift for base codeword", i, ":", shift)
             # print("max degree:", max_degree)
             # print("bound:", base_degree_bounds[i])
             # print("term:", terms[-1][0])
@@ -516,7 +519,7 @@ class BrainfuckStark:
         for i in range(len(extension_codewords)):
             terms += [extension_codewords[i]]
             shift = max_degree - extension_degree_bounds[i]
-            print("extension codeword shift: ", shift)
+            print("prover shift for extension codeword", i, ": ", shift)
             terms += [[self.xfield.lift(fri.domain(j) ^ shift) * extension_codewords[i][j]
                       for j in range(fri.domain.length)]]
             if os.environ.get('DEBUG') is not None:
@@ -542,6 +545,7 @@ class BrainfuckStark:
                 assert(interpolated.degree() == -1 or interpolated.degree() ==
                        quotient_degree_bound_i), f"for quotient polynomial {i}, interpolated degree is {interpolated.degree()} but =/= degree bound i = {quotient_degree_bound_i}"
             shift = max_degree - quotient_degree_bound_i
+            print("prover shift for quotient", i, ":", shift)
 
             terms += [[self.xfield.lift(fri.domain(j) ^ shift) * quotient_codeword_i[j]
                       for j in range(fri.domain.length)]]
@@ -586,7 +590,7 @@ class BrainfuckStark:
         indices = BrainfuckStark.sample_indices(
             self.security_level, indices_seed, fri.domain.length)
 
-        indices = [0]  # TODO remove me when not debugging
+        # indices = [0]  # TODO remove me when not debugging
 
         unit_distances = [table.unit_distance(fri.domain.length) for table in [
             processor_table, instruction_table, memory_table, input_table, output_table]]
@@ -711,18 +715,6 @@ class BrainfuckStark:
         base_root = proof_stream.pull()
         print("<- base tree root:", hexlify(base_root))
 
-        # get matching degree bounds
-        # TODO: take randomizers into account
-        # base_polynomials = processor_polynomials + instruction_polynomials + \
-        #      memory_polynomials + input_polynomials + output_polynomials
-        base_degree_bounds = [BrainfuckStark.roundup_npo2(running_time)-1] * ProcessorTable.width + [BrainfuckStark.roundup_npo2(running_time+len(program))-1] * \
-            InstructionTable.width + \
-            [BrainfuckStark.roundup_npo2(running_time)-1] * MemoryTable.width
-
-        base_degree_bounds += [len(input_symbols)-1] * IOTable.width
-
-        base_degree_bounds += [len(output_symbols)-1] * IOTable.width
-
         # get coefficients for table extensions
         a, b, c, d, e, f, alpha, beta, gamma, delta, eta = self.sample_weights(
             11, proof_stream.verifier_fiat_shamir())
@@ -750,16 +742,25 @@ class BrainfuckStark:
 
         # generate extension tables for type information
         # i.e., do not populate tables
-        processor_extension = ProcessorExtension(running_time, omega, fri_domain_length,
+        processor_extension = ProcessorExtension(BrainfuckStark.roundup_npo2(running_time), omega, fri_domain_length,
                                                  a, b, c, d, e, f, alpha, beta, gamma, delta, processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal)
-        instruction_extension = InstructionExtension(
-            running_time+len(program), omega, fri_domain_length, a, b, c, alpha, eta, processor_instruction_permutation_terminal, instruction_evaluation_terminal)
-        memory_extension = MemoryExtension(
-            running_time, omega, fri_domain_length, d, e, f, beta, processor_memory_permutation_terminal)
-        input_extension = IOExtension(
-            len(input_symbols), omega, fri_domain_length, gamma, processor_input_evaluation_terminal)
-        output_extension = IOExtension(
-            len(output_symbols), omega, fri_domain_length, delta, processor_output_evaluation_terminal)
+        instruction_extension = InstructionExtension(BrainfuckStark.roundup_npo2(
+            running_time+len(program)), omega, fri_domain_length, a, b, c, alpha, eta, processor_instruction_permutation_terminal, instruction_evaluation_terminal)
+        memory_extension = MemoryExtension(BrainfuckStark.roundup_npo2(
+            running_time), omega, fri_domain_length, d, e, f, beta, processor_memory_permutation_terminal)
+        input_extension = IOExtension(BrainfuckStark.roundup_npo2(len(input_symbols)),
+                                      len(input_symbols), omega, fri_domain_length, gamma, processor_input_evaluation_terminal)
+        output_extension = IOExtension(BrainfuckStark.roundup_npo2(len(output_symbols)),
+                                       len(output_symbols), omega, fri_domain_length, delta, processor_output_evaluation_terminal)
+
+        # compute degree bounds
+        base_degree_bounds = reduce(lambda x, y: x + y,
+                                    [[table.get_height() - 1] * table.base_width for table in [processor_extension,
+                                                                                               instruction_extension,
+                                                                                               memory_extension,
+                                                                                               input_extension,
+                                                                                               output_extension]],
+                                    [])
 
         extension_degree_bounds = [BrainfuckStark.roundup_npo2(processor_extension.get_height())-1] * (ProcessorExtension.width - ProcessorTable.width) + [BrainfuckStark.roundup_npo2(instruction_extension.get_height())-1] * (InstructionExtension.width - InstructionTable.width) + [
             BrainfuckStark.roundup_npo2(memory_extension.get_height())-1] * (MemoryExtension.width - MemoryTable.width) + [BrainfuckStark.roundup_npo2(input_extension.get_height())-1] * (IOExtension.width - IOTable.width) + [BrainfuckStark.roundup_npo2(output_extension.get_height())-1] * (IOExtension.width - IOTable.width)
@@ -831,7 +832,7 @@ class BrainfuckStark:
         indices = BrainfuckStark.sample_indices(
             self.security_level, indices_seed, fri.domain.length)
 
-        indices = [0]  # TODO remove me when not debugging
+        # indices = [0]  # TODO remove me when not debugging
 
         unit_distances = [table.unit_distance(fri.domain.length) for table in [
             processor_extension, instruction_extension, memory_extension, input_extension, output_extension]]
@@ -877,6 +878,7 @@ class BrainfuckStark:
                     base_degree_bounds[i-num_randomizer_polynomials]
                 terms += [tuples[index][i] *
                           self.xfield.lift(fri.domain(index) ^ shift)]
+            print("len(terms) after base codewords: ", len(terms))
 
             # collect terms: extension
             extension_offset = num_randomizer_polynomials
@@ -900,6 +902,7 @@ class BrainfuckStark:
                 print("extension degree shift: ", shift)
                 terms += [tuples[index][extension_offset+i]
                           * self.xfield.lift(fri.domain(index) ^ shift)]
+            print("len(terms) after extension codewords: ", len(terms))
 
             # collect terms: quotients
             # quotients need to be computed
@@ -948,6 +951,7 @@ class BrainfuckStark:
                     (self.xfield.lift(fri.domain(index)) - self.xfield.one())
                 terms += [quotient]
                 shift = max_degree - bound
+                print("verifier shift:", shift)
                 terms += [quotient *
                           self.xfield.lift(fri.domain(index) ^ shift)]
             print("len(terms) after processor boundaries: ", len(terms))
@@ -968,6 +972,7 @@ class BrainfuckStark:
                     self.xfield.lift(fri.domain(index) ^ BrainfuckStark.roundup_npo2(processor_extension.get_height())) - self.xfield.one())
                 terms += [quotient]
                 shift = max_degree - bound
+                print("verifier shift:", shift)
                 terms += [quotient *
                           self.xfield.lift(fri.domain(index) ^ shift)]
             print("len(terms) after processor transitions: ", len(terms))
@@ -983,6 +988,7 @@ class BrainfuckStark:
                      self.xfield.lift(processor_extension.omicron.inverse()))
                 terms += [quotient]
                 shift = max_degree - bound
+                print("verifier shift:", shift)
                 terms += [quotient *
                           self.xfield.lift(fri.domain(index) ^ shift)]
             print("len(terms) after processor terminals: ", len(terms))
@@ -995,6 +1001,7 @@ class BrainfuckStark:
                     (self.xfield.lift(fri.domain(index)) - self.xfield.one())
                 terms += [quotient]
                 shift = max_degree - bound
+                print("verifier shift:", shift)
                 terms += [quotient *
                           self.xfield.lift(fri.domain(index) ^ shift)]
             print("len(terms) after instruction boundaries: ", len(terms))
@@ -1015,6 +1022,7 @@ class BrainfuckStark:
                     self.xfield.lift(fri.domain(index) ^ BrainfuckStark.roundup_npo2(instruction_extension.get_height())) - self.xfield.one())
                 terms += [quotient]
                 shift = max_degree - bound
+                print("verifier shift:", shift)
                 terms += [quotient *
                           self.xfield.lift(fri.domain(index) ^ shift)]
             print("len(terms) after instruction transitions: ", len(terms))
@@ -1030,6 +1038,7 @@ class BrainfuckStark:
                      self.xfield.lift(instruction_extension.omicron.inverse()))
                 terms += [quotient]
                 shift = max_degree - bound
+                print("verifier shift:", shift)
                 terms += [quotient *
                           self.xfield.lift(fri.domain(index) ^ shift)]
             print("len(terms) after instruction terminals: ", len(terms))
@@ -1042,6 +1051,7 @@ class BrainfuckStark:
                     (self.xfield.lift(fri.domain(index)) - self.xfield.one())
                 terms += [quotient]
                 shift = max_degree - bound
+                print("verifier shift:", shift)
                 terms += [quotient *
                           self.xfield.lift(fri.domain(index) ^ shift)]
 
@@ -1059,6 +1069,7 @@ class BrainfuckStark:
                     self.xfield.lift(fri.domain(index) ^ BrainfuckStark.roundup_npo2(memory_extension.get_height())) - self.xfield.one())
                 terms += [quotient]
                 shift = max_degree - bound
+                print("verifier shift:", shift)
                 terms += [quotient *
                           self.xfield.lift(fri.domain(index) ^ shift)]
 
@@ -1072,6 +1083,7 @@ class BrainfuckStark:
                      self.xfield.lift(memory_extension.omicron.inverse()))
                 terms += [quotient]
                 shift = max_degree - bound
+                print("verifier shift:", shift)
                 terms += [quotient *
                           self.xfield.lift(fri.domain(index) ^ shift)]
             print("len(terms) after memory: ", len(terms))
@@ -1084,6 +1096,7 @@ class BrainfuckStark:
                     (self.xfield.lift(fri.domain(index)) - self.xfield.one())
                 terms += [quotient]
                 shift = max_degree - bound
+                print("verifier shift:", shift)
                 terms += [quotient *
                           self.xfield.lift(fri.domain(index) ^ shift)]
             print("len(terms) after input boundaries: ", len(terms))
@@ -1105,6 +1118,7 @@ class BrainfuckStark:
                     self.xfield.lift(fri.domain(index) ^ BrainfuckStark.roundup_npo2(input_extension.get_height())) - self.xfield.one())
                 terms += [quotient]
                 shift = max_degree - bound
+                print("verifier shift:", shift)
                 terms += [quotient *
                           self.xfield.lift(fri.domain(index) ^ shift)]
             print("len(terms) after input transitions: ", len(terms))
@@ -1119,6 +1133,7 @@ class BrainfuckStark:
                      self.xfield.lift(input_extension.omicron.inverse()))
                 terms += [quotient]
                 shift = max_degree - bound
+                print("verifier shift:", shift)
                 terms += [quotient *
                           self.xfield.lift(fri.domain(index) ^ shift)]
             print("len(terms) after input terminals: ", len(terms))
@@ -1131,6 +1146,7 @@ class BrainfuckStark:
                     (self.xfield.lift(fri.domain(index)) - self.xfield.one())
                 terms += [quotient]
                 shift = max_degree - bound
+                print("verifier shift:", shift)
                 terms += [quotient *
                           self.xfield.lift(fri.domain(index) ^ shift)]
             print("len(terms) after output boundaries: ", len(terms))
@@ -1158,6 +1174,7 @@ class BrainfuckStark:
                     self.xfield.lift(fri.domain(index) ^ BrainfuckStark.roundup_npo2(output_extension.get_height())) - self.xfield.one())
                 terms += [quotient]
                 shift = max_degree - bound
+                print("verifier shift:", shift)
                 terms += [quotient *
                           self.xfield.lift(fri.domain(index) ^ shift)]
             print("len(terms) after output transitions: ", len(terms))
@@ -1172,6 +1189,7 @@ class BrainfuckStark:
                      self.xfield.lift(output_extension.omicron.inverse()))
                 terms += [quotient]
                 shift = max_degree - bound
+                print("verifier shift:", shift)
                 terms += [quotient *
                           self.xfield.lift(fri.domain(index) ^ shift)]
             print("len(terms) after output terminals: ", len(terms))
@@ -1182,7 +1200,9 @@ class BrainfuckStark:
             quotient = difference / \
                 (self.xfield.lift(fri.domain(index)) - self.xfield.one())
             terms += [quotient]
-            shift = max_degree - ((1 << log_instructions) - 2)
+            shift = max_degree - \
+                (BrainfuckStark.roundup_npo2(running_time + len(program)) - 2)
+            print("verifier shift:", shift)
             terms += [quotient * self.xfield.lift(fri.domain(index) ^ shift)]
 
             difference = (
@@ -1190,7 +1210,9 @@ class BrainfuckStark:
             quotient = difference / \
                 (self.xfield.lift(fri.domain(index)) - self.xfield.one())
             terms += [quotient]
-            shift = max_degree - ((1 << log_time) - 2)
+            shift = max_degree - \
+                (BrainfuckStark.roundup_npo2(running_time) - 2)
+            print("verifier shift:", shift)
             terms += [quotient * self.xfield.lift(fri.domain(index) ^ shift)]
             print("len(terms) after difference: ", len(terms))
 

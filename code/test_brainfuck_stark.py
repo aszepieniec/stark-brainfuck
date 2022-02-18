@@ -8,7 +8,13 @@ def test_bfs():
     xfield = ExtensionField.main()
     bfs = BrainfuckStark(generator, xfield)
     program = VirtualMachine.compile(">>[++-]<++++++++")
-    program = VirtualMachine.compile(">++++++++++[>+++><<-]>+++><<>.")
+    program = VirtualMachine.compile(
+        ">++++++++++[>+++><<-]>+++><<>.................")
+    program = VirtualMachine.compile(
+        ">++++++++++[>+++><<-]>+++><<>.")
+#     >++++++++[<+++++++++>-]<.>++++[<+++++++>-]<+.+++++++..+++.>>++++++[<+++++++>-]<+
+# +.------------.>++++++[<+++++++++>-]<+.<.+++.------.--------.>>>++++[<++++++++>-
+# ]<+.
     processor_table_table, instruction_table_table, memory_table_table, input_table_table, output_table_table = bfs.vm.simulate(
         program)
     running_time = len(processor_table_table)
@@ -35,4 +41,5 @@ def test_bfs():
     verdict = bfs.verify(proof, running_time, program,
                          input_symbols, output_symbols)
     assert(verdict == True), "honest proof fails to verify"
-    print("proof verified with output:", "".join([chr(t.value) for t in output_symbols]))
+    print("proof verified with output:", "".join(
+        [chr(t.value) for t in output_symbols]))
