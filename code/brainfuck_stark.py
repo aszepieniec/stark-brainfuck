@@ -1285,8 +1285,8 @@ class BrainfuckStark:
             [self.xfield.lift(t) for t in input_symbols], gamma)
         assert(verifier_verdict), "processor input evaluation argument failed"
         # output
-        print("type of output symbols:", type(output_symbols),
-              "and first element:", type(output_symbols[0]))
+        # print("type of output symbols:", type(output_symbols),
+        #       "and first element:", type(output_symbols[0]))
         verifier_verdict = verifier_verdict and processor_extension.output_evaluation_terminal == VirtualMachine.evaluation_terminal(
             [self.xfield.lift(t) for t in output_symbols], delta)
         assert(verifier_verdict), "processor output evaluation argument failed"

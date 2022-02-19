@@ -42,5 +42,6 @@ def test_bfs():
     verdict = bfs.verify(proof, running_time, program,
                          input_symbols, output_symbols)
     assert(verdict == True), "honest proof fails to verify"
-    print("proof verified with output:", "".join(
-        [chr(t.value) for t in output_symbols]))
+    print("output length was:", len(output_symbols))
+    print("proof verified with output: \"" + "".join(
+        [chr(t.value) for t in output_symbols]) + "\"")
