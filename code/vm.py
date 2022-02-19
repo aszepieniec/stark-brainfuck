@@ -30,6 +30,9 @@ class VirtualMachine:
         return input_data, output_data
 
     def compile(brainfuck_code):
+        assert(len(brainfuck_code) >
+               1), "I can only handle programs of two instructions or longer :((("
+
         # shorthands
         field = VirtualMachine.field
         zero = field.zero()
