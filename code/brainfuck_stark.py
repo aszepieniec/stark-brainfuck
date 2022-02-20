@@ -485,12 +485,6 @@ class BrainfuckStark:
 
         print("** challenges for weights")
 
-        # polynomials = []
-        # for i in range(len(quotient_codewords)):
-        #     polynomials += [fri.domain.xinterpolate(quotient_codewords[i])]
-        #     assert(polynomials[i].degree() <=
-        #            max_degree), f"degree violation for quotient polynomial {i}; max degree: {max_degree}; observed degree: {polynomials[i].degree()}"
-
         # compute terms of nonlinear combination polynomial
         # TODO: memoize shifted fri domains
         # print("computing nonlinear combination ...")
@@ -601,14 +595,22 @@ class BrainfuckStark:
         for index in indices:
             print("I think the index is", index)
             for distance in [0] + unit_distances:
-                next_index = (index + distance) % fri.domain.length
-                print("I think next_index is", next_index)
-                proof_stream.push(base_tree.leafs[next_index][0])
-                proof_stream.push(base_tree.open(next_index))
-                proof_stream.push(extension_tree.leafs[next_index][0])
-                proof_stream.push(extension_tree.open(next_index))
-                print("-> leafs and path for index", index, "+",
-                      distance, "=", next_index, "mod", fri.domain.length)
+                idx = (index + distance) % fri.domain.length
+                print("I think idx is", idx)
+                element = base_tree.leafs[idx][0]
+                salt, path = base_tree.open(idx)
+                proof_stream.push(element)
+                proof_stream.push((salt, path))
+                print("-> base leafs and path for index", index, "+",
+                      distance, "=", idx, "mod", fri.domain.length)
+                      
+                assert(SaltedMerkle.verify(base_tree.root(), idx, salt, path, element)), "SaltedMerkle for base tree leaf fails to verify"
+
+
+                proof_stream.push(extension_tree.leafs[idx][0])
+                proof_stream.push(extension_tree.open(idx))
+                print("-> extension leafs and path for index", index, "+",
+                      distance, "=", idx, "mod", fri.domain.length, "\n")
 
         # open combination codeword at the same positions
         for index in indices:
