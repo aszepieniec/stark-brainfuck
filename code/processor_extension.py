@@ -96,7 +96,8 @@ class ProcessorExtension(TableExtension):
             new_row += [input_evaluation_running_evaluation]
             if row[ProcessorExtension.current_instruction] == BaseFieldElement(ord(','), field):
                 input_evaluation_running_evaluation = input_evaluation_running_evaluation * gamma \
-                    + new_row[ProcessorExtension.memory_value]
+                    + xfield.lift(processor_table.table[i+1][ProcessorTable.memory_value])
+                    # the memory-value register only assumes the input value after the instruction has been performed
 
             # 4. evaluation for output
             new_row += [output_evaluation_running_evaluation]
@@ -159,7 +160,7 @@ class ProcessorExtension(TableExtension):
                          - self.e * memory_pointer - self.f * memory_value)
                         - memory_permutation_next]
         # running evaluation for input
-        polynomials += [(input_evaluation_next - input_evaluation * self.gamma - memory_value) * ProcessorTable.ifnot_instruction(
+        polynomials += [(input_evaluation_next - input_evaluation * self.gamma - memory_value_next) * ProcessorTable.ifnot_instruction(
             ',', current_instruction) * current_instruction + (input_evaluation_next - input_evaluation) * ProcessorTable.if_instruction(',', current_instruction)]
         # running evaluation for output
         polynomials += [(output_evaluation_next - output_evaluation * self.delta - memory_value) * ProcessorTable.ifnot_instruction(

@@ -30,8 +30,8 @@ class VirtualMachine:
         return input_data, output_data
 
     def compile(brainfuck_code):
-        assert(len(brainfuck_code) >
-               1), "I can only handle programs of two instructions or longer :((("
+        # assert(len(brainfuck_code) >
+        #        1), "I can only handle programs of two instructions or longer :((("
 
         # shorthands
         field = VirtualMachine.field
@@ -51,6 +51,7 @@ class VirtualMachine:
                 program += [BaseFieldElement(stack[-1]+1, field)]
                 program[stack[-1]] = BaseFieldElement(len(program), field)
                 stack = stack[:-1]
+
         return program
 
     def perform(program, input_data=None):
@@ -121,7 +122,10 @@ class VirtualMachine:
         register = Register()
         register.current_instruction = program[0]
         # Programs shorter than two instructions aren't valid programs.
-        register.next_instruction = program[1]
+        if len(program) == 1:
+            register.next_instruction = zero
+        else:
+            register.next_instruction = program[1]
         memory = dict()  # field elements to field elements
         input_counter = 0
         output_data = []
@@ -218,6 +222,7 @@ class VirtualMachine:
                 register.next_instruction = zero
 
             register.memory_value = memory.get(register.memory_pointer, zero)
+
             if register.memory_value.is_zero():
                 register.is_zero = one
             else:
