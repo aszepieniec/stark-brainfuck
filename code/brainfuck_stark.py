@@ -123,11 +123,15 @@ class BrainfuckStark:
         # assert(len(processor_table_table) & (len(processor_table_table)-1)
         #        == 0), "length of table must be power of two"
 
-        print("length of processor table:", len(processor_table_table), "and running time:", running_time)
+        print("length of processor table:", len(
+            processor_table_table), "and running time:", running_time)
 
-        print("calling prover with input table of length", len(input_table_table), "; content:", "".join(chr(s[0].value) for s in input_table_table))
-        print("processor table at row 1 and column memory_value:", processor_table_table[1][ProcessorTable.memory_value])
-        print("processor table at row 1 and column current_instruction:", processor_table_table[1][ProcessorTable.current_instruction])
+        print("calling prover with input table of length", len(input_table_table),
+              "; content:", "".join(chr(s[0].value) for s in input_table_table))
+        print("processor table at row 1 and column memory_value:",
+              processor_table_table[1][ProcessorTable.memory_value])
+        print("processor table at row 1 and column current_instruction:",
+              processor_table_table[1][ProcessorTable.current_instruction])
 
         # infer details about computation
         start_time_prover = time.time()
@@ -165,7 +169,8 @@ class BrainfuckStark:
         # compute fri domain length
         # consider taking max air degree across all tables
         air_degree = ProcessorExtension.air_degree()
-        trace_degree = BrainfuckStark.roundup_npo2(randomized_trace_length) - 1 # TODO: probably not right; fix me (also in verifier)
+        # TODO: probably not right; fix me (also in verifier)
+        trace_degree = BrainfuckStark.roundup_npo2(randomized_trace_length) - 1
         tp_degree = air_degree * trace_degree
         tz_degree = padded_instruction_table_length - 1
         tq_degree = tp_degree - tz_degree
@@ -306,7 +311,8 @@ class BrainfuckStark:
         processor_instruction_permutation_terminal = processor_extension.instruction_permutation_terminal
         processor_memory_permutation_terminal = processor_extension.memory_permutation_terminal
         processor_input_evaluation_terminal = processor_extension.input_evaluation_terminal
-        assert(not processor_input_evaluation_terminal.is_zero()), "processor input evaluation terminal should not be zero!"
+        assert(not processor_input_evaluation_terminal.is_zero()
+               ), "processor input evaluation terminal should not be zero!"
         processor_output_evaluation_terminal = processor_extension.output_evaluation_terminal
         instruction_evaluation_terminal = instruction_extension.evaluation_terminal
 
@@ -610,9 +616,9 @@ class BrainfuckStark:
                 proof_stream.push((salt, path))
                 print("-> base leafs and path for index", index, "+",
                       distance, "=", idx, "mod", fri.domain.length)
-                      
-                assert(SaltedMerkle.verify(base_tree.root(), idx, salt, path, element)), "SaltedMerkle for base tree leaf fails to verify"
 
+                assert(SaltedMerkle.verify(base_tree.root(), idx, salt, path,
+                       element)), "SaltedMerkle for base tree leaf fails to verify"
 
                 proof_stream.push(extension_tree.leafs[idx][0])
                 proof_stream.push(extension_tree.open(idx))
@@ -763,9 +769,11 @@ class BrainfuckStark:
         memory_extension = MemoryExtension(BrainfuckStark.roundup_npo2(
             running_time), omega, fri_domain_length, d, e, f, beta, processor_memory_permutation_terminal)
 
-        input_extension = IOExtension(len(input_symbols), omega, fri_domain_length, gamma, processor_input_evaluation_terminal)
-        output_extension = IOExtension(len(output_symbols), omega, fri_domain_length, delta, processor_output_evaluation_terminal)
-        
+        input_extension = IOExtension(len(
+            input_symbols), omega, fri_domain_length, gamma, processor_input_evaluation_terminal)
+        output_extension = IOExtension(len(
+            output_symbols), omega, fri_domain_length, delta, processor_output_evaluation_terminal)
+
         # compute degree bounds
         base_degree_bounds = reduce(lambda x, y: x + y,
                                     [[table.get_height() - 1] * table.base_width for table in [processor_extension,
@@ -792,10 +800,10 @@ class BrainfuckStark:
         num_extension_polynomials += IOExtension.width - IOTable.width
         num_randomizer_polynomials = 1
 
-        num_quotient_polynomials = processor_extension.num_quotients() 
-        num_quotient_polynomials += instruction_extension.num_quotients() 
-        num_quotient_polynomials += memory_extension.num_quotients() 
-        num_quotient_polynomials += input_extension.num_quotients() 
+        num_quotient_polynomials = processor_extension.num_quotients()
+        num_quotient_polynomials += instruction_extension.num_quotients()
+        num_quotient_polynomials += memory_extension.num_quotients()
+        num_quotient_polynomials += input_extension.num_quotients()
         num_quotient_polynomials += output_extension.num_quotients()
 
         num_difference_quotients = 2

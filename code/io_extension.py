@@ -99,7 +99,8 @@ class IOExtension(TableExtension):
             )), "evaluation terminal for IOExtension has to be zero when the table has zero rows"
 
         if self.get_height() != 0:
-            assert(not terminals[0].is_zero()), "evaluation terminal for non-empty IOExtension is zero but shouldn't be!"
+            assert(not terminals[0].is_zero(
+            )), "evaluation terminal for non-empty IOExtension is zero but shouldn't be!"
 
         gamma = challenges[0]
         gamma_mpoly = MPolynomial.constant(gamma)
@@ -114,7 +115,8 @@ class IOExtension(TableExtension):
         actual_terminal = evaluation_terminal * \
             MPolynomial.constant(gamma ^ (self.get_height() - self.length))
 
-        print("in IOExtension -- actual terminal:", actual_terminal, type(actual_terminal), "but evaluation terminal:", evaluation_terminal, "offset is gamma^", self.get_height() - self.length, "=", self.get_height(), "-", self.length)
+        print("in IOExtension -- actual terminal:", actual_terminal, type(actual_terminal), "but evaluation terminal:",
+              evaluation_terminal, "offset is gamma^", self.get_height() - self.length, "=", self.get_height(), "-", self.length)
 
         # polynomials += [evaluation * gamma + input_ - evaluation_next]
 
