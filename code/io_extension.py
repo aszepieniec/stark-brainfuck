@@ -68,7 +68,7 @@ class IOExtension(TableExtension):
         assert(io_table.height & (io_table.height - 1)
                == 0), f"height of io_table must be 2^k"
         extended_io_table = IOExtension(
-            io_table.height, io_table.length, io_table.generator, io_table.order, gamma, evaluation_terminal)
+            io_table.length, io_table.generator, io_table.order, gamma, evaluation_terminal)
         extended_io_table.table = table_extension
 
         extended_io_table.field = xfield
