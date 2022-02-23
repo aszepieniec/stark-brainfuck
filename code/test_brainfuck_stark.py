@@ -17,7 +17,7 @@ def test_bfs():
     # program = VirtualMachine.compile(
     #     "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.")
     processor_table_table, instruction_table_table, memory_table_table, input_table_table, output_table_table = bfs.vm.simulate(
-        program)
+        program, input_data="!")
     running_time = len(processor_table_table)
 
     filename = "proof.dump"
@@ -42,5 +42,6 @@ def test_bfs():
     verdict = bfs.verify(proof, running_time, program,
                          input_symbols, output_symbols)
     assert(verdict == True), "honest proof fails to verify"
-    print("proof verified with output:", "".join(
-        [chr(t.value) for t in output_symbols]))
+    print("output length was:", len(output_symbols))
+    print("proof verified with output: \"" + "".join(
+        [chr(t.value) for t in output_symbols]) + "\"")

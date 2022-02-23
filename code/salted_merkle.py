@@ -19,6 +19,8 @@ class SaltedMerkle:
             self.depth += 1
         self.depth -= 1
 
+        assert(next_power_of_two == 1 << self.depth), f"in SaltedMerkle.__init__, next_power_of_two = {next_power_of_two} =/= 1 << self.depth = {1 << self.depth}"
+
         # append salt to leafs
         self.leafs = [(element, urandom(24)) for element in data_array]
 

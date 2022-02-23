@@ -123,12 +123,22 @@ class BrainfuckStark:
         # assert(len(processor_table_table) & (len(processor_table_table)-1)
         #        == 0), "length of table must be power of two"
 
+        print("length of processor table:", len(
+            processor_table_table), "and running time:", running_time)
+
+        print("calling prover with input table of length", len(input_table_table),
+              "; content:", "".join(chr(s[0].value) for s in input_table_table))
+        print("processor table at row 1 and column memory_value:",
+              processor_table_table[1][ProcessorTable.memory_value])
+        print("processor table at row 1 and column current_instruction:",
+              processor_table_table[1][ProcessorTable.current_instruction])
+
         # infer details about computation
         start_time_prover = time.time()
         original_trace_length = running_time
-        rounded_trace_length = BrainfuckStark.roundup_npo2(
+        padded_instruction_table_length = BrainfuckStark.roundup_npo2(
             original_trace_length + len(program))
-        randomized_trace_length = rounded_trace_length + self.num_randomizers
+        randomized_trace_length = padded_instruction_table_length + self.num_randomizers
 
         # infer table lengths (=# rows)
         # log_time = 0
@@ -159,16 +169,17 @@ class BrainfuckStark:
         # compute fri domain length
         # consider taking max air degree across all tables
         air_degree = ProcessorExtension.air_degree()
+        # TODO: probably not right; fix me (also in verifier)
         trace_degree = BrainfuckStark.roundup_npo2(randomized_trace_length) - 1
         tp_degree = air_degree * trace_degree
-        tz_degree = rounded_trace_length - 1
+        tz_degree = padded_instruction_table_length - 1
         tq_degree = tp_degree - tz_degree
         max_degree = BrainfuckStark.roundup_npo2(
             tq_degree + 1) - 1  # The max degree bound provable by FRI
         fri_domain_length = (max_degree+1) * self.expansion_factor
 
         print("original trace length:", original_trace_length)
-        print("rounded trace length:", rounded_trace_length)
+        print("rounded trace length:", padded_instruction_table_length)
         print("randomized trace length:", randomized_trace_length)
         print("trace degree:", trace_degree)
         print("air degree:", air_degree)
@@ -300,6 +311,8 @@ class BrainfuckStark:
         processor_instruction_permutation_terminal = processor_extension.instruction_permutation_terminal
         processor_memory_permutation_terminal = processor_extension.memory_permutation_terminal
         processor_input_evaluation_terminal = processor_extension.input_evaluation_terminal
+        assert(not processor_input_evaluation_terminal.is_zero()
+               ), "processor input evaluation terminal should not be zero!"
         processor_output_evaluation_terminal = processor_extension.output_evaluation_terminal
         instruction_evaluation_terminal = instruction_extension.evaluation_terminal
 
@@ -485,12 +498,6 @@ class BrainfuckStark:
 
         print("** challenges for weights")
 
-        # polynomials = []
-        # for i in range(len(quotient_codewords)):
-        #     polynomials += [fri.domain.xinterpolate(quotient_codewords[i])]
-        #     assert(polynomials[i].degree() <=
-        #            max_degree), f"degree violation for quotient polynomial {i}; max degree: {max_degree}; observed degree: {polynomials[i].degree()}"
-
         # compute terms of nonlinear combination polynomial
         # TODO: memoize shifted fri domains
         # print("computing nonlinear combination ...")
@@ -543,8 +550,8 @@ class BrainfuckStark:
             print()
             if os.environ.get('DEBUG_QUOTIENT_DEGREES') is not None:
                 interpolated = fri.domain.xinterpolate(terms[-1])
-                assert(interpolated.degree() == -1 or interpolated.degree() ==
-                       quotient_degree_bound_i), f"for quotient polynomial {i}, interpolated degree is {interpolated.degree()} but =/= degree bound i = {quotient_degree_bound_i}"
+                assert(interpolated.degree() == -1 or interpolated.degree() <=
+                       quotient_degree_bound_i), f"for unshifted quotient polynomial {i}, interpolated degree is {interpolated.degree()} but > degree bound i = {quotient_degree_bound_i}"
             shift = max_degree - quotient_degree_bound_i
             print("prover shift for quotient", i, ":", shift)
 
@@ -557,7 +564,7 @@ class BrainfuckStark:
                     f"degree of interpolation, , quotient_codewords({i}): {interpolated.degree()}")
                 print("quotient  degree bound:", quotient_degree_bound_i)
                 assert(interpolated.degree(
-                ) == -1 or interpolated.degree() == max_degree), f"for quotient polynomial {i}, interpolated degree is {interpolated.degree()} but =/= max_degree = {max_degree}"
+                ) == -1 or interpolated.degree() <= max_degree), f"for (shifted) quotient polynomial {i}, interpolated degree is {interpolated.degree()} but > max_degree = {max_degree}"
         # print("got terms after", (time.time() - tick), "seconds")
 
         # take weighted sum
@@ -601,14 +608,22 @@ class BrainfuckStark:
         for index in indices:
             print("I think the index is", index)
             for distance in [0] + unit_distances:
-                next_index = (index + distance) % fri.domain.length
-                print("I think next_index is", next_index)
-                proof_stream.push(base_tree.leafs[next_index][0])
-                proof_stream.push(base_tree.open(next_index))
-                proof_stream.push(extension_tree.leafs[next_index][0])
-                proof_stream.push(extension_tree.open(next_index))
-                print("-> leafs and path for index", index, "+",
-                      distance, "=", next_index, "mod", fri.domain.length)
+                idx = (index + distance) % fri.domain.length
+                print("I think idx is", idx)
+                element = base_tree.leafs[idx][0]
+                salt, path = base_tree.open(idx)
+                proof_stream.push(element)
+                proof_stream.push((salt, path))
+                print("-> base leafs and path for index", index, "+",
+                      distance, "=", idx, "mod", fri.domain.length)
+
+                assert(SaltedMerkle.verify(base_tree.root(), idx, salt, path,
+                       element)), "SaltedMerkle for base tree leaf fails to verify"
+
+                proof_stream.push(extension_tree.leafs[idx][0])
+                proof_stream.push(extension_tree.open(idx))
+                print("-> extension leafs and path for index", index, "+",
+                      distance, "=", idx, "mod", fri.domain.length, "\n")
 
         # open combination codeword at the same positions
         for index in indices:
@@ -753,10 +768,11 @@ class BrainfuckStark:
             running_time+len(program)), omega, fri_domain_length, a, b, c, alpha, eta, processor_instruction_permutation_terminal, instruction_evaluation_terminal)
         memory_extension = MemoryExtension(BrainfuckStark.roundup_npo2(
             running_time), omega, fri_domain_length, d, e, f, beta, processor_memory_permutation_terminal)
-        input_extension = IOExtension(BrainfuckStark.roundup_npo2(len(input_symbols)),
-                                      len(input_symbols), omega, fri_domain_length, gamma, processor_input_evaluation_terminal)
-        output_extension = IOExtension(BrainfuckStark.roundup_npo2(len(output_symbols)),
-                                       len(output_symbols), omega, fri_domain_length, delta, processor_output_evaluation_terminal)
+
+        input_extension = IOExtension(len(
+            input_symbols), omega, fri_domain_length, gamma, processor_input_evaluation_terminal)
+        output_extension = IOExtension(len(
+            output_symbols), omega, fri_domain_length, delta, processor_output_evaluation_terminal)
 
         # compute degree bounds
         base_degree_bounds = reduce(lambda x, y: x + y,
@@ -784,9 +800,11 @@ class BrainfuckStark:
         num_extension_polynomials += IOExtension.width - IOTable.width
         num_randomizer_polynomials = 1
 
-        num_quotient_polynomials = processor_extension.num_quotients() + instruction_extension.num_quotients() + \
-            memory_extension.num_quotients() + input_extension.num_quotients() + \
-            output_extension.num_quotients()
+        num_quotient_polynomials = processor_extension.num_quotients()
+        num_quotient_polynomials += instruction_extension.num_quotients()
+        num_quotient_polynomials += memory_extension.num_quotients()
+        num_quotient_polynomials += input_extension.num_quotients()
+        num_quotient_polynomials += output_extension.num_quotients()
 
         num_difference_quotients = 2
 
@@ -1285,8 +1303,8 @@ class BrainfuckStark:
             [self.xfield.lift(t) for t in input_symbols], gamma)
         assert(verifier_verdict), "processor input evaluation argument failed"
         # output
-        print("type of output symbols:", type(output_symbols),
-              "and first element:", type(output_symbols[0]))
+        # print("type of output symbols:", type(output_symbols),
+        #       "and first element:", type(output_symbols[0]))
         verifier_verdict = verifier_verdict and processor_extension.output_evaluation_terminal == VirtualMachine.evaluation_terminal(
             [self.xfield.lift(t) for t in output_symbols], delta)
         assert(verifier_verdict), "processor output evaluation argument failed"

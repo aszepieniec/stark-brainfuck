@@ -9,7 +9,13 @@ class IOExtension(TableExtension):
 
     width = 2
 
-    def __init__(self, height, length, generator, order, gamma, evaluation_terminal):
+    def __init__(self, length, generator, order, gamma, evaluation_terminal):
+
+        if length == 0:
+            height = 0
+        else:
+            height = Table.roundup_npo2(length)
+
         super(IOExtension, self).__init__(
             gamma.field, IOTable.width, IOExtension.width, height, generator, order)
 
@@ -62,7 +68,7 @@ class IOExtension(TableExtension):
         assert(io_table.height & (io_table.height - 1)
                == 0), f"height of io_table must be 2^k"
         extended_io_table = IOExtension(
-            io_table.height, io_table.length, io_table.generator, io_table.order, gamma, evaluation_terminal)
+            io_table.length, io_table.generator, io_table.order, gamma, evaluation_terminal)
         extended_io_table.table = table_extension
 
         extended_io_table.field = xfield
@@ -92,7 +98,13 @@ class IOExtension(TableExtension):
             assert(terminals[0].is_zero(
             )), "evaluation terminal for IOExtension has to be zero when the table has zero rows"
 
-        gamma = MPolynomial.constant(challenges[0])
+        if self.get_height() != 0:
+            assert(not terminals[0].is_zero(
+            )), "evaluation terminal for non-empty IOExtension is zero but shouldn't be!"
+
+        gamma = challenges[0]
+        gamma_mpoly = MPolynomial.constant(gamma)
+
         evaluation_terminal = MPolynomial.constant(terminals[0])
         x = MPolynomial.variables(self.width, self.field)
 
@@ -101,8 +113,11 @@ class IOExtension(TableExtension):
         # multiplied by another factor gamma. So we multiply by gamma^diff
         # to get the value of the evaluation terminal after all 2^k rows.
         actual_terminal = evaluation_terminal * \
-            (gamma ^ (self.get_height() - self.length))
+            MPolynomial.constant(gamma ^ (self.get_height() - self.length))
+
+        print("in IOExtension -- actual terminal:", actual_terminal, type(actual_terminal), "but evaluation terminal:",
+              evaluation_terminal, "offset is gamma^", self.get_height() - self.length, "=", self.get_height(), "-", self.length)
 
         # polynomials += [evaluation * gamma + input_ - evaluation_next]
 
-        return [x[IOExtension.evaluation] * gamma + x[IOTable.column] - actual_terminal]
+        return [x[IOExtension.evaluation] * gamma_mpoly + x[IOTable.column] - actual_terminal]

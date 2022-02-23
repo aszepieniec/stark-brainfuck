@@ -7,6 +7,52 @@ import sys
 
 from processor_table import ProcessorTable
 
+# `Getch` shamelessly copied from https://stackoverflow.com/a/510364/2574407
+
+
+class _Getch:
+    """Gets a single character from standard input.  Does not echo to the
+screen."""
+
+    def __init__(self):
+        try:
+            self.impl = _GetchWindows()
+        except ImportError:
+            self.impl = _GetchUnix()
+
+    def __call__(self): return self.impl()
+
+
+class _GetchUnix:
+    def __init__(self):
+        import tty
+        import sys
+
+    def __call__(self):
+        import sys
+        import tty
+        import termios
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(sys.stdin.fileno())
+            ch = sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        return ch
+
+
+class _GetchWindows:
+    def __init__(self):
+        import msvcrt
+
+    def __call__(self):
+        import msvcrt
+        return msvcrt.getch()
+
+
+getch = _Getch()
+
 
 class Register:
     field = BaseField.main()
@@ -30,6 +76,7 @@ class VirtualMachine:
         return input_data, output_data
 
     def compile(brainfuck_code):
+
         # shorthands
         field = VirtualMachine.field
         zero = field.zero()
@@ -48,6 +95,7 @@ class VirtualMachine:
                 program += [BaseFieldElement(stack[-1]+1, field)]
                 program[stack[-1]] = BaseFieldElement(len(program), field)
                 stack = stack[:-1]
+
         return program
 
     def perform(program, input_data=None):
@@ -97,7 +145,7 @@ class VirtualMachine:
                     char = input_data[input_counter]
                     input_counter += 1
                 else:
-                    char = sys.stdin.read(1)
+                    char = getch()
                 memory[memory_pointer] = BaseFieldElement(ord(char), field)
             else:
                 assert(
@@ -106,7 +154,7 @@ class VirtualMachine:
         return input_data, output_data
 
     @staticmethod
-    def simulate(program, input_data=None):
+    def simulate(program, input_data=[]):
         # shorthands
         field = VirtualMachine.field
         zero = field.zero()
@@ -118,7 +166,10 @@ class VirtualMachine:
         register = Register()
         register.current_instruction = program[0]
         # Programs shorter than two instructions aren't valid programs.
-        register.next_instruction = program[1]
+        if len(program) == 1:
+            register.next_instruction = zero
+        else:
+            register.next_instruction = program[1]
         memory = dict()  # field elements to field elements
         input_counter = 0
         output_data = []
@@ -196,10 +247,7 @@ class VirtualMachine:
                     char = input_data[input_counter]
                     input_counter += 1
                 else:
-                    print("please provide input argument: ", input_counter)
-                    char = sys.stdin.read(1)
-                # char = input_data[input_counter]
-                # input_counter += 1
+                    char = getch()
                 memory[register.memory_pointer] = BaseFieldElement(
                     ord(char), field)
                 input_table_table += [[memory[register.memory_pointer]]]
@@ -221,6 +269,7 @@ class VirtualMachine:
                 register.next_instruction = zero
 
             register.memory_value = memory.get(register.memory_pointer, zero)
+
             if register.memory_value.is_zero():
                 register.is_zero = one
             else:
