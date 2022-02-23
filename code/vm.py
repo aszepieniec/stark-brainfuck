@@ -106,7 +106,7 @@ class VirtualMachine:
         return input_data, output_data
 
     @staticmethod
-    def simulate(program, input_data=[]):
+    def simulate(program, input_data=None):
         # shorthands
         field = VirtualMachine.field
         zero = field.zero()
@@ -192,8 +192,14 @@ class VirtualMachine:
 
             elif register.current_instruction == F(','):
                 register.instruction_pointer += one
-                char = input_data[input_counter]
-                input_counter += 1
+                if input_data:
+                    char = input_data[input_counter]
+                    input_counter += 1
+                else:
+                    print("please provide input argument: ", input_counter)
+                    char = sys.stdin.read(1)
+                # char = input_data[input_counter]
+                # input_counter += 1
                 memory[register.memory_pointer] = BaseFieldElement(
                     ord(char), field)
                 input_table_table += [[memory[register.memory_pointer]]]
