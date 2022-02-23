@@ -17,7 +17,7 @@ def test_bfs():
     # program = VirtualMachine.compile(
     #     "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.")
     processor_table_table, instruction_table_table, memory_table_table, input_table_table, output_table_table = bfs.vm.simulate(
-        program, input_data="!")
+        program)
     running_time = len(processor_table_table)
 
     filename = "proof.dump"
