@@ -114,7 +114,7 @@ class TableExtension(Table):
         for i in range(len(transition_constraints)):
             mpo = transition_constraints[i]
             symbolic_degree_bound = mpo.symbolic_degree_bound(max_degrees)
-            degree_bounds += [symbolic_degree_bound - self.get_height() + 1]
+            degree_bounds += [symbolic_degree_bound - self.height + 1]
             print("symbolic degree bound for transition quotient",
                   i, ": ", symbolic_degree_bound, "; matching degree bound:", degree_bounds[-1])
         return degree_bounds

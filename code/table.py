@@ -19,7 +19,9 @@ class Table:
 
     @staticmethod
     def roundup_npo2(integer):
-        if integer == 0 or integer == 1:
+        if integer == 0:
+            return 0
+        elif integer == 1:
             return 1
         return 1 << (len(bin(integer-1)[2:]))
 
@@ -31,11 +33,11 @@ class Table:
         return generator
 
     def unit_distance(self, omega_order):
-        return omega_order // Table.roundup_npo2(self.get_height())
+        return omega_order // Table.roundup_npo2(self.height)
 
     def get_interpolation_domain_length(self):
         num_randomizers = 0  # TODO: account for nonzero # randomizers
-        return Table.roundup_npo2(self.get_height()) + num_randomizers
+        return Table.roundup_npo2(self.height) + num_randomizers
 
     def get_interpolant_degree(self):
         return self.get_interpolation_domain_length() - 1
@@ -79,7 +81,7 @@ class Table:
         print("called interpolate_columns with omega:", omega, "order:", omega_order,
               "num randomizers:", num_randomizers, "table height:", len(self.table))
 
-        if self.get_height() == 0:
+        if self.height == 0:
             return [Polynomial([])] * len(column_indices)
 
         polynomials = []
@@ -102,11 +104,3 @@ class Table:
                                              self.field.lift(omega), omega_order)]
 
         return polynomials
-
-    def get_height(self):
-        if self.table:
-            return len(self.table)
-        elif hasattr(self, 'height'):
-            return self.length
-        else:
-            return 0

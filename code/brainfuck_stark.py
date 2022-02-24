@@ -219,11 +219,11 @@ class BrainfuckStark:
 
         # base_polynomials = processor_polynomials + instruction_polynomials + \
         #      memory_polynomials + input_polynomials + output_polynomials
-        base_degree_bounds = [processor_table.get_height()-1] * ProcessorTable.width + [instruction_table.get_height()-1] * \
+        base_degree_bounds = [processor_table.height-1] * ProcessorTable.width + [instruction_table.height-1] * \
             InstructionTable.width + \
-            [memory_table.get_height()-1] * MemoryTable.width
-        base_degree_bounds += [input_table.get_height()-1] * IOTable.width
-        base_degree_bounds += [output_table.get_height()-1] * IOTable.width
+            [memory_table.height-1] * MemoryTable.width
+        base_degree_bounds += [input_table.height-1] * IOTable.width
+        base_degree_bounds += [output_table.height-1] * IOTable.width
 
         # tick = time.time()
         # print("sampling randomizer polynomial ...")
@@ -333,15 +333,15 @@ class BrainfuckStark:
         # tock = time.time()
 
         extension_degree_bounds = []
-        extension_degree_bounds += [processor_extension.get_height()-1] * (
+        extension_degree_bounds += [processor_extension.height-1] * (
             ProcessorExtension.width - ProcessorTable.width)
-        extension_degree_bounds += [instruction_extension.get_height()-1] * (
+        extension_degree_bounds += [instruction_extension.height-1] * (
             InstructionExtension.width - InstructionTable.width)
-        extension_degree_bounds += [memory_extension.get_height()-1] * \
+        extension_degree_bounds += [memory_extension.height-1] * \
             (MemoryExtension.width - MemoryTable.width)
-        extension_degree_bounds += [input_extension.get_height()-1] * \
+        extension_degree_bounds += [input_extension.height-1] * \
             (IOExtension.width - IOTable.width)
-        extension_degree_bounds += [output_extension.get_height()-1] * \
+        extension_degree_bounds += [output_extension.height-1] * \
             (IOExtension.width - IOTable.width)
         # print("commitment to extension polynomials took",
         #   (tock - tick), "seconds")
@@ -548,12 +548,12 @@ class BrainfuckStark:
             lambda lhs, rhs: [l+r for l, r in zip(lhs, rhs)], [[w * e for e in t] for w, t in zip(weights, terms)], [self.xfield.zero()] * fri.domain.length)
         # print("finished computing nonlinear combination; calculation took", time.time() - tick, "seconds")
 
-        print("prover terms:")
-        for t in terms:
-            print(t[0])
-        print("prover weights:")
-        for w in weights:
-            print(w)
+        # print("prover terms:")
+        # for t in terms:
+        #     print(t[0])
+        # print("prover weights:")
+        # for w in weights:
+        #     print(w)
 
         # commit to combination codeword
         combination_tree = Merkle(combination_codeword)
@@ -745,15 +745,15 @@ class BrainfuckStark:
 
         # compute degree bounds
         base_degree_bounds = reduce(lambda x, y: x + y,
-                                    [[table.get_height() - 1] * table.base_width for table in [processor_extension,
-                                                                                               instruction_extension,
-                                                                                               memory_extension,
-                                                                                               input_extension,
-                                                                                               output_extension]],
+                                    [[table.height - 1] * table.base_width for table in [processor_extension,
+                                                                                         instruction_extension,
+                                                                                         memory_extension,
+                                                                                         input_extension,
+                                                                                         output_extension]],
                                     [])
 
-        extension_degree_bounds = [BrainfuckStark.roundup_npo2(processor_extension.get_height())-1] * (ProcessorExtension.width - ProcessorTable.width) + [BrainfuckStark.roundup_npo2(instruction_extension.get_height())-1] * (InstructionExtension.width - InstructionTable.width) + [
-            BrainfuckStark.roundup_npo2(memory_extension.get_height())-1] * (MemoryExtension.width - MemoryTable.width) + [BrainfuckStark.roundup_npo2(input_extension.get_height())-1] * (IOExtension.width - IOTable.width) + [BrainfuckStark.roundup_npo2(output_extension.get_height())-1] * (IOExtension.width - IOTable.width)
+        extension_degree_bounds = [BrainfuckStark.roundup_npo2(processor_extension.height)-1] * (ProcessorExtension.width - ProcessorTable.width) + [BrainfuckStark.roundup_npo2(instruction_extension.height)-1] * (InstructionExtension.width - InstructionTable.width) + [
+            BrainfuckStark.roundup_npo2(memory_extension.height)-1] * (MemoryExtension.width - MemoryTable.width) + [BrainfuckStark.roundup_npo2(input_extension.height)-1] * (IOExtension.width - IOTable.width) + [BrainfuckStark.roundup_npo2(output_extension.height)-1] * (IOExtension.width - IOTable.width)
 
         # get weights for nonlinear combination
         #  - 1 randomizer
@@ -961,7 +961,7 @@ class BrainfuckStark:
                 eval = constraint.evaluate(
                     processor_point + next_processor_point)
                 quotient = eval * self.xfield.lift(fri.domain(index) - processor_extension.omicron.inverse()) / (
-                    self.xfield.lift(fri.domain(index) ^ BrainfuckStark.roundup_npo2(processor_extension.get_height())) - self.xfield.one())
+                    self.xfield.lift(fri.domain(index) ^ BrainfuckStark.roundup_npo2(processor_extension.height)) - self.xfield.one())
                 terms += [quotient]
                 shift = max_degree - bound
                 print("verifier shift:", shift)
@@ -1011,7 +1011,7 @@ class BrainfuckStark:
                 eval = constraint.evaluate(
                     instruction_point + next_instruction_point)
                 quotient = eval * self.xfield.lift(fri.domain(index) - instruction_extension.omicron.inverse()) / (
-                    self.xfield.lift(fri.domain(index) ^ BrainfuckStark.roundup_npo2(instruction_extension.get_height())) - self.xfield.one())
+                    self.xfield.lift(fri.domain(index) ^ BrainfuckStark.roundup_npo2(instruction_extension.height)) - self.xfield.one())
                 terms += [quotient]
                 shift = max_degree - bound
                 print("verifier shift:", shift)
@@ -1058,7 +1058,7 @@ class BrainfuckStark:
             for constraint, bound in zip(memory_extension.transition_constraints_ext(challenges), memory_extension.transition_quotient_degree_bounds(challenges)):
                 eval = constraint.evaluate(memory_point + next_memory_point)
                 quotient = eval * self.xfield.lift(fri.domain(index) - memory_extension.omicron.inverse()) / (
-                    self.xfield.lift(fri.domain(index) ^ BrainfuckStark.roundup_npo2(memory_extension.get_height())) - self.xfield.one())
+                    self.xfield.lift(fri.domain(index) ^ BrainfuckStark.roundup_npo2(memory_extension.height)) - self.xfield.one())
                 terms += [quotient]
                 shift = max_degree - bound
                 print("verifier shift:", shift)
@@ -1107,7 +1107,7 @@ class BrainfuckStark:
                 print("Hi from input transition quotient loop")
                 eval = constraint.evaluate(input_point + next_input_point)
                 quotient = eval * self.xfield.lift(fri.domain(index) - input_extension.omicron.inverse()) / (
-                    self.xfield.lift(fri.domain(index) ^ BrainfuckStark.roundup_npo2(input_extension.get_height())) - self.xfield.one())
+                    self.xfield.lift(fri.domain(index) ^ BrainfuckStark.roundup_npo2(input_extension.height)) - self.xfield.one())
                 terms += [quotient]
                 shift = max_degree - bound
                 print("verifier shift:", shift)
@@ -1163,7 +1163,7 @@ class BrainfuckStark:
                 eval = constraint.evaluate(
                     output_point + next_output_point)
                 quotient = eval * self.xfield.lift(fri.domain(index) - output_extension.omicron.inverse()) / (
-                    self.xfield.lift(fri.domain(index) ^ BrainfuckStark.roundup_npo2(output_extension.get_height())) - self.xfield.one())
+                    self.xfield.lift(fri.domain(index) ^ BrainfuckStark.roundup_npo2(output_extension.height)) - self.xfield.one())
                 terms += [quotient]
                 shift = max_degree - bound
                 print("verifier shift:", shift)
@@ -1211,12 +1211,12 @@ class BrainfuckStark:
             assert(len(terms) == len(
                 weights)), f"length of terms ({len(terms)}) must be equal to length of weights ({len(weights)})"
 
-            print("verifier terms:")
-            for t in terms:
-                print(t)
-            print("verifier weights:")
-            for w in weights:
-                print(w)
+            # print("verifier terms:")
+            # for t in terms:
+            #     print(t)
+            # print("verifier weights:")
+            # for w in weights:
+            #     print(w)
 
             # compute inner product of weights and terms
             inner_product = reduce(

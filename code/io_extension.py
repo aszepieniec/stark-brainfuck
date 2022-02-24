@@ -94,11 +94,11 @@ class IOExtension(TableExtension):
         return [x[IOExtension.evaluation] - zero]  # evaluation
 
     def terminal_constraints_ext(self, challenges, terminals):
-        if self.get_height() == 0:
+        if self.height == 0:
             assert(terminals[0].is_zero(
             )), "evaluation terminal for IOExtension has to be zero when the table has zero rows"
 
-        if self.get_height() != 0:
+        if self.height != 0:
             assert(not terminals[0].is_zero(
             )), "evaluation terminal for non-empty IOExtension is zero but shouldn't be!"
 
@@ -113,10 +113,10 @@ class IOExtension(TableExtension):
         # multiplied by another factor gamma. So we multiply by gamma^diff
         # to get the value of the evaluation terminal after all 2^k rows.
         actual_terminal = evaluation_terminal * \
-            MPolynomial.constant(gamma ^ (self.get_height() - self.length))
+            MPolynomial.constant(gamma ^ (self.height - self.length))
 
         print("in IOExtension -- actual terminal:", actual_terminal, type(actual_terminal), "but evaluation terminal:",
-              evaluation_terminal, "offset is gamma^", self.get_height() - self.length, "=", self.get_height(), "-", self.length)
+              evaluation_terminal, "offset is gamma^", self.height - self.length, "=", self.height, "-", self.length)
 
         # polynomials += [evaluation * gamma + input_ - evaluation_next]
 
