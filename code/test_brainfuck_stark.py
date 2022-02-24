@@ -11,7 +11,7 @@ def test_bfs():
     program = VirtualMachine.compile(
         ">++++++++++[>+++><<-]>+++><<>.................")
     program = VirtualMachine.compile(
-        "+.")
+        "+,.")
 
     # Print "Hello World!"
     # program = VirtualMachine.compile(

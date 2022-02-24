@@ -7,9 +7,9 @@ class IOTable(Table):
 
     width = 1
 
-    def __init__(self, field, height, generator, order):
+    def __init__(self, field, length, generator, order):
         super(IOTable, self).__init__(
-            field, IOTable.width, height, generator, order)
+            field, IOTable.width, length, generator, order)
 
     def pad(self):
         self.length = len(self.table)

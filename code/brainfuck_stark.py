@@ -133,54 +133,51 @@ class BrainfuckStark:
         print("processor table at row 1 and column current_instruction:",
               processor_table_table[1][ProcessorTable.current_instruction])
 
-        # infer details about computation
         start_time_prover = time.time()
-        original_trace_length = running_time
-        padded_instruction_table_length = BrainfuckStark.roundup_npo2(
-            original_trace_length + len(program))
-        randomized_trace_length = padded_instruction_table_length + self.num_randomizers
 
-        # infer table lengths (=# rows)
-        # log_time = 0
-        # while 1 << log_time < len(processor_table_table):
-        #     log_time += 1
+        # instantiate processor and instruction table objects
+        order = 1 << 32
+        generator = self.field.primitive_nth_root(order)
 
-        # log_instructions = 0
-        # while 1 << log_instructions < len(instruction_table_table):
-        #     log_instructions += 1
+        processor_table = ProcessorTable(self.field, len(
+            processor_table_table), generator, order)
+        processor_table.table = [row for row in processor_table_table]
 
-        # log_input = 0
-        # if len(input_table_table) == 0:
-        #     log_input -= 1
-        # else:
-        #     while (1 << log_input) < len(input_table_table):
-        #         log_input += 1
-        # log_output = 0
-        # if len(output_table_table) == 0:
-        #     log_output -= 1
-        # else:
-        #     while (1 << log_output) < len(output_table_table):
-        #         log_output += 1
+        instruction_table = InstructionTable(self.field, len(
+            instruction_table_table), generator, order)
+        instruction_table.table = [row for row in instruction_table_table]
 
-        # print("log time:", log_time)
-        # print("log input length:", log_input)
-        # print("log output length:", log_output)
+        input_table = IOTable(self.field, len(
+            input_table_table), generator, order)
+        input_table.table = [row for row in input_table_table]
+        output_table = IOTable(self.field, len(
+            output_table_table), generator, order)
+        output_table.table = [row for row in output_table_table]
+
+        # pad table to height 2^k
+        processor_table.pad()
+        instruction_table.pad()
+        input_table.pad()
+        output_table.pad()
+
+        # instantiate other table objects
+        memory_table = MemoryTable.derive(processor_table)
 
         # compute fri domain length
         # consider taking max air degree across all tables
         air_degree = ProcessorExtension.air_degree()
         # TODO: probably not right; fix me (also in verifier)
-        trace_degree = BrainfuckStark.roundup_npo2(randomized_trace_length) - 1
+        trace_degree = BrainfuckStark.roundup_npo2(
+            instruction_table.length + self.num_randomizers) - 1
         tp_degree = air_degree * trace_degree
-        tz_degree = padded_instruction_table_length - 1
+        tz_degree = instruction_table.length - 1
         tq_degree = tp_degree - tz_degree
         max_degree = BrainfuckStark.roundup_npo2(
             tq_degree + 1) - 1  # The max degree bound provable by FRI
         fri_domain_length = (max_degree+1) * self.expansion_factor
 
-        print("original trace length:", original_trace_length)
-        print("rounded trace length:", padded_instruction_table_length)
-        print("randomized trace length:", randomized_trace_length)
+        print("original trace length:", processor_table.length)
+        print("rounded trace length:", instruction_table.length)
         print("trace degree:", trace_degree)
         print("air degree:", air_degree)
         print("transition polynomials degree:", tp_degree)
@@ -201,32 +198,6 @@ class BrainfuckStark:
 
         if proof_stream == None:
             proof_stream = ProofStream()
-
-        # instantiate processor and instruction table objects
-        processor_table = ProcessorTable(self.field, len(
-            processor_table_table), omega, fri_domain_length)
-        processor_table.table = [row for row in processor_table_table]
-
-        instruction_table = InstructionTable(self.field, len(
-            instruction_table_table), omega, fri_domain_length)
-        instruction_table.table = [row for row in instruction_table_table]
-
-        # pad table to height 2^k
-        processor_table.pad()
-        instruction_table.pad()
-
-        # instantiate other table objects
-        memory_table = MemoryTable.derive(processor_table)
-
-        input_table = IOTable(self.field, len(
-            input_table_table), omega, fri_domain_length)
-        input_table.table = [row for row in input_table_table]
-        output_table = IOTable(self.field, len(
-            output_table_table), omega, fri_domain_length)
-        output_table.table = [row for row in output_table_table]
-
-        input_table.pad()
-        output_table.pad()
 
         # instruction_table.test()  # will fail if some AIR does not evaluate to zero
 

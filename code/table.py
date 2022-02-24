@@ -6,13 +6,13 @@ import os
 
 
 class Table:
-    def __init__(self, field, width, height, generator, order):
+    def __init__(self, field, width, length, generator, order):
         self.field = field
         self.width = width
-        self.height = height
-        self.omicron_order = Table.roundup_npo2(height)
+        self.length = length
+        self.height = Table.roundup_npo2(length)
         self.omicron = Table.derive_omicron(
-            generator, order, self.omicron_order)
+            generator, order, self.height)
         self.generator = generator
         self.order = order
         self.table = []
@@ -84,7 +84,7 @@ class Table:
 
         polynomials = []
         omicron_domain = [self.field.lift(self.omicron ^ i)
-                          for i in range(self.omicron_order)]
+                          for i in range(self.height)]
         print("length of omicron domain:", len(omicron_domain))
         randomizer_domain = [self.field.lift(omega) * omicron_domain[i]
                              for i in range(num_randomizers)]
@@ -107,6 +107,6 @@ class Table:
         if self.table:
             return len(self.table)
         elif hasattr(self, 'height'):
-            return self.height
+            return self.length
         else:
             return 0
