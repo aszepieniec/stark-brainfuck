@@ -311,8 +311,6 @@ class BrainfuckStark:
         processor_instruction_permutation_terminal = processor_extension.instruction_permutation_terminal
         processor_memory_permutation_terminal = processor_extension.memory_permutation_terminal
         processor_input_evaluation_terminal = processor_extension.input_evaluation_terminal
-        assert(not processor_input_evaluation_terminal.is_zero()
-               ), "processor input evaluation terminal should not be zero!"
         processor_output_evaluation_terminal = processor_extension.output_evaluation_terminal
         instruction_evaluation_terminal = instruction_extension.evaluation_terminal
 
