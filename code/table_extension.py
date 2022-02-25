@@ -14,9 +14,9 @@ class TableExtension(Table):
         self.base_width = base_width
         self.xfield = xfield
 
-    def interpolate_extension(self, omega, order, num_randomizers):
+    def interpolate_extension(self, omega, order):
         print("hi from table_extension")
-        return self.interpolate_columns(omega, order, num_randomizers, range(self.base_width, self.width))
+        return self.interpolate_columns(omega, order, range(self.base_width, self.width))
 
     @abstractmethod
     def boundary_constraints_ext(self):

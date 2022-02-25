@@ -197,15 +197,15 @@ class BrainfuckStark:
         # tick = time.time()
         # interpolate with randomization
         processor_polynomials = processor_table.interpolate(
-            omega, fri_domain_length, self.num_randomizers)
+            omega, fri_domain_length)
         instruction_polynomials = instruction_table.interpolate(
-            omega, fri_domain_length, self.num_randomizers)
+            omega, fri_domain_length)
         memory_polynomials = memory_table.interpolate(
-            omega, fri_domain_length, self.num_randomizers)
+            omega, fri_domain_length)
         input_polynomials = input_table.interpolate(
-            omega, fri_domain_length, self.num_randomizers)
+            omega, fri_domain_length)
         output_polynomials = output_table.interpolate(
-            omega, fri_domain_length, self.num_randomizers)
+            omega, fri_domain_length)
         # tock = time.time()
         # print("base table interpolation took", (tock - tick), "seconds")
 
@@ -281,15 +281,15 @@ class BrainfuckStark:
         # print("interpolating extensions ...")
         # interpolate extension columns
         processor_extension_polynomials = processor_extension.interpolate_extension(
-            omega, fri_domain_length, self.num_randomizers)
+            omega, fri_domain_length)
         instruction_extension_polynomials = instruction_extension.interpolate_extension(
-            omega, fri_domain_length, self.num_randomizers)
+            omega, fri_domain_length)
         memory_extension_polynomials = memory_extension.interpolate_extension(
-            omega, fri_domain_length, self.num_randomizers)
+            omega, fri_domain_length)
         input_extension_polynomials = input_extension.interpolate_extension(
-            omega, fri_domain_length, self.num_randomizers)
+            omega, fri_domain_length)
         output_extension_polynomials = output_extension.interpolate_extension(
-            omega, fri_domain_length, self.num_randomizers)
+            omega, fri_domain_length)
         # tock = time.time()
         # print("interpolation of extensions took", (tock - tick), "seconds")
 

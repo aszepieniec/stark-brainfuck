@@ -72,14 +72,14 @@ class Table:
                 assert(mpo.evaluate(point).is_zero(
                 )), f"TRNASITION constraint {i} not satisfied in row {rowidx}; point: {[str(p) for p in point]}; polynomial {str(mpo.partial_evaluate({1: point[1]}))} evaluates to {str(mpo.evaluate(point))}"
 
-    def interpolate(self, omega, order, num_randomizers):
-        return self.interpolate_columns(omega, order, num_randomizers, column_indices=range(self.width))
+    def interpolate(self, omega, order):
+        return self.interpolate_columns(omega, order, column_indices=range(self.width))
 
-    def interpolate_columns(self, omega, omega_order, num_randomizers, column_indices):
+    def interpolate_columns(self, omega, omega_order, column_indices):
         assert(omega.has_order_po2(omega_order)
                ), "omega does not have claimed order"
         print("called interpolate_columns with omega:", omega, "order:", omega_order,
-              "num randomizers:", num_randomizers, "table height:", len(self.table))
+              "num randomizers:", self.num_randomizers, "table height:", len(self.table))
 
         if self.height == 0:
             return [Polynomial([])] * len(column_indices)
@@ -89,13 +89,13 @@ class Table:
                           for i in range(self.height)]
         print("length of omicron domain:", len(omicron_domain))
         randomizer_domain = [self.field.lift(omega) * omicron_domain[i]
-                             for i in range(num_randomizers)]
+                             for i in range(self.num_randomizers)]
         print("length of randomizer domain:", len(randomizer_domain))
         domain = omicron_domain + randomizer_domain
         for c in column_indices:
             trace = [row[c] for row in self.table]
             randomizers = [self.field.sample(os.urandom(3*8))
-                           for i in range(num_randomizers)]
+                           for i in range(self.num_randomizers)]
             values = trace + randomizers
             # assert(len(values) == len(
             #     domain)), f"length of domain {len(domain)} and values {len(values)} are unequal"
