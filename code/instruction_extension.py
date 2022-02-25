@@ -13,9 +13,9 @@ class InstructionExtension(TableExtension):
 
     width = 5
 
-    def __init__(self, height, generator, order, a, b, c, alpha, eta, permutation_terminal, evaluation_terminal):
+    def __init__(self, length, num_randomizers, generator, order, a, b, c, alpha, eta, permutation_terminal, evaluation_terminal):
         super(InstructionExtension, self).__init__(
-            a.field, InstructionTable.width, InstructionExtension.width, height, generator, order)
+            a.field, InstructionTable.width, InstructionExtension.width, length, num_randomizers, generator, order)
 
         # terminal values (placeholders)
         self.permutation_terminal = self.field.zero()
@@ -87,7 +87,7 @@ class InstructionExtension(TableExtension):
             table_extension += [new_row]
 
         extended_instruction_table = InstructionExtension(
-            instruction_table.height, instruction_table.generator, instruction_table.order, a, b, c, alpha, eta, permutation_running_product, evaluation_running_sum)
+            instruction_table.length, instruction_table.num_randomizers, instruction_table.generator, instruction_table.order, a, b, c, alpha, eta, permutation_running_product, evaluation_running_sum)
         extended_instruction_table.table = table_extension
 
         extended_instruction_table.field = xfield

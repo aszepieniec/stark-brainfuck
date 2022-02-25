@@ -11,13 +11,9 @@ class IOExtension(TableExtension):
 
     def __init__(self, length, generator, order, gamma, evaluation_terminal):
 
-        if length == 0:
-            height = 0
-        else:
-            height = Table.roundup_npo2(length)
-
+        num_randomizers = 0
         super(IOExtension, self).__init__(
-            gamma.field, IOTable.width, IOExtension.width, height, generator, order)
+            gamma.field, IOTable.width, IOExtension.width, length, num_randomizers, generator, order)
 
         # length is before, height is after, rounding to the next power of two
         self.length = length

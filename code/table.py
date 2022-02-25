@@ -6,10 +6,11 @@ import os
 
 
 class Table:
-    def __init__(self, field, width, length, generator, order):
+    def __init__(self, field, width, length, num_randomizers, generator, order):
         self.field = field
         self.width = width
         self.length = length
+        self.num_randomizers = num_randomizers
         self.height = Table.roundup_npo2(length)
         self.omicron = Table.derive_omicron(
             generator, order, self.height)
@@ -36,8 +37,7 @@ class Table:
         return omega_order // Table.roundup_npo2(self.height)
 
     def get_interpolation_domain_length(self):
-        num_randomizers = 0  # TODO: account for nonzero # randomizers
-        return Table.roundup_npo2(self.height) + num_randomizers
+        return Table.roundup_npo2(self.height) + self.num_randomizers
 
     def get_interpolant_degree(self):
         return self.get_interpolation_domain_length() - 1

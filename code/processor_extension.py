@@ -20,9 +20,9 @@ class ProcessorExtension(TableExtension):
 
     width = 11
 
-    def __init__(self, height, generator, order, a, b, c, d, e, f, alpha, beta, gamma, delta, instruction_permutation_terminal, memory_permutation_terminal, input_evaluation_terminal, output_evaluation_terminal):
+    def __init__(self, length, num_randomizers, generator, order, a, b, c, d, e, f, alpha, beta, gamma, delta, instruction_permutation_terminal, memory_permutation_terminal, input_evaluation_terminal, output_evaluation_terminal):
         super(ProcessorExtension, self).__init__(
-            a.field, ProcessorTable.width, ProcessorExtension.width, height, generator, order)
+            a.field, ProcessorTable.width, ProcessorExtension.width, length, num_randomizers, generator, order)
         field = a.field
 
         # terminal values (placeholders)
@@ -97,7 +97,7 @@ class ProcessorExtension(TableExtension):
             if row[ProcessorExtension.current_instruction] == BaseFieldElement(ord(','), field):
                 input_evaluation_running_evaluation = input_evaluation_running_evaluation * gamma \
                     + xfield.lift(processor_table.table[i+1][ProcessorTable.memory_value])
-                    # the memory-value register only assumes the input value after the instruction has been performed
+                # the memory-value register only assumes the input value after the instruction has been performed
 
             # 4. evaluation for output
             new_row += [output_evaluation_running_evaluation]
@@ -107,7 +107,7 @@ class ProcessorExtension(TableExtension):
 
             table_extension += [new_row]
 
-        extended_processor_table = ProcessorExtension(processor_table.height, processor_table.generator, processor_table.order,
+        extended_processor_table = ProcessorExtension(processor_table.length, processor_table.num_randomizers, processor_table.generator, processor_table.order,
                                                       a, b, c, d, e, f, alpha, beta, gamma, delta, instruction_permutation_running_product, memory_permutation_running_product, input_evaluation_running_evaluation, output_evaluation_running_evaluation)
         extended_processor_table.table = table_extension
 
@@ -166,9 +166,10 @@ class ProcessorExtension(TableExtension):
         polynomials += [(output_evaluation_next - output_evaluation * self.delta - memory_value) * ProcessorTable.ifnot_instruction(
             '.', current_instruction) * current_instruction + (output_evaluation_next - output_evaluation) * ProcessorTable.if_instruction('.', current_instruction)]
 
-        assert(len(polynomials) == 10), f"number of transition constraints ({len(polynomials)}) does not match with expectation (10)"
+        assert(len(polynomials) ==
+               10), f"number of transition constraints ({len(polynomials)}) does not match with expectation (10)"
 
-        return polynomials # max degree 11
+        return polynomials  # max degree 11
 
     def boundary_constraints_ext(self):
         # format: mpolynomial
@@ -187,7 +188,8 @@ class ProcessorExtension(TableExtension):
                        x[self.input_evaluation] - zero,
                        x[self.output_evaluation] - zero
                        ]
-        assert(len(constraints) == 9), "number of boundary constraints does not match with expectation"
+        assert(len(constraints) ==
+               9), "number of boundary constraints does not match with expectation"
         return constraints
 
     def terminal_constraints_ext(self, challenges, terminals):

@@ -9,8 +9,8 @@ from univariate import Polynomial
 
 
 class TableExtension(Table):
-    def __init__(self, xfield, base_width, width, height, generator, order):
-        super().__init__(xfield, width, height, generator, order)
+    def __init__(self, xfield, base_width, width, length, num_randomizers, generator, order):
+        super().__init__(xfield, width, length, num_randomizers, generator, order)
         self.base_width = base_width
         self.xfield = xfield
 

@@ -13,9 +13,9 @@ class ProcessorTable(Table):
 
     width = 7
 
-    def __init__(self, field, length, generator, order):
+    def __init__(self, field, length, num_randomizers, generator, order):
         super(ProcessorTable, self).__init__(
-            field, 7, length, generator, order)
+            field, 7, length, num_randomizers, generator, order)
 
     def pad(self):
         while len(self.table) & (len(self.table)-1) != 0:

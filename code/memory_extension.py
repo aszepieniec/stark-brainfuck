@@ -13,9 +13,9 @@ class MemoryExtension(TableExtension):
 
     width = 4
 
-    def __init__(self, height, generator, order, d, e, f, beta, permutation_terminal):
+    def __init__(self, length, num_randomizers, generator, order, d, e, f, beta, permutation_terminal):
         super(MemoryExtension, self).__init__(
-            d.field, MemoryTable.width, MemoryExtension.width, height, generator, order)
+            d.field, MemoryTable.width, MemoryExtension.width, length, num_randomizers, generator, order)
 
         # terminal values
         self.permutation_terminal = permutation_terminal
@@ -62,7 +62,7 @@ class MemoryExtension(TableExtension):
             table_extension += [new_row]
 
         extended_memory_table = MemoryExtension(
-            memory_table.height, memory_table.generator, memory_table.order, d, e, f, beta, memory_permutation_running_product)
+            memory_table.length, memory_table.num_randomizers, memory_table.generator, memory_table.order, d, e, f, beta, memory_permutation_running_product)
         extended_memory_table.table = table_extension
 
         extended_memory_table.field = xfield

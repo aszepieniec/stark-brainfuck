@@ -10,9 +10,9 @@ class MemoryTable(Table):
 
     width = 3
 
-    def __init__(self, field, length, generator, order):
+    def __init__(self, field, length, num_randomizers, generator, order):
         super(MemoryTable, self).__init__(
-            field, MemoryTable.width, length, generator, order)
+            field, MemoryTable.width, length, num_randomizers, generator, order)
 
     # def pad(self, padded_processor_table):
     #     current_cycle = max(row[MemoryTable.cycle].value for row in self.table)
@@ -30,12 +30,12 @@ class MemoryTable(Table):
     #            0), "after padding memory table, number of rows is not a power of two ..."
 
     @staticmethod
-    def derive(processor_table):
+    def derive(processor_table, num_randomizers):
         table = [[pt[ProcessorTable.cycle], pt[ProcessorTable.memory_pointer],
                   pt[ProcessorTable.memory_value]] for pt in processor_table.table]
         table.sort(key=lambda mt: mt[MemoryTable.memory_pointer].value)
         memory_table = MemoryTable(processor_table.field, len(
-            table), processor_table.generator, processor_table.order)
+            table), num_randomizers, processor_table.generator, processor_table.order)
         memory_table.table = table
         return memory_table
 

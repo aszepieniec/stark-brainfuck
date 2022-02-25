@@ -120,31 +120,19 @@ class BrainfuckStark:
         return codeword
 
     def prove(self, running_time, program, processor_table_table, instruction_table_table, memory_table_table, input_table_table, output_table_table, proof_stream=None):
-        # assert(len(processor_table_table) & (len(processor_table_table)-1)
-        #        == 0), "length of table must be power of two"
-
-        print("length of processor table:", len(
-            processor_table_table), "and running time:", running_time)
-
-        print("calling prover with input table of length", len(input_table_table),
-              "; content:", "".join(chr(s[0].value) for s in input_table_table))
-        print("processor table at row 1 and column memory_value:",
-              processor_table_table[1][ProcessorTable.memory_value])
-        print("processor table at row 1 and column current_instruction:",
-              processor_table_table[1][ProcessorTable.current_instruction])
 
         start_time_prover = time.time()
 
-        # instantiate processor and instruction table objects
+        # instantiate processor, instruction and io table objects
         order = 1 << 32
         generator = self.field.primitive_nth_root(order)
 
-        processor_table = ProcessorTable(self.field, len(
-            processor_table_table), generator, order)
+        processor_table = ProcessorTable(
+            self.field, running_time, self.num_randomizers, generator, order)
         processor_table.table = [row for row in processor_table_table]
 
-        instruction_table = InstructionTable(self.field, len(
-            instruction_table_table), generator, order)
+        instruction_table = InstructionTable(
+            self.field, running_time + len(program), self.num_randomizers, generator, order)
         instruction_table.table = [row for row in instruction_table_table]
 
         input_table = IOTable(self.field, len(
@@ -161,28 +149,32 @@ class BrainfuckStark:
         output_table.pad()
 
         # instantiate other table objects
-        memory_table = MemoryTable.derive(processor_table)
+        memory_table = MemoryTable.derive(
+            processor_table, self.num_randomizers)
 
         # compute fri domain length
-        # consider taking max air degree across all tables
-        air_degree = ProcessorExtension.air_degree()
-        # TODO: probably not right; fix me (also in verifier)
-        trace_degree = BrainfuckStark.roundup_npo2(
-            instruction_table.length + self.num_randomizers) - 1
-        tp_degree = air_degree * trace_degree
-        tz_degree = instruction_table.length - 1
-        tq_degree = tp_degree - tz_degree
-        max_degree = BrainfuckStark.roundup_npo2(
-            tq_degree + 1) - 1  # The max degree bound provable by FRI
+        max_degree = 1
+        for table in [processor_table, instruction_table, memory_table, input_table, output_table]:
+            for air in table.transition_constraints():
+                degree_bounds = [table.get_interpolant_degree()] * \
+                    table.width * 2
+                degree = air.symbolic_degree_bound(
+                    degree_bounds) - (table.height - 1)
+                if max_degree < degree:
+                    max_degree = degree
+
+        # # consider taking max air degree across all tables
+        # air_degree = ProcessorExtension.air_degree()
+        # # TODO: probably not right; fix me (also in prover)
+        # trace_degree = BrainfuckStark.roundup_npo2(
+        #     instruction_table.length + self.num_randomizers) - 1
+        # tp_degree = air_degree * trace_degree
+        # tz_degree = instruction_table.length - 1
+        # tq_degree = tp_degree - tz_degree
+        # The max degree bound provable by FRI
+        max_degree = BrainfuckStark.roundup_npo2(max_degree) - 1
         fri_domain_length = (max_degree+1) * self.expansion_factor
 
-        print("original trace length:", processor_table.length)
-        print("rounded trace length:", instruction_table.length)
-        print("trace degree:", trace_degree)
-        print("air degree:", air_degree)
-        print("transition polynomials degree:", tp_degree)
-        print("transition quotients degree:", tq_degree)
-        print("transition zerofier degree:", tz_degree)
         print("max degree:", max_degree)
         print("fri domain length:", fri_domain_length)
 
@@ -631,57 +623,47 @@ class BrainfuckStark:
 
         verifier_verdict = True
 
-        # infer details about computation
-        log_time = 0
-        while 1 << log_time < running_time:
-            log_time += 1
+        # instantiate table objects
+        order = 1 << 32
+        generator = self.field.primitive_nth_root(order)
 
-        log_instructions = 0
-        while 1 << log_instructions < running_time + len(program):
-            log_instructions += 1
+        processor_table = ProcessorTable(
+            self.field, self.num_randomizers, running_time, generator, order)
 
-        original_trace_length = running_time
-        rounded_trace_length = BrainfuckStark.roundup_npo2(
-            original_trace_length + len(program))
-        randomized_trace_length = rounded_trace_length + self.num_randomizers
+        instruction_table = InstructionTable(
+            self.field, self.num_randomizers, running_time + len(program), generator, order)
 
-        # infer table lengths (=# rows)
-        log_input = 0
-        if len(input_symbols) == 0:
-            log_input -= 1
-        else:
-            while (1 << log_input) < len(input_symbols):
-                log_input += 1
-        log_output = 0
-        if len(output_symbols) == 0:
-            log_output -= 1
-        else:
-            while (1 << log_output) < len(output_symbols):
-                log_output += 1
+        input_table = IOTable(self.field, len(
+            input_symbols), generator, order)
+        output_table = IOTable(self.field, len(
+            output_symbols), generator, order)
 
-        print("log time:", log_time)
-        print("log input length:", log_input)
-        print("log output length:", log_output)
+        memory_table = MemoryTable(
+            self.field, self.num_randomizers, running_time, generator, order)
 
         # compute fri domain length
-        # consider taking the max across all tables
-        air_degree = ProcessorExtension.air_degree()
-        trace_degree = BrainfuckStark.roundup_npo2(randomized_trace_length) - 1
-        tp_degree = air_degree * trace_degree
-        tz_degree = rounded_trace_length - 1
-        tq_degree = tp_degree - tz_degree
-        max_degree = BrainfuckStark.roundup_npo2(
-            tq_degree + 1) - 1  # The max degree bound provable by FRI
+        max_degree = 1
+        for table in [processor_table, instruction_table, memory_table, input_table, output_table]:
+            for air in table.transition_constraints():
+                degree_bounds = [table.get_interpolant_degree()] * \
+                    table.width * 2
+                degree = air.symbolic_degree_bound(
+                    degree_bounds) - (table.height - 1)
+                if max_degree < degree:
+                    max_degree = degree
+
+        # # consider taking max air degree across all tables
+        # air_degree = ProcessorExtension.air_degree()
+        # # TODO: probably not right; fix me (also in prover)
+        # trace_degree = BrainfuckStark.roundup_npo2(
+        #     instruction_table.length + self.num_randomizers) - 1
+        # tp_degree = air_degree * trace_degree
+        # tz_degree = instruction_table.length - 1
+        # tq_degree = tp_degree - tz_degree
+        # The max degree bound provable by FRI
+        max_degree = BrainfuckStark.roundup_npo2(max_degree) - 1
         fri_domain_length = (max_degree+1) * self.expansion_factor
 
-        print("original trace length:", original_trace_length)
-        print("rounded trace length:", rounded_trace_length)
-        print("randomized trace length:", randomized_trace_length)
-        print("trace degree:", trace_degree)
-        print("air degree:", air_degree)
-        print("transition polynomials degree:", tp_degree)
-        print("transition quotients degree:", tq_degree)
-        print("transition zerofier degree:", tz_degree)
         print("max degree:", max_degree)
         print("fri domain length:", fri_domain_length)
 
@@ -731,12 +713,12 @@ class BrainfuckStark:
 
         # generate extension tables for type information
         # i.e., do not populate tables
-        processor_extension = ProcessorExtension(BrainfuckStark.roundup_npo2(running_time), omega, fri_domain_length,
+        processor_extension = ProcessorExtension(BrainfuckStark.roundup_npo2(running_time), self.num_randomizers, omega, fri_domain_length,
                                                  a, b, c, d, e, f, alpha, beta, gamma, delta, processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal)
         instruction_extension = InstructionExtension(BrainfuckStark.roundup_npo2(
-            running_time+len(program)), omega, fri_domain_length, a, b, c, alpha, eta, processor_instruction_permutation_terminal, instruction_evaluation_terminal)
+            running_time+len(program)), self.num_randomizers, omega, fri_domain_length, a, b, c, alpha, eta, processor_instruction_permutation_terminal, instruction_evaluation_terminal)
         memory_extension = MemoryExtension(BrainfuckStark.roundup_npo2(
-            running_time), omega, fri_domain_length, d, e, f, beta, processor_memory_permutation_terminal)
+            running_time), self.num_randomizers, omega, fri_domain_length, d, e, f, beta, processor_memory_permutation_terminal)
 
         input_extension = IOExtension(len(
             input_symbols), omega, fri_domain_length, gamma, processor_input_evaluation_terminal)
