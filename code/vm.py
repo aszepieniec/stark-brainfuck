@@ -176,7 +176,6 @@ class VirtualMachine:
 
         # prepare tables
         processor_table_table = []
-        memory_table_table = []
         instruction_table_table = [[BaseFieldElement(i, field), program[i], program[i+1]] for i in range(len(program)-1)] + \
                                   [[BaseFieldElement(
                                       len(program)-1, field), program[-1], field.zero()]]
@@ -194,10 +193,6 @@ class VirtualMachine:
                                        register.memory_pointer,
                                        register.memory_value,
                                        register.is_zero]]
-
-            memory_table_table += [[register.cycle,
-                                    register.memory_pointer,
-                                    register.memory_value]]
 
             instruction_table_table += [[register.instruction_pointer,
                                          register.current_instruction,
@@ -284,17 +279,11 @@ class VirtualMachine:
                                    register.memory_value,
                                    register.is_zero]]
 
-        memory_table_table += [[register.cycle,
-                                register.memory_pointer,
-                                register.memory_value]]
-
         instruction_table_table += [[register.instruction_pointer,
                                      register.current_instruction,
                                      register.next_instruction]]
 
         # post-process context tables
-        # sort by memory address
-        memory_table_table.sort(key=lambda row: row[1].value)
         # sort by instruction address
         instruction_table_table.sort(key=lambda row: row[0].value)
 
@@ -313,7 +302,7 @@ class VirtualMachine:
         # output_table = IOTable(field, len(
         #     output_table_table), generator, order)
 
-        return processor_table_table, instruction_table_table, memory_table_table, input_table_table, output_table_table
+        return processor_table_table, instruction_table_table, input_table_table, output_table_table
 
     @staticmethod
     def num_challenges():

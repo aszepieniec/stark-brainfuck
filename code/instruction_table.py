@@ -15,12 +15,12 @@ class InstructionTable(Table):
             field, InstructionTable.width, length, num_randomizers, generator, order)
 
     def pad(self):
-        while len(self.table) & (len(self.table)-1):
+        while len(self.matrix) & (len(self.matrix)-1):
             new_row = [self.field.zero()] * self.width
-            new_row[InstructionTable.address] = self.table[-1][InstructionTable.address]
+            new_row[InstructionTable.address] = self.matrix[-1][InstructionTable.address]
             new_row[InstructionTable.current_instruction] = self.field.zero()
             new_row[InstructionTable.next_instruction] = self.field.zero()
-            self.table += [new_row]
+            self.matrix += [new_row]
 
     @staticmethod
     def transition_constraints_afo_named_variables(address, current_instruction, next_instruction, address_next, current_instruction_next, next_instruction_next):

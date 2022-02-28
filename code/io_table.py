@@ -13,10 +13,10 @@ class IOTable(Table):
             field, IOTable.width, length, num_randomizers, generator, order)
 
     def pad(self):
-        self.length = len(self.table)
-        while len(self.table) & (len(self.table) - 1) != 0:
-            self.table += [[self.field.zero()]]
-        self.height = len(self.table)
+        self.length = len(self.matrix)
+        while len(self.matrix) & (len(self.matrix) - 1) != 0:
+            self.matrix += [[self.field.zero()]]
+        self.height = len(self.matrix)
 
     def transition_constraints(self):
         return []

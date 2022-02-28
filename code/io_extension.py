@@ -47,8 +47,8 @@ class IOExtension(TableExtension):
         evaluation_terminal = zero
 
         # loop over all rows of table
-        for i in range(len(io_table.table)):
-            row = io_table.table[i]
+        for i in range(len(io_table.matrix)):
+            row = io_table.matrix[i]
             new_row = [xfield.lift(nr) for nr in row]
 
             new_row += [io_running_evaluation]
@@ -65,7 +65,7 @@ class IOExtension(TableExtension):
                == 0), f"height of io_table must be 2^k"
         extended_io_table = IOExtension(
             io_table.length, io_table.generator, io_table.order, gamma, evaluation_terminal)
-        extended_io_table.table = table_extension
+        extended_io_table.matrix = table_extension
 
         extended_io_table.field = xfield
 

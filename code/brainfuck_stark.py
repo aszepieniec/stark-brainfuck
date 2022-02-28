@@ -119,7 +119,7 @@ class BrainfuckStark:
             [transformed_lists[i][j] for j in range(3)]), field) for i in range(order)]
         return codeword
 
-    def prove(self, running_time, program, processor_table_table, instruction_table_table, memory_table_table, input_table_table, output_table_table, proof_stream=None):
+    def prove(self, running_time, program, processor_table_table, instruction_table_table, input_table_table, output_table_table, proof_stream=None):
 
         start_time_prover = time.time()
 
@@ -129,18 +129,18 @@ class BrainfuckStark:
 
         processor_table = ProcessorTable(
             self.field, running_time, self.num_randomizers, generator, order)
-        processor_table.table = [row for row in processor_table_table]
+        processor_table.matrix = [row for row in processor_table_table]
 
         instruction_table = InstructionTable(
             self.field, running_time + len(program), self.num_randomizers, generator, order)
-        instruction_table.table = [row for row in instruction_table_table]
+        instruction_table.matrix = [row for row in instruction_table_table]
 
         input_table = IOTable(self.field, len(
             input_table_table), generator, order)
-        input_table.table = [row for row in input_table_table]
+        input_table.matrix = [row for row in input_table_table]
         output_table = IOTable(self.field, len(
             output_table_table), generator, order)
-        output_table.table = [row for row in output_table_table]
+        output_table.matrix = [row for row in output_table_table]
 
         # pad table to height 2^k
         processor_table.pad()

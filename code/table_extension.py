@@ -223,8 +223,8 @@ class TableExtension(Table):
     def test(self):
         for i in range(len(self.boundary_constraints_ext())):
             mpo = self.boundary_constraints_ext()[i]
-            if len(self.table) != 0:
-                point = self.table[0]
+            if len(self.matrix) != 0:
+                point = self.matrix[0]
                 assert(mpo.evaluate(point).is_zero(
                 )), f"BOUNDARY constraint {i} not satisfied; point: {[str(p) for p in point]}; polynomial {str(mpo)} evaluates to {str(mpo.evaluate(point))}"
 
@@ -232,10 +232,10 @@ class TableExtension(Table):
             self.challenges)
         for i in range(len(transition_constraints)):
             mpo = transition_constraints[i]
-            for rowidx in range(len(self.table)-1):
-                assert(len(self.table[rowidx]) == len(
-                    self.table[rowidx+1])), "table has consecutive rows of different length"
-                point = self.table[rowidx] + self.table[rowidx+1]
+            for rowidx in range(len(self.matrix)-1):
+                assert(len(self.matrix[rowidx]) == len(
+                    self.matrix[rowidx+1])), "table has consecutive rows of different length"
+                point = self.matrix[rowidx] + self.matrix[rowidx+1]
                 assert(len(point) == len(list(mpo.dictionary.keys())[
                        0])), f"point has {len(point)} elements but mpo has {len(list(mpo.dictionary.keys())[0])} variables .."
                 assert(mpo.evaluate(point).is_zero(
@@ -243,9 +243,9 @@ class TableExtension(Table):
 
         terminal_constraints = self.terminal_constraints_ext(
             self.challenges, self.terminals)
-        if len(self.table) != 0:
+        if len(self.matrix) != 0:
             for i in range(len(terminal_constraints)):
                 mpo = terminal_constraints[i]
-                point = self.table[-1]
+                point = self.matrix[-1]
                 assert(mpo.evaluate(point).is_zero(
                 )), f"TERMINAL constraint {i} not satisfied; point: {[str(p) for p in point]}; polynomial {str(mpo)} evaluates to {str(mpo.evaluate(point))}"

@@ -18,17 +18,17 @@ class ProcessorTable(Table):
             field, 7, length, num_randomizers, generator, order)
 
     def pad(self):
-        while len(self.table) & (len(self.table)-1) != 0:
+        while len(self.matrix) & (len(self.matrix)-1) != 0:
             new_row = [self.field.zero()] * 7
-            new_row[ProcessorTable.cycle] = self.table[-1][ProcessorTable.cycle] + \
+            new_row[ProcessorTable.cycle] = self.matrix[-1][ProcessorTable.cycle] + \
                 self.field.one()
-            new_row[ProcessorTable.instruction_pointer] = self.table[-1][ProcessorTable.instruction_pointer]
+            new_row[ProcessorTable.instruction_pointer] = self.matrix[-1][ProcessorTable.instruction_pointer]
             new_row[ProcessorTable.current_instruction] = self.field.zero()
             new_row[ProcessorTable.next_instruction] = self.field.zero()
-            new_row[ProcessorTable.memory_pointer] = self.table[-1][ProcessorTable.memory_pointer]
-            new_row[ProcessorTable.memory_value] = self.table[-1][ProcessorTable.memory_value]
-            new_row[ProcessorTable.is_zero] = self.table[-1][ProcessorTable.is_zero]
-            self.table += [new_row]
+            new_row[ProcessorTable.memory_pointer] = self.matrix[-1][ProcessorTable.memory_pointer]
+            new_row[ProcessorTable.memory_value] = self.matrix[-1][ProcessorTable.memory_value]
+            new_row[ProcessorTable.is_zero] = self.matrix[-1][ProcessorTable.is_zero]
+            self.matrix += [new_row]
 
     @staticmethod
     def if_instruction(instruction, indeterminate: MPolynomial):

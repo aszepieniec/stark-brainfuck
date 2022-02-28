@@ -16,7 +16,7 @@ class Table:
             generator, order, self.height)
         self.generator = generator
         self.order = order
-        self.table = []
+        self.matrix = []
 
     @staticmethod
     def roundup_npo2(integer):
@@ -55,18 +55,18 @@ class Table:
     def test(self):
         for i in range(len(self.boundary_constraints())):
             mpo = self.boundary_constraints()[i]
-            if len(self.table) != 0:
-                point = self.table[0]
+            if len(self.matrix) != 0:
+                point = self.matrix[0]
                 assert(mpo.evaluate(point).is_zero(
                 )), f"BOUNDARY constraint {i} not satisfied; point: {[str(p) for p in point]}; polynomial {str(mpo)} evaluates to {str(mpo.evaluate(point))}"
 
         transition_constraints = self.transition_constraints()
         for i in range(len(transition_constraints)):
             mpo = transition_constraints[i]
-            for rowidx in range(len(self.table)-1):
-                assert(len(self.table[rowidx]) == len(
-                    self.table[rowidx+1])), "table has consecutive rows of different length"
-                point = self.table[rowidx] + self.table[rowidx+1]
+            for rowidx in range(len(self.matrix)-1):
+                assert(len(self.matrix[rowidx]) == len(
+                    self.matrix[rowidx+1])), "table has consecutive rows of different length"
+                point = self.matrix[rowidx] + self.matrix[rowidx+1]
                 assert(len(point) == len(list(mpo.dictionary.keys())[
                        0])), f"point has {len(point)} elements but mpo has {len(list(mpo.dictionary.keys())[0])} variables .."
                 assert(mpo.evaluate(point).is_zero(
@@ -79,7 +79,7 @@ class Table:
         assert(omega.has_order_po2(omega_order)
                ), "omega does not have claimed order"
         print("called interpolate_columns with omega:", omega, "order:", omega_order,
-              "num randomizers:", self.num_randomizers, "table height:", len(self.table))
+              "num randomizers:", self.num_randomizers, "table height:", len(self.matrix))
 
         if self.height == 0:
             return [Polynomial([])] * len(column_indices)
@@ -93,7 +93,7 @@ class Table:
         print("length of randomizer domain:", len(randomizer_domain))
         domain = omicron_domain + randomizer_domain
         for c in column_indices:
-            trace = [row[c] for row in self.table]
+            trace = [row[c] for row in self.matrix]
             randomizers = [self.field.sample(os.urandom(3*8))
                            for i in range(self.num_randomizers)]
             values = trace + randomizers

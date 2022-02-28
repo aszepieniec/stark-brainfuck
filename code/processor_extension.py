@@ -68,8 +68,8 @@ class ProcessorExtension(TableExtension):
 
         # loop over all rows
         table_extension = []
-        for i in range(len(processor_table.table)):
-            row = processor_table.table[i]
+        for i in range(len(processor_table.matrix)):
+            row = processor_table.matrix[i]
 
             # first, copy over existing row
             new_row = [xfield.lift(nr) for nr in row]
@@ -96,7 +96,7 @@ class ProcessorExtension(TableExtension):
             new_row += [input_evaluation_running_evaluation]
             if row[ProcessorExtension.current_instruction] == BaseFieldElement(ord(','), field):
                 input_evaluation_running_evaluation = input_evaluation_running_evaluation * gamma \
-                    + xfield.lift(processor_table.table[i+1][ProcessorTable.memory_value])
+                    + xfield.lift(processor_table.matrix[i+1][ProcessorTable.memory_value])
                 # the memory-value register only assumes the input value after the instruction has been performed
 
             # 4. evaluation for output
@@ -109,7 +109,7 @@ class ProcessorExtension(TableExtension):
 
         extended_processor_table = ProcessorExtension(processor_table.length, processor_table.num_randomizers, processor_table.generator, processor_table.order,
                                                       a, b, c, d, e, f, alpha, beta, gamma, delta, instruction_permutation_running_product, memory_permutation_running_product, input_evaluation_running_evaluation, output_evaluation_running_evaluation)
-        extended_processor_table.table = table_extension
+        extended_processor_table.matrix = table_extension
 
         extended_processor_table.field = xfield
 

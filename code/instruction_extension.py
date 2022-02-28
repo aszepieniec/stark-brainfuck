@@ -58,8 +58,8 @@ class InstructionExtension(TableExtension):
         previous_address = -one
 
         # loop over all rows of table
-        for i in range(len(instruction_table.table)):
-            row = instruction_table.table[i]
+        for i in range(len(instruction_table.matrix)):
+            row = instruction_table.matrix[i]
             new_row = []
 
             # first, copy over existing row
@@ -88,7 +88,7 @@ class InstructionExtension(TableExtension):
 
         extended_instruction_table = InstructionExtension(
             instruction_table.length, instruction_table.num_randomizers, instruction_table.generator, instruction_table.order, a, b, c, alpha, eta, permutation_running_product, evaluation_running_sum)
-        extended_instruction_table.table = table_extension
+        extended_instruction_table.matrix = table_extension
 
         extended_instruction_table.field = xfield
 
@@ -178,16 +178,16 @@ class InstructionExtension(TableExtension):
     # def transition_quotients(self, log_num_rows, domain, codewords, challenges):
 
     #     assert(len(codewords) == len(
-    #         self.table[0])), "num codewords =/= num columns"
+    #         self.matrix[0])), "num codewords =/= num columns"
 
     #     poly = domain.xinterpolate(codewords[0])
     #     print("polynomial 0, reinterpolated:", poly)
 
     #     for i in range(len(codewords)):
     #         poly = domain.xinterpolate(codewords[i])
-    #         for j in range(len(self.table)):
+    #         for j in range(len(self.matrix)):
     #             print("polynomial", i, "evaluated in omicron^",
-    #                   j, "is", poly.evaluate(self.field.lift(self.omicron ^ j)), "whereas table[j][i] is", self.table[j][i])
+    #                   j, "is", poly.evaluate(self.field.lift(self.omicron ^ j)), "whereas table[j][i] is", self.matrix[j][i])
 
     #     if log_num_rows < 0:
     #         return []

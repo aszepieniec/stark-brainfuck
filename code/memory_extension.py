@@ -49,8 +49,8 @@ class MemoryExtension(TableExtension):
         memory_permutation_running_product = one
 
         # loop over all rows of table
-        for i in range(len(memory_table.table)):
-            row = memory_table.table[i]
+        for i in range(len(memory_table.matrix)):
+            row = memory_table.matrix[i]
             new_row = [xfield.lift(nr) for nr in row]
 
             new_row += [memory_permutation_running_product]
@@ -63,7 +63,7 @@ class MemoryExtension(TableExtension):
 
         extended_memory_table = MemoryExtension(
             memory_table.length, memory_table.num_randomizers, memory_table.generator, memory_table.order, d, e, f, beta, memory_permutation_running_product)
-        extended_memory_table.table = table_extension
+        extended_memory_table.matrix = table_extension
 
         extended_memory_table.field = xfield
 

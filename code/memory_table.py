@@ -32,11 +32,11 @@ class MemoryTable(Table):
     @staticmethod
     def derive(processor_table, num_randomizers):
         table = [[pt[ProcessorTable.cycle], pt[ProcessorTable.memory_pointer],
-                  pt[ProcessorTable.memory_value]] for pt in processor_table.table]
+                  pt[ProcessorTable.memory_value]] for pt in processor_table.matrix]
         table.sort(key=lambda mt: mt[MemoryTable.memory_pointer].value)
         memory_table = MemoryTable(processor_table.field, len(
             table), num_randomizers, processor_table.generator, processor_table.order)
-        memory_table.table = table
+        memory_table.matrix = table
         return memory_table
 
     @staticmethod

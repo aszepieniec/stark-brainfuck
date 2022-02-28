@@ -11,12 +11,12 @@ def test_bfs():
     program = VirtualMachine.compile(
         ">++++++++++[>+++><<-]>+++><<>.................")
     program = VirtualMachine.compile(
-        "+,.")
+        ",+.")
 
     # Print "Hello World!"
     # program = VirtualMachine.compile(
     #     "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.")
-    processor_table_table, instruction_table_table, memory_table_table, input_table_table, output_table_table = bfs.vm.simulate(
+    processor_table_table, instruction_table_table, input_table_table, output_table_table = bfs.vm.simulate(
         program)
     running_time = len(processor_table_table)
 
@@ -26,8 +26,8 @@ def test_bfs():
         proof = pickle.load(fh)
         fh.close()
     else:
-        proof = bfs.prove(len(processor_table_table), program, processor_table_table, instruction_table_table,
-                          memory_table_table, input_table_table, output_table_table)
+        proof = bfs.prove(len(processor_table_table), program, processor_table_table,
+                          instruction_table_table, input_table_table, output_table_table)
         fh = open(filename, "wb")
         pickle.dump(proof, fh)
         fh.close()
