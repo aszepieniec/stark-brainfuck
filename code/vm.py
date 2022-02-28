@@ -175,28 +175,28 @@ class VirtualMachine:
         output_data = []
 
         # prepare tables
-        processor_table_table = []
-        instruction_table_table = [[BaseFieldElement(i, field), program[i], program[i+1]] for i in range(len(program)-1)] + \
-                                  [[BaseFieldElement(
-                                      len(program)-1, field), program[-1], field.zero()]]
+        processor_matrix = []
+        instruction_matrix = [[BaseFieldElement(i, field), program[i], program[i+1]] for i in range(len(program)-1)] + \
+            [[BaseFieldElement(
+                len(program)-1, field), program[-1], field.zero()]]
 
-        input_table_table = []
-        output_table_table = []
+        input_matrix = []
+        output_matrix = []
 
         # main loop
         while register.instruction_pointer.value < len(program):
             # collect values to add new rows in execution tables
-            processor_table_table += [[register.cycle,
-                                       register.instruction_pointer,
-                                       register.current_instruction,
-                                       register.next_instruction,
-                                       register.memory_pointer,
-                                       register.memory_value,
-                                       register.is_zero]]
+            processor_matrix += [[register.cycle,
+                                  register.instruction_pointer,
+                                  register.current_instruction,
+                                  register.next_instruction,
+                                  register.memory_pointer,
+                                  register.memory_value,
+                                  register.is_zero]]
 
-            instruction_table_table += [[register.instruction_pointer,
-                                         register.current_instruction,
-                                         register.next_instruction]]
+            instruction_matrix += [[register.instruction_pointer,
+                                    register.current_instruction,
+                                    register.next_instruction]]
 
             # update pointer registers according to instruction
             if register.current_instruction == F('['):
@@ -231,7 +231,7 @@ class VirtualMachine:
 
             elif register.current_instruction == F('.'):
                 register.instruction_pointer += one
-                output_table_table += [
+                output_matrix += [
                     [memory.get(register.memory_pointer, zero)]]
                 output_data += chr(
                     int(memory.get(register.memory_pointer, zero).value % 256))
@@ -245,7 +245,7 @@ class VirtualMachine:
                     char = getch()
                 memory[register.memory_pointer] = BaseFieldElement(
                     ord(char), field)
-                input_table_table += [[memory[register.memory_pointer]]]
+                input_matrix += [[memory[register.memory_pointer]]]
 
             else:
                 assert(
@@ -271,38 +271,38 @@ class VirtualMachine:
                 register.is_zero = zero
 
         # collect final state into execution tables
-        processor_table_table += [[register.cycle,
-                                   register.instruction_pointer,
-                                   register.current_instruction,
-                                   register.next_instruction,
-                                   register.memory_pointer,
-                                   register.memory_value,
-                                   register.is_zero]]
+        processor_matrix += [[register.cycle,
+                              register.instruction_pointer,
+                              register.current_instruction,
+                              register.next_instruction,
+                              register.memory_pointer,
+                              register.memory_value,
+                              register.is_zero]]
 
-        instruction_table_table += [[register.instruction_pointer,
-                                     register.current_instruction,
-                                     register.next_instruction]]
+        instruction_matrix += [[register.instruction_pointer,
+                                register.current_instruction,
+                                register.next_instruction]]
 
         # post-process context tables
         # sort by instruction address
-        instruction_table_table.sort(key=lambda row: row[0].value)
+        instruction_matrix.sort(key=lambda row: row[0].value)
 
         # compute instance data for computation
         log_time = 0
-        while 1 << log_time < len(processor_table_table):
+        while 1 << log_time < len(processor_matrix):
             log_time += 1
 
         # order = 1 << 32
         # generator = field.primitive_nth_root(1<<32)
-        # processor_table = ProcessorTable(field, len(processor_table_table), generator, order)
-        # processor_table.table = processor_table_table
-        # instruction_table = InstructionTable(field, len(instruction_table_table), generator, order)
-        # memory_table = MemoryTable(field, len(memory_table_table), generator, order)
-        # input_table = IOTable(field, len(input_table_table), generator, order)
+        # processor_table = ProcessorTable(field, len(processor_matrix), generator, order)
+        # processor_table.table = processor_matrix
+        # instruction_table = InstructionTable(field, len(instruction_matrix), generator, order)
+        # memory_table = MemoryTable(field, len(memory_matrix), generator, order)
+        # input_table = IOTable(field, len(input_matrix), generator, order)
         # output_table = IOTable(field, len(
-        #     output_table_table), generator, order)
+        #     output_matrix), generator, order)
 
-        return processor_table_table, instruction_table_table, input_table_table, output_table_table
+        return processor_matrix, instruction_matrix, input_matrix, output_matrix
 
     @staticmethod
     def num_challenges():

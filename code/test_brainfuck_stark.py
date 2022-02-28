@@ -16,9 +16,9 @@ def test_bfs():
     # Print "Hello World!"
     # program = VirtualMachine.compile(
     #     "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.")
-    processor_table_table, instruction_table_table, input_table_table, output_table_table = bfs.vm.simulate(
+    processor_matrix, instruction_matrix, input_matrix, output_matrix = bfs.vm.simulate(
         program)
-    running_time = len(processor_table_table)
+    running_time = len(processor_matrix)
 
     filename = "proof.dump"
     if exists(filename):
@@ -26,18 +26,18 @@ def test_bfs():
         proof = pickle.load(fh)
         fh.close()
     else:
-        proof = bfs.prove(len(processor_table_table), program, processor_table_table,
-                          instruction_table_table, input_table_table, output_table_table)
+        proof = bfs.prove(len(processor_matrix), program, processor_matrix,
+                          instruction_matrix, input_matrix, output_matrix)
         fh = open(filename, "wb")
         pickle.dump(proof, fh)
         fh.close()
 
-    # proof = bfs.prove(running_time, program, processor_table_table, instruction_table_table,
-    #                   memory_table_table, input_table_table, output_table_table)
+    # proof = bfs.prove(running_time, program, processor_matrix, instruction_matrix,
+    #                   memory_matrix, input_matrix, output_matrix)
 
     # collapse matrix into list for input and output
-    input_symbols = [row[0] for row in input_table_table]
-    output_symbols = [row[0] for row in output_table_table]
+    input_symbols = [row[0] for row in input_matrix]
+    output_symbols = [row[0] for row in output_matrix]
 
     verdict = bfs.verify(proof, running_time, program,
                          input_symbols, output_symbols)
