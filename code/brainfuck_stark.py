@@ -52,7 +52,7 @@ class BrainfuckStark:
         assert(self.num_colinearity_checks * len(bin(self.expansion_factor)
                [3:]) >= self.security_level), "number of colinearity checks times log of expansion factor must be at least security level"
 
-        self.num_randomizers = self.security_level
+        self.num_randomizers = 0 # TODO: self.security_level
 
         self.vm = VirtualMachine()
 
@@ -567,12 +567,12 @@ class BrainfuckStark:
             lambda lhs, rhs: [l+r for l, r in zip(lhs, rhs)], [[w * e for e in t] for w, t in zip(weights, terms)], [self.xfield.zero()] * self.fri.domain.length)
         # print("finished computing nonlinear combination; calculation took", time.time() - tick, "seconds")
 
-        print("prover terms:")
-        for t in terms:
-            print(t[0])
-        print("prover weights:")
-        for w in weights:
-            print(w)
+        # print("prover terms:")
+        # for t in terms:
+        #     print(t[0])
+        # print("prover weights:")
+        # for w in weights:
+        #     print(w)
 
         # commit to combination codeword
         combination_tree = Merkle(combination_codeword)
@@ -1170,12 +1170,12 @@ class BrainfuckStark:
             assert(len(terms) == len(
                 weights)), f"length of terms ({len(terms)}) must be equal to length of weights ({len(weights)})"
 
-            print("verifier terms:")
-            for t in terms:
-                print(t)
-            print("verifier weights:")
-            for w in weights:
-                print(w)
+            # print("verifier terms:")
+            # for t in terms:
+            #     print(t)
+            # print("verifier weights:")
+            # for w in weights:
+            #     print(w)
 
             # compute inner product of weights and terms
             inner_product = reduce(
@@ -1228,13 +1228,13 @@ class BrainfuckStark:
         # verify external terminals:
         # input
         verifier_verdict = verifier_verdict and processor_extension.input_evaluation_terminal == VirtualMachine.evaluation_terminal(
-            [self.xfield.lift(t) for t in self.input_symbols], gamma)
+            [self.xfield(ord(t)) for t in self.input_symbols], gamma)
         assert(verifier_verdict), "processor input evaluation argument failed"
         # output
         # print("type of output symbols:", type(output_symbols),
         #       "and first element:", type(output_symbols[0]))
         verifier_verdict = verifier_verdict and processor_extension.output_evaluation_terminal == VirtualMachine.evaluation_terminal(
-            [self.xfield.lift(t) for t in self.output_symbols], delta)
+            [self.xfield(ord(t)) for t in self.output_symbols], delta)
         assert(verifier_verdict), "processor output evaluation argument failed"
         # program
         print(type(instruction_evaluation_terminal))

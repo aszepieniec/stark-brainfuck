@@ -71,12 +71,9 @@ class TableExtension(Table):
 
     def transition_quotients(self, domain, codewords, challenges):
 
-        # TODO: include number of randomizers in calculation
-        interpolation_subgroup_order = self.get_interpolation_domain_length()
         quotients = []
         field = domain.omega.field
-        subgroup_zerofier = [(domain(
-            i) ^ interpolation_subgroup_order) - field.one() for i in range(domain.length)]
+        subgroup_zerofier = [(domain(i) ^ self.height) - field.one() for i in range(domain.length)]
         subgroup_zerofier_inverse = batch_inverse(subgroup_zerofier)
         zerofier_inverse = [subgroup_zerofier_inverse[i] *
                             (domain(i) - self.omicron.inverse()) for i in range(domain.length)]
@@ -110,8 +107,7 @@ class TableExtension(Table):
             quotients += [quotient_codeword]
 
             interpolated = domain.xinterpolate(composition_codeword)
-            print("composition polynomial, evaluated on omicron^i:", ",".join(str(c)
-                                                                              for c in domain.xevaluate(interpolated)))
+            print("composition polynomial, evaluated on omicron^1:", interpolated.evaluate(self.field.lift(self.omicron)))
 
             if environ.get('DEBUG') is not None:
                 print(f"before domain interpolation of tq in {type(self)}")
