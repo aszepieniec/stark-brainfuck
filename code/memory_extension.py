@@ -67,6 +67,10 @@ class MemoryExtension(TableExtension):
 
         extended_memory_table.field = xfield
 
+        extended_memory_table.polynomials = memory_table.polynomials
+        extended_memory_table.codewords = [
+            [xfield.lift(c) for c in cdwd] for cdwd in memory_table.codewords]
+
         return extended_memory_table
 
     def transition_constraints_ext(self, challenges):

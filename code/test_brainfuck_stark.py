@@ -6,18 +6,25 @@ from os.path import exists
 def test_bfs():
     generator = BaseField.main().generator()
     xfield = ExtensionField.main()
-    bfs = BrainfuckStark(generator, xfield)
     program = VirtualMachine.compile(">>[++-]<++++++++")
     program = VirtualMachine.compile(
         ">++++++++++[>+++><<-]>+++><<>.................")
     program = VirtualMachine.compile(
         ",+.")
 
+    running_time, input_symbols, output_symbols = VirtualMachine.run(program)
+
+    print("running time:", running_time)
+    print("input symbols:", input_symbols)
+    print("output_symbols:", output_symbols)
+
+    bfs = BrainfuckStark(running_time, program, input_symbols, output_symbols)
+
     # Print "Hello World!"
     # program = VirtualMachine.compile(
     #     "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.")
     processor_matrix, instruction_matrix, input_matrix, output_matrix = bfs.vm.simulate(
-        program)
+        program, input_data=input_symbols)
     running_time = len(processor_matrix)
 
     filename = "proof.dump"
@@ -39,8 +46,7 @@ def test_bfs():
     input_symbols = [row[0] for row in input_matrix]
     output_symbols = [row[0] for row in output_matrix]
 
-    verdict = bfs.verify(proof, running_time, program,
-                         input_symbols, output_symbols)
+    verdict = bfs.verify(proof)
     assert(verdict == True), "honest proof fails to verify"
     print("output length was:", len(output_symbols))
     print("proof verified with output: \"" + "".join(

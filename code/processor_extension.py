@@ -113,6 +113,12 @@ class ProcessorExtension(TableExtension):
 
         extended_processor_table.field = xfield
 
+        assert(len(processor_table.polynomials) == ProcessorTable.width)
+        extended_processor_table.polynomials = processor_table.polynomials
+        assert(len(processor_table.codewords) == ProcessorTable.width)
+        extended_processor_table.codewords = [
+            [xfield.lift(c) for c in cdwd] for cdwd in processor_table.codewords]
+
         return extended_processor_table
 
     def transition_constraints_ext(self, challenges):

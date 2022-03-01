@@ -69,6 +69,10 @@ class IOExtension(TableExtension):
 
         extended_io_table.field = xfield
 
+        extended_io_table.polynomials = io_table.polynomials
+        extended_io_table.codewords = [
+            [xfield.lift(c) for c in cdwd] for cdwd in io_table.codewords]
+
         return extended_io_table
 
     def transition_constraints_ext(self, challenges):

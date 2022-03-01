@@ -72,8 +72,8 @@ class VirtualMachine:
 
     def execute(brainfuck_code):
         program = VirtualMachine.compile(brainfuck_code)
-        input_data, output_data = VirtualMachine.perform(program)
-        return input_data, output_data
+        running_time, input_data, output_data = VirtualMachine.perform(program)
+        return running_time, input_data, output_data
 
     def compile(brainfuck_code):
 
@@ -98,7 +98,7 @@ class VirtualMachine:
 
         return program
 
-    def perform(program, input_data=None):
+    def run(program, input_data=[]):
         # shorthands
         field = VirtualMachine.field
         zero = field.zero()
@@ -113,6 +113,7 @@ class VirtualMachine:
         input_counter = 0
 
         # main loop
+        running_time = 1
         while instruction_pointer < len(program):
             if program[instruction_pointer] == F('['):
                 if memory.get(memory_pointer, zero) == zero:
@@ -146,14 +147,17 @@ class VirtualMachine:
                     input_counter += 1
                 else:
                     char = getch()
+                    input_data += [char]
                 memory[memory_pointer] = BaseFieldElement(ord(char), field)
             else:
                 assert(
                     False), f"unrecognized instruction at {instruction_pointer}: {program[instruction_pointer].value}"
 
-        return input_data, output_data
+            running_time += 1
 
-    @staticmethod
+        return running_time, input_data, output_data
+
+    @ staticmethod
     def simulate(program, input_data=[]):
         # shorthands
         field = VirtualMachine.field
@@ -304,11 +308,11 @@ class VirtualMachine:
 
         return processor_matrix, instruction_matrix, input_matrix, output_matrix
 
-    @staticmethod
+    @ staticmethod
     def num_challenges():
         return 11
 
-    @staticmethod
+    @ staticmethod
     def evaluation_terminal(vector, alpha):
         xfield = alpha.field
         acc = xfield.zero()
@@ -316,7 +320,7 @@ class VirtualMachine:
             acc = alpha * acc + xfield.lift(v)
         return acc
 
-    @staticmethod
+    @ staticmethod
     def program_evaluation(program, a, b, c, eta):
         field = program[0].field
         xfield = a.field
@@ -342,7 +346,7 @@ class VirtualMachine:
 
         return running_sum
 
-    @staticmethod
+    @ staticmethod
     def program_permutation_cofactor(program, a, b, c, alpha, initial_value=None):
         field = program[0].field
         xfield = a.field

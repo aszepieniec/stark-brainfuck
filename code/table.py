@@ -73,7 +73,9 @@ class Table:
                 )), f"TRNASITION constraint {i} not satisfied in row {rowidx}; point: {[str(p) for p in point]}; polynomial {str(mpo.partial_evaluate({1: point[1]}))} evaluates to {str(mpo.evaluate(point))}"
 
     def interpolate(self, omega, order):
-        return self.interpolate_columns(omega, order, column_indices=range(self.width))
+        self.polynomials = self.interpolate_columns(
+            omega, order, column_indices=range(self.width))
+        return self.polynomials
 
     def interpolate_columns(self, omega, omega_order, column_indices):
         assert(omega.has_order_po2(omega_order)
@@ -88,6 +90,7 @@ class Table:
         omicron_domain = [self.field.lift(self.omicron ^ i)
                           for i in range(self.height)]
         print("length of omicron domain:", len(omicron_domain))
+        print("omicron:", self.omicron)
         randomizer_domain = [self.field.lift(omega) * omicron_domain[i]
                              for i in range(self.num_randomizers)]
         print("length of randomizer domain:", len(randomizer_domain))
@@ -104,3 +107,11 @@ class Table:
                                              self.field.lift(omega), omega_order)]
 
         return polynomials
+
+    def evaluate(self, domain):
+        self.codewords = self.evaluate_columns(domain, range(self.width))
+        return self.codewords
+
+    def evaluate_columns(self, domain, indices):
+        codewords = [domain.evaluate(self.polynomials[i]) for i in indices]
+        return codewords

@@ -15,8 +15,20 @@ class TableExtension(Table):
         self.xfield = xfield
 
     def interpolate_extension(self, omega, order):
-        print("hi from table_extension")
-        return self.interpolate_columns(omega, order, range(self.base_width, self.width))
+        polynomials = self.interpolate_columns(
+            omega, order, range(self.base_width, self.width))
+        self.polynomials += polynomials
+        return polynomials
+
+    def evaluate_extension(self, domain):
+        codewords = self.evaluate_columns(
+            domain, range(self.base_width, self.width))
+        self.codewords += codewords
+        return codewords
+
+    def evaluate_columns(self, domain, indices):
+        codewords = [domain.xevaluate(self.polynomials[i]) for i in indices]
+        return codewords
 
     @abstractmethod
     def boundary_constraints_ext(self):
@@ -69,6 +81,8 @@ class TableExtension(Table):
         zerofier_inverse = [subgroup_zerofier_inverse[i] *
                             (domain(i) - self.omicron.inverse()) for i in range(domain.length)]
 
+        print("extension table omicron:", self.omicron)
+
         transition_constraints = self.transition_constraints_ext(challenges)
 
         # symbolic_point = [domain.xinterpolate(c) for c in codewords]
@@ -84,14 +98,20 @@ class TableExtension(Table):
         for l in range(len(transition_constraints)):
             mpo = transition_constraints[l]
             quotient_codeword = []
+            composition_codeword = []
             for i in range(domain.length):
                 point = [codewords[j][i] for j in range(self.width)] + \
                     [codewords[j][(i+self.unit_distance(domain.length)) %
                                   domain.length] for j in range(self.width)]
+                composition_codeword += [mpo.evaluate(point)]
                 quotient_codeword += [mpo.evaluate(point)
                                       * self.field.lift(zerofier_inverse[i])]
 
             quotients += [quotient_codeword]
+
+            interpolated = domain.xinterpolate(composition_codeword)
+            print("composition polynomial, evaluated on omicron^i:", ",".join(str(c)
+                                                                              for c in domain.xevaluate(interpolated)))
 
             if environ.get('DEBUG') is not None:
                 print(f"before domain interpolation of tq in {type(self)}")
