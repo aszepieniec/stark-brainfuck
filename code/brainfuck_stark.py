@@ -52,7 +52,7 @@ class BrainfuckStark:
         assert(self.num_colinearity_checks * len(bin(self.expansion_factor)
                [3:]) >= self.security_level), "number of colinearity checks times log of expansion factor must be at least security level"
 
-        self.num_randomizers = 0  # TODO: self.security_level
+        self.num_randomizers = 1  # TODO: self.security_level
 
         self.vm = VirtualMachine()
 
@@ -430,10 +430,10 @@ class BrainfuckStark:
                                     instruction_extension.codewords[InstructionExtension.permutation][i]) * self.xfield.lift((self.fri.domain(i) - self.field.one()).inverse()) for i in range(self.fri.domain.length)], "difference quotient 0")
         quotient_codewords.append([(processor_extension.codewords[ProcessorExtension.memory_permutation][i] -
                                     memory_extension.codewords[MemoryExtension.permutation][i]) * self.xfield.lift((self.fri.domain(i) - self.field.one()).inverse()) for i in range(self.fri.domain.length)], "difference quotient 1")
-        quotient_degree_bounds.append(BrainfuckStark.roundup_npo2(running_time + len(program)) -
+        quotient_degree_bounds.append(BrainfuckStark.roundup_npo2(running_time + len(program)) + self.num_randomizers -
                                       2, "difference bound 0")
         quotient_degree_bounds.append(BrainfuckStark.roundup_npo2(
-            running_time) - 2, "difference bound 1")
+            running_time) + self.num_randomizers - 2, "difference bound 1")
 
         # (don't need to subtract equal values for the io evaluations because they're not randomized)
         # (but we do need to assert their correctness)
@@ -1153,7 +1153,7 @@ class BrainfuckStark:
             terms += [quotient]
             shift = self.max_degree - \
                 (BrainfuckStark.roundup_npo2(
-                    self.running_time + len(self.program)) - 2)
+                    self.running_time + len(self.program)) + self.num_randomizers - 2)
             print("verifier shift:", shift)
             terms += [quotient *
                       self.xfield.lift(self.fri.domain(index) ^ shift)]
@@ -1164,7 +1164,8 @@ class BrainfuckStark:
                 (self.xfield.lift(self.fri.domain(index)) - self.xfield.one())
             terms += [quotient]
             shift = self.max_degree - \
-                (BrainfuckStark.roundup_npo2(self.running_time) - 2)
+                (BrainfuckStark.roundup_npo2(
+                    self.running_time) + self.num_randomizers - 2)
             print("verifier shift:", shift)
             terms += [quotient *
                       self.xfield.lift(self.fri.domain(index) ^ shift)]
