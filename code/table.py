@@ -39,7 +39,7 @@ class Table:
     def get_interpolation_domain_length(self):
         return Table.roundup_npo2(self.height) + self.num_randomizers
 
-    def get_interpolant_degree(self):
+    def interpolant_degree(self):
         return self.get_interpolation_domain_length() - 1
 
     # @abstractmethod

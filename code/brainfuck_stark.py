@@ -52,7 +52,7 @@ class BrainfuckStark:
         assert(self.num_colinearity_checks * len(bin(self.expansion_factor)
                [3:]) >= self.security_level), "number of colinearity checks times log of expansion factor must be at least security level"
 
-        self.num_randomizers = 0 # TODO: self.security_level
+        self.num_randomizers = 0  # TODO: self.security_level
 
         self.vm = VirtualMachine()
 
@@ -78,7 +78,7 @@ class BrainfuckStark:
         self.max_degree = 1
         for table in self.base_tables:
             for air in table.transition_constraints():
-                degree_bounds = [table.get_interpolant_degree()] * \
+                degree_bounds = [table.interpolant_degree()] * \
                     table.width * 2
                 degree = air.symbolic_degree_bound(
                     degree_bounds) - (table.height - 1)
@@ -221,7 +221,7 @@ class BrainfuckStark:
         # base_polynomials = processor_polynomials + instruction_polynomials + \
         #      memory_polynomials + input_polynomials + output_polynomials
         base_degree_bounds = reduce(
-            lambda x, y: x+y, [[table.height-1] * table.width for table in self.base_tables], [])
+            lambda x, y: x+y, [[table.interpolant_degree()] * table.width for table in self.base_tables], [])
         # base_degree_bounds = [processor_table.height-1] * ProcessorTable.width + [instruction_table.height-1] * \
         #     InstructionTable.width + \
         #     [memory_table.height-1] * MemoryTable.width
@@ -347,7 +347,7 @@ class BrainfuckStark:
         print("-> extension tree root:", hexlify(extension_tree.root()))
         # tock = time.time()
 
-        extension_degree_bounds = reduce(lambda x, y: x+y, [[table.height-1] * (
+        extension_degree_bounds = reduce(lambda x, y: x+y, [[table.interpolant_degree()] * (
             table.width - table.base_width) for table in extension_tables], [])
         # extension_degree_bounds = []
         # extension_degree_bounds += [processor_extension.height-1] * (

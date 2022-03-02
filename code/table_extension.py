@@ -60,7 +60,7 @@ class TableExtension(Table):
         return quotient_codewords
 
     def boundary_quotient_degree_bounds(self):
-        max_degrees = [self.get_interpolant_degree()] * self.width
+        max_degrees = [self.interpolant_degree()] * self.width
         degree_bounds = [mpo.symbolic_degree_bound(
             max_degrees) - 1 for mpo in self.boundary_constraints_ext()]
         return degree_bounds
@@ -73,7 +73,8 @@ class TableExtension(Table):
 
         quotients = []
         field = domain.omega.field
-        subgroup_zerofier = [(domain(i) ^ self.height) - field.one() for i in range(domain.length)]
+        subgroup_zerofier = [(domain(i) ^ self.height) - field.one()
+                             for i in range(domain.length)]
         subgroup_zerofier_inverse = batch_inverse(subgroup_zerofier)
         zerofier_inverse = [subgroup_zerofier_inverse[i] *
                             (domain(i) - self.omicron.inverse()) for i in range(domain.length)]
@@ -107,7 +108,8 @@ class TableExtension(Table):
             quotients += [quotient_codeword]
 
             interpolated = domain.xinterpolate(composition_codeword)
-            print("composition polynomial, evaluated on omicron^1:", interpolated.evaluate(self.field.lift(self.omicron)))
+            print("composition polynomial, evaluated on omicron^1:",
+                  interpolated.evaluate(self.field.lift(self.omicron)))
 
             if environ.get('DEBUG') is not None:
                 print(f"before domain interpolation of tq in {type(self)}")
@@ -121,7 +123,7 @@ class TableExtension(Table):
         return quotients
 
     def transition_quotient_degree_bounds(self, challenges):
-        max_degrees = [self.get_interpolant_degree()] * (2*self.width)
+        max_degrees = [self.interpolant_degree()] * (2*self.width)
         print("in ", str(type(self)),
               "transition_quotient_degree_bounds, I believe that self.width is", self.width)
 
@@ -167,7 +169,7 @@ class TableExtension(Table):
         return quotient_codewords
 
     def terminal_quotient_degree_bounds(self, challenges, terminals):
-        max_degrees = [self.get_interpolant_degree()] * self.width
+        max_degrees = [self.interpolant_degree()] * self.width
         degree_bounds = [mpo.symbolic_degree_bound(
             max_degrees) - 1 for mpo in self.terminal_constraints_ext(challenges, terminals)]
         return degree_bounds
