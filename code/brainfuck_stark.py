@@ -722,6 +722,18 @@ class BrainfuckStark:
         output_extension = IOExtension(len(
             self.output_symbols), self.fri.domain.omega, self.fri.domain.length, delta, processor_output_evaluation_terminal)
 
+        # instantiate argument objects
+        processor_memory_permutation = PermutationArgument(processor_extension,
+                                                           ProcessorExtension.memory_permutation,
+                                                           memory_extension,
+                                                           MemoryExtension.permutation)
+        processor_instruction_permutation = PermutationArgument(processor_extension,
+                                                                ProcessorExtension.instruction_permutation,
+                                                                instruction_extension,
+                                                                InstructionExtension.permutation)
+        permutation_arguments = [processor_instruction_permutation,
+                                 processor_memory_permutation]
+
         # compute degree bounds
         extension_tables = [processor_extension, instruction_extension,
                             memory_extension, input_extension, output_extension]
@@ -757,7 +769,7 @@ class BrainfuckStark:
         num_quotient_polynomials += input_extension.num_quotients()
         num_quotient_polynomials += output_extension.num_quotients()
 
-        num_difference_quotients = 2
+        num_difference_quotients = len(permutation_arguments)
 
         weights_seed = proof_stream.verifier_fiat_shamir()
         weights = self.sample_weights(
@@ -1175,9 +1187,10 @@ class BrainfuckStark:
             quotient = difference / \
                 (self.xfield.lift(self.fri.domain(index)) - self.xfield.one())
             terms += [quotient]
-            shift = self.max_degree - \
-                (BrainfuckStark.roundup_npo2(
-                    self.running_time + len(self.program)) + self.num_randomizers - 2)
+            # shift = self.max_degree - \
+            #     (BrainfuckStark.roundup_npo2(
+            #         self.running_time + len(self.program)) + self.num_randomizers - 2)
+            shift = self.max_degree - processor_instruction_permutation.quotient_degree_bound()
             print("verifier shift:", shift)
             terms += [quotient *
                       self.xfield.lift(self.fri.domain(index) ^ shift)]
@@ -1187,9 +1200,10 @@ class BrainfuckStark:
             quotient = difference / \
                 (self.xfield.lift(self.fri.domain(index)) - self.xfield.one())
             terms += [quotient]
-            shift = self.max_degree - \
-                (BrainfuckStark.roundup_npo2(
-                    self.running_time) + self.num_randomizers - 2)
+            # shift = self.max_degree - \
+            #     (BrainfuckStark.roundup_npo2(
+            #         self.running_time) + self.num_randomizers - 2)
+            shift = self.max_degree - processor_memory_permutation.quotient_degree_bound()
             print("verifier shift:", shift)
             terms += [quotient *
                       self.xfield.lift(self.fri.domain(index) ^ shift)]
