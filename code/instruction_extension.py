@@ -44,7 +44,7 @@ class InstructionExtension(TableExtension):
         return instruction_extension
 
     @staticmethod
-    def extend(instruction_table, a, b, c, alpha, eta):
+    def extend(instruction_table, a, b, c, alpha, eta, processor_instruction_permutation_initial):
         # algebra stuff
         field = instruction_table.field
         xfield = a.field
@@ -53,7 +53,7 @@ class InstructionExtension(TableExtension):
 
         # prepare loop
         table_extension = []
-        permutation_running_product = one
+        permutation_running_product = processor_instruction_permutation_initial
         evaluation_running_sum = zero
         previous_address = -one
 
@@ -142,7 +142,7 @@ class InstructionExtension(TableExtension):
         one = MPolynomial.constant(self.field.one())
         zero = MPolynomial.zero()
         return [x[self.address] - zero,  # address starts at zero
-                x[self.permutation] - one,  # running product starts at 1
+                # x[self.permutation] - one,  # running product starts at 1
                 x[self.evaluation] - self.a * x[self.address] - self.b * x[self.current_instruction] - self.c * x[self.next_instruction]]
 
     def terminal_constraints_ext(self, challenges, terminals):

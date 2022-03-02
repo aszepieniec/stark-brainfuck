@@ -53,7 +53,7 @@ class ProcessorExtension(TableExtension):
                           input_evaluation_terminal, output_evaluation_terminal]
 
     @staticmethod
-    def extend(processor_table, a, b, c, d, e, f, alpha, beta, gamma, delta):
+    def extend(processor_table, a, b, c, d, e, f, alpha, beta, gamma, delta, processor_instruction_permutation_initial, processor_memory_permutation_initial):
         # algebra stuff
         field = processor_table.field
         xfield = a.field
@@ -61,8 +61,8 @@ class ProcessorExtension(TableExtension):
         zero = xfield.zero()
 
         # prepare for loop
-        instruction_permutation_running_product = one
-        memory_permutation_running_product = one
+        instruction_permutation_running_product = processor_instruction_permutation_initial
+        memory_permutation_running_product = processor_memory_permutation_initial
         input_evaluation_running_evaluation = zero
         output_evaluation_running_evaluation = zero
 
@@ -189,13 +189,13 @@ class ProcessorExtension(TableExtension):
                        x[self.memory_pointer] - zero,
                        x[self.memory_value] - zero,
                        x[self.is_zero] - one,
-                       x[self.instruction_permutation] - one,
-                       x[self.memory_permutation] - one,
+                       # x[self.instruction_permutation] - one,
+                       # x[self.memory_permutation] - one,
                        x[self.input_evaluation] - zero,
                        x[self.output_evaluation] - zero
                        ]
         assert(len(constraints) ==
-               9), "number of boundary constraints does not match with expectation"
+               7), "number of boundary constraints does not match with expectation"
         return constraints
 
     def terminal_constraints_ext(self, challenges, terminals):

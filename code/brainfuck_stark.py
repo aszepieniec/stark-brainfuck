@@ -277,12 +277,16 @@ class BrainfuckStark:
         # print("extending ...")
         # tick = time.time()
         # extend tables
+        processor_instruction_permutation_initial = self.xfield.sample(
+            os.urandom(3*8))
+        processor_memory_permutation_initial = self.xfield.sample(
+            os.urandom(3*8))
         processor_extension = ProcessorExtension.extend(
-            self.processor_table, a, b, c, d, e, f, alpha, beta, gamma, delta)
+            self.processor_table, a, b, c, d, e, f, alpha, beta, gamma, delta, processor_instruction_permutation_initial, processor_memory_permutation_initial)
         instruction_extension = InstructionExtension.extend(
-            self.instruction_table, a, b, c, alpha, eta)
+            self.instruction_table, a, b, c, alpha, eta, processor_instruction_permutation_initial)
         memory_extension = MemoryExtension.extend(
-            self.memory_table, d, e, f, beta)
+            self.memory_table, d, e, f, beta, processor_memory_permutation_initial)
         input_extension = IOExtension.extend(self.input_table, gamma)
         output_extension = IOExtension.extend(self.output_table, delta)
         extension_tables = [processor_extension, instruction_extension,

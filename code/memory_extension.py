@@ -37,7 +37,7 @@ class MemoryExtension(TableExtension):
         return memory_extension
 
     @staticmethod
-    def extend(memory_table, d, e, f, beta):
+    def extend(memory_table, d, e, f, beta, processor_memory_permutation_initial):
 
         # algebra stuff
         field = memory_table.field
@@ -46,7 +46,7 @@ class MemoryExtension(TableExtension):
 
         # prepare loop
         table_extension = []
-        memory_permutation_running_product = one
+        memory_permutation_running_product = processor_memory_permutation_initial
 
         # loop over all rows of table
         for i in range(len(memory_table.matrix)):
@@ -101,7 +101,7 @@ class MemoryExtension(TableExtension):
         return [x[MemoryExtension.cycle] - zero,  # cycle
                 x[MemoryExtension.memory_pointer] - zero,  # memory pointer
                 x[MemoryExtension.memory_value] - zero,  # memory value
-                x[MemoryExtension.permutation] - one   # permutation
+                # x[MemoryExtension.permutation] - one   # permutation
                 ]
 
     def terminal_constraints_ext(self, challenges, terminals):
