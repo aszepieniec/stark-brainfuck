@@ -699,16 +699,19 @@ class BrainfuckStark:
             self.output_symbols), self.fri.domain.omega, self.fri.domain.length, delta, processor_output_evaluation_terminal)
 
         # compute degree bounds
+        extension_tables = [processor_extension, instruction_extension,
+                            memory_extension, input_extension, output_extension]
         base_degree_bounds = reduce(lambda x, y: x + y,
-                                    [[table.height - 1] * table.base_width for table in [processor_extension,
-                                                                                         instruction_extension,
-                                                                                         memory_extension,
-                                                                                         input_extension,
-                                                                                         output_extension]],
+                                    [[table.interpolant_degree(
+                                    )] * table.base_width for table in extension_tables],
                                     [])
 
-        extension_degree_bounds = [BrainfuckStark.roundup_npo2(processor_extension.height)-1] * (ProcessorExtension.width - ProcessorTable.width) + [BrainfuckStark.roundup_npo2(instruction_extension.height)-1] * (InstructionExtension.width - InstructionTable.width) + [
-            BrainfuckStark.roundup_npo2(memory_extension.height)-1] * (MemoryExtension.width - MemoryTable.width) + [BrainfuckStark.roundup_npo2(input_extension.height)-1] * (IOExtension.width - IOTable.width) + [BrainfuckStark.roundup_npo2(output_extension.height)-1] * (IOExtension.width - IOTable.width)
+        # extension_degree_bounds = [BrainfuckStark.roundup_npo2(processor_extension.height)-1] * (ProcessorExtension.width - ProcessorTable.width) + [BrainfuckStark.roundup_npo2(instruction_extension.height)-1] * (InstructionExtension.width - InstructionTable.width) + [
+        #     BrainfuckStark.roundup_npo2(memory_extension.height)-1] * (MemoryExtension.width - MemoryTable.width) + [BrainfuckStark.roundup_npo2(input_extension.height)-1] * (IOExtension.width - IOTable.width) + [BrainfuckStark.roundup_npo2(output_extension.height)-1] * (IOExtension.width - IOTable.width)
+        extension_degree_bounds = reduce(lambda x, y: x+y,
+                                         [[table.interpolant_degree()] * (table.width - table.base_width)
+                                          for table in extension_tables],
+                                         [])
 
         # get weights for nonlinear combination
         #  - 1 randomizer
