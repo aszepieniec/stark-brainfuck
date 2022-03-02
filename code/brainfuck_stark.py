@@ -13,6 +13,7 @@ from io_table import IOTable
 from labeled_list import LabeledList
 from memory_extension import MemoryExtension
 from memory_table import MemoryTable
+from permutation_argument import PermutationArgument
 from processor_extension import ProcessorExtension
 from io_extension import IOExtension
 from processor_table import ProcessorTable
@@ -286,6 +287,18 @@ class BrainfuckStark:
         output_extension = IOExtension.extend(self.output_table, delta)
         extension_tables = [processor_extension, instruction_extension,
                             memory_extension, input_extension, output_extension]
+
+        # instantiate argument objects
+        processor_memory_permutation = PermutationArgument(processor_extension,
+                                                           ProcessorExtension.memory_permutation,
+                                                           memory_extension,
+                                                           MemoryExtension.permutation)
+        processor_instruction_permutation = PermutationArgument(processor_extension,
+                                                                ProcessorExtension.instruction_permutation,
+                                                                instruction_extension,
+                                                                InstructionExtension.permutation)
+        permutation_arguments = [processor_instruction_permutation,
+                                 processor_memory_permutation]
         tock = time.time()
         # print("computing table extensions took", (tock - tick), "seconds")
 
@@ -425,15 +438,22 @@ class BrainfuckStark:
             challenges=[delta], terminals=[processor_output_evaluation_terminal]))
 
         # ... and equal initial values
+        for pa in permutation_arguments:
+            quotient_codewords.append(pa.quotient(self.fri.domain), "diff")
+            quotient_degree_bounds.append(
+                pa.quotient_degree_bound(), "diff")
         # Append the difference quotients
-        quotient_codewords.append([(processor_extension.codewords[ProcessorExtension.instruction_permutation][i] -
-                                    instruction_extension.codewords[InstructionExtension.permutation][i]) * self.xfield.lift((self.fri.domain(i) - self.field.one()).inverse()) for i in range(self.fri.domain.length)], "difference quotient 0")
-        quotient_codewords.append([(processor_extension.codewords[ProcessorExtension.memory_permutation][i] -
-                                    memory_extension.codewords[MemoryExtension.permutation][i]) * self.xfield.lift((self.fri.domain(i) - self.field.one()).inverse()) for i in range(self.fri.domain.length)], "difference quotient 1")
-        quotient_degree_bounds.append(BrainfuckStark.roundup_npo2(running_time + len(program)) + self.num_randomizers -
-                                      2, "difference bound 0")
-        quotient_degree_bounds.append(BrainfuckStark.roundup_npo2(
-            running_time) + self.num_randomizers - 2, "difference bound 1")
+        # quotient_codewords.append([(processor_extension.codewords[ProcessorExtension.instruction_permutation][i] -
+        #                             instruction_extension.codewords[InstructionExtension.permutation][i]) * self.xfield.lift((self.fri.domain(i) - self.field.one()).inverse()) for i in range(self.fri.domain.length)], "difference quotient 0")
+        # quotient_codewords.append([(processor_extension.codewords[ProcessorExtension.memory_permutation][i] -
+        #                             memory_extension.codewords[MemoryExtension.permutation][i]) * self.xfield.lift((self.fri.domain(i) - self.field.one()).inverse()) for i in range(self.fri.domain.length)], "difference quotient 1")
+        # quotient_degree_bounds.append(BrainfuckStark.roundup_npo2(running_time + len(program)) + self.num_randomizers -
+        #                               2, "difference bound 0")
+        # quotient_degree_bounds.append(BrainfuckStark.roundup_npo2(
+        #     running_time) + self.num_randomizers - 2, "difference bound 1")
+
+        # print("quotient degree bound:", quotient_degree_bounds.objects[-1][0])
+        # assert(False)
 
         # (don't need to subtract equal values for the io evaluations because they're not randomized)
         # (but we do need to assert their correctness)
