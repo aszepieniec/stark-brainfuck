@@ -20,15 +20,15 @@ class TableExtension(Table):
         self.polynomials += polynomials
         return polynomials
 
-    def evaluate_extension(self, domain):
-        codewords = self.evaluate_columns(
-            domain, range(self.base_width, self.width))
-        self.codewords += codewords
-        return codewords
+    # def evaluate_extension(self, domain):
+    #     codewords = self.evaluate_columns(
+    #         domain, range(self.base_width, self.width))
+    #     self.codewords += codewords
+    #     return codewords
 
-    def evaluate_columns(self, domain, indices):
-        codewords = [domain.xevaluate(self.polynomials[i]) for i in indices]
-        return codewords
+    # def evaluate_columns(self, domain, indices):
+    #     point = [domain.xevaluate(self.polynomials[i]) for i in indices]
+    #     return point
 
     @abstractmethod
     def boundary_constraints_ext(self):

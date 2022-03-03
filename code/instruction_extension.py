@@ -52,7 +52,7 @@ class InstructionExtension(TableExtension):
         zero = xfield.zero()
 
         # prepare loop
-        table_extension = []
+        extended_matrix = []
         permutation_running_product = processor_instruction_permutation_initial
         evaluation_running_sum = zero
         previous_address = -one
@@ -84,11 +84,17 @@ class InstructionExtension(TableExtension):
 
             previous_address = new_row[InstructionExtension.address]
 
-            table_extension += [new_row]
+            extended_matrix += [new_row]
+
+        instruction_table.base_width = instruction_table.width
+        instruction_table.field = xfield
+        instruction_table.width = len(extended_matrix[0])
+        instruction_table.matrix = extended_matrix
+        instruction_table.codewords = [[xfield.lift(c) for c in cdwd] for cdwd in instruction_table.codewords]
 
         extended_instruction_table = InstructionExtension(
             instruction_table.length, instruction_table.num_randomizers, instruction_table.generator, instruction_table.order, a, b, c, alpha, eta, permutation_running_product, evaluation_running_sum)
-        extended_instruction_table.matrix = table_extension
+        extended_instruction_table.matrix = extended_matrix
 
         extended_instruction_table.field = xfield
 

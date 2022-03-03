@@ -42,7 +42,7 @@ class IOExtension(TableExtension):
         one = xfield.one()
 
         # prepare loop
-        table_extension = []
+        extended_matrix = []
         io_running_evaluation = zero
         evaluation_terminal = zero
 
@@ -59,13 +59,20 @@ class IOExtension(TableExtension):
             if i == io_table.length - 1:
                 evaluation_terminal = io_running_evaluation
 
-            table_extension += [new_row]
+            extended_matrix += [new_row]
 
         assert(io_table.height & (io_table.height - 1)
                == 0), f"height of io_table must be 2^k"
+
+        io_table.base_width = io_table.width
+        io_table.width = len(extended_matrix[0])
+        io_table.field = xfield
+        io_table.matrix = extended_matrix
+        io_table.codewords = [[xfield.lift(c) for c in cdwd] for cdwd in io_table.codewords]
+
         extended_io_table = IOExtension(
             io_table.length, io_table.generator, io_table.order, gamma, evaluation_terminal)
-        extended_io_table.matrix = table_extension
+        extended_io_table.matrix = extended_matrix
 
         extended_io_table.field = xfield
 

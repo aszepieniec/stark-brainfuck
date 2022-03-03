@@ -115,3 +115,30 @@ class Table:
     def evaluate_columns(self, domain, indices):
         codewords = [domain.evaluate(self.polynomials[i]) for i in indices]
         return codewords
+
+    def interpolate_extension(self, omega, order):
+        polynomials = self.interpolate_columns(
+            omega, order, range(self.base_width, self.width))
+        self.polynomials += polynomials
+        return polynomials
+
+    def evaluate_extension(self, domain):
+        codewords = self.xevaluate_columns(
+            domain, range(self.base_width, self.width))
+        self.codewords += codewords
+        return codewords
+
+    def xevaluate_columns(self, domain, indices):
+        codewords = [domain.xevaluate(self.polynomials[i]) for i in indices]
+        return codewords
+
+    def lde(self, domain):
+        polynomials = self.interpolate_columns(self.omicron, self.height, column_indices=range(self.width))
+        self.codewords = [domain.evaluate(p) for p in polynomials]
+        return self.codewords
+
+    def ldex(self, domain):
+        polynomials = self.interpolate_columns(domain.omega, domain.length, column_indices=range(self.base_width, self.width))
+        codewords = [domain.xevaluate(p) for p in polynomials]
+        self.codewords += codewords
+        return codewords

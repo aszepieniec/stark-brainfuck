@@ -67,7 +67,7 @@ class ProcessorExtension(TableExtension):
         output_evaluation_running_evaluation = zero
 
         # loop over all rows
-        matrix_extension = []
+        extended_matrix = []
         for i in range(len(processor_table.matrix)):
             row = processor_table.matrix[i]
 
@@ -105,11 +105,17 @@ class ProcessorExtension(TableExtension):
                 output_evaluation_running_evaluation = output_evaluation_running_evaluation * delta \
                     + new_row[ProcessorExtension.memory_value]
 
-            matrix_extension += [new_row]
+            extended_matrix += [new_row]
+
+        processor_table.base_width = processor_table.width
+        processor_table.width = len(extended_matrix[0])
+        processor_table.field = xfield
+        processor_table.matrix = extended_matrix
+        processor_table.codewords = [[xfield.lift(c) for c in cdwd] for cdwd in processor_table.codewords]
 
         extended_processor_table = ProcessorExtension(processor_table.length, processor_table.num_randomizers, processor_table.generator, processor_table.order,
                                                       a, b, c, d, e, f, alpha, beta, gamma, delta, instruction_permutation_running_product, memory_permutation_running_product, input_evaluation_running_evaluation, output_evaluation_running_evaluation)
-        extended_processor_table.matrix = matrix_extension
+        extended_processor_table.matrix = extended_matrix
 
         extended_processor_table.field = xfield
 

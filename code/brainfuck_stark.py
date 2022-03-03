@@ -75,6 +75,11 @@ class BrainfuckStark:
         self.base_tables = [self.processor_table, self.instruction_table,
                             self.memory_table, self.input_table, self.output_table]
 
+        # instantiate permutation objects
+        processor_instruction_permutation = PermutationArgument(self.base_tables, (0,ProcessorExtension.instruction_permutation), (1, InstructionExtension.permutation))
+        processor_memory_permutation = PermutationArgument(self.base_tables, (0,ProcessorExtension.memory_permutation), (2, MemoryExtension.permutation))
+        self.permutation_arguments = [processor_instruction_permutation, processor_memory_permutation]
+
         # compute self.fri domain length
         self.max_degree = 1
         for table in self.base_tables:
@@ -293,16 +298,16 @@ class BrainfuckStark:
                             memory_extension, input_extension, output_extension]
 
         # instantiate argument objects
-        processor_memory_permutation = PermutationArgument(processor_extension,
-                                                           ProcessorExtension.memory_permutation,
-                                                           memory_extension,
-                                                           MemoryExtension.permutation)
-        processor_instruction_permutation = PermutationArgument(processor_extension,
-                                                                ProcessorExtension.instruction_permutation,
-                                                                instruction_extension,
-                                                                InstructionExtension.permutation)
-        permutation_arguments = [processor_instruction_permutation,
-                                 processor_memory_permutation]
+        # processor_memory_permutation = PermutationArgument(processor_extension,
+        #                                                    ProcessorExtension.memory_permutation,
+        #                                                    memory_extension,
+        #                                                    MemoryExtension.permutation)
+        # processor_instruction_permutation = PermutationArgument(processor_extension,
+        #                                                         ProcessorExtension.instruction_permutation,
+        #                                                         instruction_extension,
+        #                                                         InstructionExtension.permutation)
+        # permutation_arguments = [processor_instruction_permutation,
+        #                          processor_memory_permutation]
         tock = time.time()
         # print("computing table extensions took", (tock - tick), "seconds")
 
@@ -316,8 +321,10 @@ class BrainfuckStark:
         # tick = time.time()
         # print("interpolating extensions ...")
         # interpolate extension columns
-        extension_polynomials = reduce(
-            lambda x, y: x+y, [table.interpolate_extension(omega, order) for table in extension_tables], [])
+        # extension_polynomials_ = reduce(lambda x, y: x+y, [table.interpolate_extension(omega, order) for table in extension_tables], [])
+
+        # extension_polynomials = reduce(lambda x, y: x+y, [table.interpolate_extension(omega, order) for table in self.base_tables], [])
+
         # processor_extension_polynomials = processor_extension.interpolate_extension(
         #     omega, self.fri.domain.length)
         # instruction_extension_polynomials = instruction_extension.interpolate_extension(
@@ -334,8 +341,13 @@ class BrainfuckStark:
         # tick = time.time()
         # print("committing to extension polynomials ...")
         # commit to extension polynomials
-        extension_codewords = [self.fri.domain.xevaluate(
-            p, self.xfield) for p in extension_polynomials]
+        # extension_codewords = [self.fri.domain.xevaluate(
+            # p, self.xfield) for p in extension_polynomials]
+
+        # extension_codewords_ = reduce(lambda x, y: x+y, [table.evaluate_extension(self.fri.domain) for table in self.base_tables], [])
+
+        extension_codewords = reduce(lambda x, y: x+y, [table.ldex(self.fri.domain) for table in self.base_tables], [])
+
         # processor_extension_codewords = [self.fri.domain.xevaluate(p, self.xfield)
         #                                  for p in processor_extension_polynomials]
         # instruction_extension_codewords = [self.fri.domain.xevaluate(p, self.xfield)
@@ -391,8 +403,8 @@ class BrainfuckStark:
             memory_extension.test()
 
         # combine base + extension
-        extension_codewords = reduce(
-            lambda x, y: x+y, [table.evaluate_extension(self.fri.domain) for table in extension_tables], [])
+        # extension_codewords = reduce(
+            # lambda x, y: x+y, [table.evaluate_extension(self.fri.domain) for table in extension_tables], [])
         # processor_codewords = [[self.xfield.lift(
         #     c) for c in codeword] for codeword in processor_base_codewords] + processor_extension_codewords
         # instruction_codewords = [[self.xfield.lift(
@@ -409,19 +421,19 @@ class BrainfuckStark:
         # gather polynomials derived from generalized AIR constraints relating to boundary, transition, and terminals
         quotient_codewords = LabeledList()
         # print("processor table:")
-        quotient_codewords.concatenate(processor_extension.all_quotients_labeled(self.fri.domain, processor_extension.codewords, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[
+        quotient_codewords.concatenate(processor_extension.all_quotients_labeled(self.fri.domain, self.processor_table.codewords, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[
             processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal]))
         # print("instruction table:")
-        quotient_codewords.concatenate(instruction_extension.all_quotients_labeled(self.fri.domain, instruction_extension.codewords, challenges=[a, b, c, alpha, eta], terminals=[
+        quotient_codewords.concatenate(instruction_extension.all_quotients_labeled(self.fri.domain, self.instruction_table.codewords, challenges=[a, b, c, alpha, eta], terminals=[
             processor_instruction_permutation_terminal, instruction_evaluation_terminal]))
         # print("memory table:")
-        quotient_codewords.concatenate(memory_extension.all_quotients_labeled(self.fri.domain, memory_extension.codewords, challenges=[
+        quotient_codewords.concatenate(memory_extension.all_quotients_labeled(self.fri.domain, self.memory_table.codewords, challenges=[
             d, e, f, beta], terminals=[processor_memory_permutation_terminal]))
         # print("input table:")
-        quotient_codewords.concatenate(input_extension.all_quotients_labeled(self.fri.domain, input_extension.codewords,
+        quotient_codewords.concatenate(input_extension.all_quotients_labeled(self.fri.domain, self.input_table.codewords,
                                                                              challenges=[gamma], terminals=[processor_input_evaluation_terminal]))
         # print("output table:")
-        quotient_codewords.concatenate(output_extension.all_quotients_labeled(self.fri.domain, output_extension.codewords,
+        quotient_codewords.concatenate(output_extension.all_quotients_labeled(self.fri.domain, self.output_table.codewords,
                                                                               challenges=[delta], terminals=[processor_output_evaluation_terminal]))
 
         quotient_degree_bounds = LabeledList()
@@ -442,7 +454,7 @@ class BrainfuckStark:
             challenges=[delta], terminals=[processor_output_evaluation_terminal]))
 
         # ... and equal initial values
-        for pa in permutation_arguments:
+        for pa in self.permutation_arguments:
             quotient_codewords.append(pa.quotient(self.fri.domain), "diff")
             quotient_degree_bounds.append(
                 pa.quotient_degree_bound(), "diff")
@@ -723,16 +735,16 @@ class BrainfuckStark:
             self.output_symbols), self.fri.domain.omega, self.fri.domain.length, delta, processor_output_evaluation_terminal)
 
         # instantiate argument objects
-        processor_memory_permutation = PermutationArgument(processor_extension,
-                                                           ProcessorExtension.memory_permutation,
-                                                           memory_extension,
-                                                           MemoryExtension.permutation)
-        processor_instruction_permutation = PermutationArgument(processor_extension,
-                                                                ProcessorExtension.instruction_permutation,
-                                                                instruction_extension,
-                                                                InstructionExtension.permutation)
-        permutation_arguments = [processor_instruction_permutation,
-                                 processor_memory_permutation]
+        # processor_memory_permutation = PermutationArgument(processor_extension,
+        #                                                    ProcessorExtension.memory_permutation,
+        #                                                    memory_extension,
+        #                                                    MemoryExtension.permutation)
+        # processor_instruction_permutation = PermutationArgument(processor_extension,
+        #                                                         ProcessorExtension.instruction_permutation,
+        #                                                         instruction_extension,
+        #                                                         InstructionExtension.permutation)
+        # permutation_arguments = [processor_instruction_permutation,
+        #                          processor_memory_permutation]
 
         # compute degree bounds
         extension_tables = [processor_extension, instruction_extension,
@@ -769,7 +781,7 @@ class BrainfuckStark:
         num_quotient_polynomials += input_extension.num_quotients()
         num_quotient_polynomials += output_extension.num_quotients()
 
-        num_difference_quotients = len(permutation_arguments)
+        num_difference_quotients = len(self.permutation_arguments)
 
         weights_seed = proof_stream.verifier_fiat_shamir()
         weights = self.sample_weights(
@@ -1190,7 +1202,7 @@ class BrainfuckStark:
             # shift = self.max_degree - \
             #     (BrainfuckStark.roundup_npo2(
             #         self.running_time + len(self.program)) + self.num_randomizers - 2)
-            shift = self.max_degree - processor_instruction_permutation.quotient_degree_bound()
+            shift = self.max_degree - self.permutation_arguments[0].quotient_degree_bound()
             print("verifier shift:", shift)
             terms += [quotient *
                       self.xfield.lift(self.fri.domain(index) ^ shift)]
@@ -1203,7 +1215,7 @@ class BrainfuckStark:
             # shift = self.max_degree - \
             #     (BrainfuckStark.roundup_npo2(
             #         self.running_time) + self.num_randomizers - 2)
-            shift = self.max_degree - processor_memory_permutation.quotient_degree_bound()
+            shift = self.max_degree - self.permutation_arguments[1].quotient_degree_bound()
             print("verifier shift:", shift)
             terms += [quotient *
                       self.xfield.lift(self.fri.domain(index) ^ shift)]

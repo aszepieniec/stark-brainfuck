@@ -45,7 +45,7 @@ class MemoryExtension(TableExtension):
         one = xfield.one()
 
         # prepare loop
-        table_extension = []
+        extended_matrix = []
         memory_permutation_running_product = processor_memory_permutation_initial
 
         # loop over all rows of table
@@ -59,11 +59,17 @@ class MemoryExtension(TableExtension):
                 - e * new_row[MemoryExtension.memory_pointer] \
                 - f * new_row[MemoryExtension.memory_value]
 
-            table_extension += [new_row]
+            extended_matrix += [new_row]
+
+        memory_table.base_width = memory_table.width
+        memory_table.width = len(extended_matrix[0])
+        memory_table.matrix = extended_matrix
+        memory_table.field = xfield
+        memory_table.codewords = [[xfield.lift(c) for c in cdwd] for cdwd in memory_table.codewords]
 
         extended_memory_table = MemoryExtension(
             memory_table.length, memory_table.num_randomizers, memory_table.generator, memory_table.order, d, e, f, beta, memory_permutation_running_product)
-        extended_memory_table.matrix = table_extension
+        extended_memory_table.matrix = extended_matrix
 
         extended_memory_table.field = xfield
 
