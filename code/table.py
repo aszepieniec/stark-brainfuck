@@ -1,14 +1,16 @@
 from abc import abstractmethod
 from random import random
+from labeled_list import LabeledList
 from multivariate import *
 from ntt import *
 import os
 
 
 class Table:
-    def __init__(self, field, width, length, num_randomizers, generator, order):
+    def __init__(self, field, base_width, full_width, length, num_randomizers, generator, order):
         self.field = field
-        self.width = width
+        self.base_width = base_width
+        self.full_width = full_width
         self.length = length
         self.num_randomizers = num_randomizers
         self.height = Table.roundup_npo2(length)
@@ -34,10 +36,12 @@ class Table:
         return generator
 
     def unit_distance(self, omega_order):
-        return omega_order // Table.roundup_npo2(self.height)
+        if self.height == 0:
+            return 0
+        return omega_order // self.height
 
     def get_interpolation_domain_length(self):
-        return Table.roundup_npo2(self.height) + self.num_randomizers
+        return self.height + self.num_randomizers
 
     def interpolant_degree(self):
         return self.get_interpolation_domain_length() - 1
@@ -53,14 +57,14 @@ class Table:
     #     pass
 
     def test(self):
-        for i in range(len(self.boundary_constraints())):
-            mpo = self.boundary_constraints()[i]
+        for i in range(len(self.base_boundary_constraints())):
+            mpo = self.base_boundary_constraints()[i]
             if len(self.matrix) != 0:
                 point = self.matrix[0]
                 assert(mpo.evaluate(point).is_zero(
                 )), f"BOUNDARY constraint {i} not satisfied; point: {[str(p) for p in point]}; polynomial {str(mpo)} evaluates to {str(mpo.evaluate(point))}"
 
-        transition_constraints = self.transition_constraints()
+        transition_constraints = self.base_transition_constraints()
         for i in range(len(transition_constraints)):
             mpo = transition_constraints[i]
             for rowidx in range(len(self.matrix)-1):
@@ -74,7 +78,7 @@ class Table:
 
     def interpolate(self, omega, order):
         self.polynomials = self.interpolate_columns(
-            omega, order, column_indices=range(self.width))
+            omega, order, column_indices=range(self.base_width))
         return self.polynomials
 
     def interpolate_columns(self, omega, omega_order, column_indices):
@@ -100,8 +104,8 @@ class Table:
             randomizers = [self.field.sample(os.urandom(3*8))
                            for i in range(self.num_randomizers)]
             values = trace + randomizers
-            # assert(len(values) == len(
-            #     domain)), f"length of domain {len(domain)} and values {len(values)} are unequal"
+            assert(len(values) == len(
+                domain)), f"length of domain {len(domain)} and values {len(values)} are unequal"
             polynomials += [fast_interpolate(domain,
                                              values,
                                              self.field.lift(omega), omega_order)]
@@ -109,7 +113,7 @@ class Table:
         return polynomials
 
     def evaluate(self, domain):
-        self.codewords = self.evaluate_columns(domain, range(self.width))
+        self.codewords = self.evaluate_columns(domain, range(self.base_width))
         return self.codewords
 
     def evaluate_columns(self, domain, indices):
@@ -118,13 +122,13 @@ class Table:
 
     def interpolate_extension(self, omega, order):
         polynomials = self.interpolate_columns(
-            omega, order, range(self.base_width, self.width))
+            omega, order, range(self.base_width, self.full_width))
         self.polynomials += polynomials
         return polynomials
 
     def evaluate_extension(self, domain):
         codewords = self.xevaluate_columns(
-            domain, range(self.base_width, self.width))
+            domain, range(self.base_width, self.full_width))
         self.codewords += codewords
         return codewords
 
@@ -133,12 +137,234 @@ class Table:
         return codewords
 
     def lde(self, domain):
-        polynomials = self.interpolate_columns(self.omicron, self.height, column_indices=range(self.width))
+        polynomials = self.interpolate_columns(self.omicron, self.height, column_indices=range(self.full_width))
         self.codewords = [domain.evaluate(p) for p in polynomials]
         return self.codewords
 
-    def ldex(self, domain):
-        polynomials = self.interpolate_columns(domain.omega, domain.length, column_indices=range(self.base_width, self.width))
-        codewords = [domain.xevaluate(p) for p in polynomials]
+    def ldex(self, domain, xfield):
+        polynomials = self.interpolate_columns(domain.omega, domain.length, column_indices=range(self.base_width, self.full_width))
+        codewords = [domain.xevaluate(p, xfield) for p in polynomials]
         self.codewords += codewords
         return codewords
+
+      #
+    # # #
+      #
+
+
+    @abstractmethod
+    def boundary_constraints_ext(self):
+        pass
+
+    def boundary_quotients(self, fri_domain, codewords, challenges):
+        assert(len(codewords) !=
+               0), "'codewords' argument must have nonzero length"
+
+        quotient_codewords = []
+        boundary_constraints = self.boundary_constraints_ext(challenges)
+        zerofier = [fri_domain(i) - fri_domain.omega.field.one()
+                    for i in range(fri_domain.length)]
+        zerofier_inverse = batch_inverse(zerofier)
+
+        for l in range(len(boundary_constraints)):
+            mpo = boundary_constraints[l]
+            quotient_codewords += [[mpo.evaluate([codewords[j][i] for j in range(
+                self.full_width)]) * self.field.lift(zerofier_inverse[i]) for i in range(fri_domain.length)]]
+
+        if os.environ.get('DEBUG') is not None:
+            print(f"before domain interpolation of bq in {type(self)}")
+            for qc in quotient_codewords:
+                interpolated = fri_domain.xinterpolate(qc)
+                print(f"degree of interpolation: {interpolated.degree()}")
+                assert(interpolated.degree() < fri_domain.length - 1)
+            print("Done!")
+
+        return quotient_codewords
+
+    def boundary_quotient_degree_bounds(self, challenges):
+        max_degrees = [self.interpolant_degree()] * self.full_width
+        degree_bounds = [mpo.symbolic_degree_bound(
+            max_degrees) - 1 for mpo in self.boundary_constraints_ext(challenges)]
+        return degree_bounds
+
+    @abstractmethod
+    def transition_constraints_ext(self, challenges):
+        pass
+
+    def transition_quotients(self, domain, codewords, challenges):
+
+        quotients = []
+        field = domain.omega.field
+        subgroup_zerofier = [(domain(i) ^ self.height) - field.one()
+                             for i in range(domain.length)]
+        if self.height != 0:
+            subgroup_zerofier_inverse = batch_inverse(subgroup_zerofier)
+        else:
+            subgroup_zerofier_inverse = subgroup_zerofier
+        zerofier_inverse = [subgroup_zerofier_inverse[i] *
+                            (domain(i) - self.omicron.inverse()) for i in range(domain.length)]
+
+        print("extension table omicron:", self.omicron)
+
+        transition_constraints = self.transition_constraints_ext(challenges)
+
+        # symbolic_point = [domain.xinterpolate(c) for c in codewords]
+        # symbolic_point = symbolic_point + \
+        #     [sp.scale(self.xfield.lift(self.omicron)) for sp in symbolic_point]
+        # X = Polynomial([self.field.zero(), self.field.one()])
+        # symbolic_zerofier = (((X ^ interpolation_subgroup_order)) - Polynomial(
+        #     [self.field.one()])) / (X - Polynomial([self.field.lift(self.omicron.inverse())]))
+
+        # for i in range(interpolation_subgroup_order):
+        #     print("value of symbolic zerofier in omicron^%i:" % i, symbolic_zerofier.evaluate(self.field.lift(omicron^i)))
+
+        for l in range(len(transition_constraints)):
+            mpo = transition_constraints[l]
+            quotient_codeword = []
+            composition_codeword = []
+            for i in range(domain.length):
+                point = [codewords[j][i] for j in range(self.full_width)] + \
+                    [codewords[j][(i+self.unit_distance(domain.length)) %
+                                  domain.length] for j in range(self.full_width)]
+                composition_codeword += [mpo.evaluate(point)]
+                quotient_codeword += [mpo.evaluate(point)
+                                      * self.field.lift(zerofier_inverse[i])]
+
+            quotients += [quotient_codeword]
+
+            interpolated = domain.xinterpolate(composition_codeword)
+            print("composition polynomial, evaluated on omicron^1:",
+                  interpolated.evaluate(self.field.lift(self.omicron)))
+
+            if os.environ.get('DEBUG') is not None:
+                print(f"before domain interpolation of tq in {type(self)}")
+                interpolated = domain.xinterpolate(quotients[-1])
+                print(f"degree of interpolation: {interpolated.degree()}")
+                if interpolated.degree() >= domain.length - 1:
+                    print("terminal index:", self.terminal_index)
+                    print("self.height:", self.height)
+                    print("point:", ",".join(str(p) for p in point))
+                    print("codeword:", ",".join(str(c) for c in composition_codeword[:5]))
+                    print("quotient:", ",".join(str(c) for c in quotient_codeword[:5]))
+                    assert(False)
+                assert(domain.xinterpolate(
+                    quotients[-1]).degree() < domain.length-1), f"quotient polynomial has maximal degree in table {type(self)}"
+                print("Done!")
+
+        return quotients
+
+    def transition_quotient_degree_bounds(self, challenges):
+        max_degrees = [self.interpolant_degree()] * (2*self.full_width)
+        print("in ", str(type(self)),
+              "transition_quotient_degree_bounds, I believe that self.width is", self.full_width)
+
+        degree_bounds = []
+        transition_constraints = self.transition_constraints_ext(challenges)
+        for i in range(len(transition_constraints)):
+            mpo = transition_constraints[i]
+            symbolic_degree_bound = mpo.symbolic_degree_bound(max_degrees)
+            degree_bounds += [symbolic_degree_bound - self.height + 1]
+            print("symbolic degree bound for transition quotient",
+                  i, ": ", symbolic_degree_bound, "; matching degree bound:", degree_bounds[-1])
+        return degree_bounds
+        # trace_degree = self.get_interpolant_degree()
+        # air_degree = max(air.degree()
+        #                  for air in self.transition_constraints_ext(challenges))
+        # composition_degree = trace_degree * air_degree
+        # return [composition_degree - Table.roundup_npo2(self.get_height()) + 1] * len(self.transition_constraints_ext(challenges))
+
+    @abstractmethod
+    def terminal_constraints_ext(self, challenges, terminals):
+        pass
+
+    def terminal_quotients(self, domain, codewords, challenges, terminals):
+        quotient_codewords = []
+
+        zerofier_codeword = [domain(i) - self.omicron.inverse()
+                             for i in range(domain.length)]
+
+        zerofier_inverse = batch_inverse(zerofier_codeword)
+        for mpo in self.terminal_constraints_ext(challenges, terminals):
+            quotient_codewords += [[mpo.evaluate([codewords[j][i] for j in range(
+                self.full_width)]) * self.field.lift(zerofier_inverse[i]) for i in range(domain.length)]]
+
+        if os.environ.get('DEBUG') is not None:
+            print(
+                f"before domain interpolation of term quotients in {type(self)}")
+            for qc in quotient_codewords:
+                interpolated = domain.xinterpolate(qc)
+                print(f"degree of interpolation: {interpolated.degree()}")
+                assert(interpolated.degree() < domain.length - 1)
+            print("Done!")
+
+        return quotient_codewords
+
+    def terminal_quotient_degree_bounds(self, challenges, terminals):
+        max_degrees = [self.interpolant_degree()] * self.full_width
+        degree_bounds = [mpo.symbolic_degree_bound(
+            max_degrees) - 1 for mpo in self.terminal_constraints_ext(challenges, terminals)]
+        return degree_bounds
+
+    def all_quotients_labeled(self, domain, codewords, challenges, terminals):
+        labeled_list = LabeledList()
+        boundary_quotients = self.boundary_quotients(
+            domain, codewords, challenges)
+        labeled_list.add(
+            boundary_quotients, str(type(self)) + " / boundary quotients")
+        transition_quotients = self.transition_quotients(
+            domain, codewords, challenges)
+        labeled_list.add(transition_quotients,
+                         str(type(self)) + " / transition quotients")
+        terminal_quotients = self.terminal_quotients(
+            domain, codewords, challenges, terminals)
+        labeled_list.add(
+            terminal_quotients, str(type(self)) + " / terminal quotients")
+        return labeled_list
+
+    def all_quotients(self, domain, codewords, challenges, terminals):
+        return self.all_quotients_labeled(
+            domain, codewords, challenges, terminals).bare()
+
+    def all_quotient_degree_bounds_labeled(self, challenges, terminals):
+        labeled_list = LabeledList()
+        labeled_list.add(self.boundary_quotient_degree_bounds(challenges), str(
+            type(self)) + " / boundary bounds")
+        labeled_list.add(self.transition_quotient_degree_bounds(
+            challenges), str(type(self)) + " / transition bounds")
+        labeled_list.add(self.terminal_quotient_degree_bounds(
+            challenges, terminals), str(type(self)) + " / terminal bounds")
+        return labeled_list
+
+    def all_quotient_degree_bounds(self, challenges, terminals):
+        return self.all_quotient_degree_bounds_labeled(challenges, terminals).bare()
+
+    def num_quotients(self, challenges, terminals):
+        return len(self.all_quotient_degree_bounds(challenges, terminals))
+
+    def evaluate_boundary_quotients(self, omicron, omegai, point):
+        values = []
+        for cycle, mpo in self.boundary_constraints_ext():
+            values += mpo.evaluate(point) / (omegai - (omicron ^ cycle))
+        return values
+
+    def evaluate_transition_quotients(self, omicron, omegai, point, next_point, challenges):
+        values = []
+        zerofier = (omegai ^ Table.roundup_npo2(self.get_height()) - 1) / \
+            (omegai - omicron.inverse())
+        for mpo in self.transition_constraints_ext(challenges):
+            values += [mpo.evaluate(point + next_point) / zerofier]
+        return values
+
+    def evaluate_terminal_quotients(self, omicron, omegai, point, next_point, challenges, terminals):
+        values = []
+        zerofier = omegai - omicron.inverse()
+        for mpo in self.terminal_constraints_ext(challenges, terminals):
+            values += [mpo.evaluate(point+next_point) / zerofier]
+        return values
+
+    def evaluate_quotients(self, omicron, omegai, point, shifted_point):
+        return self.evaluate_boundary_quotients(omicron, omegai, point) \
+            + self.evaluate_transition_quotients(omicron,
+                                                 omegai, point, shifted_point, self.log_num_rows, self.challenges) \
+            + self.evaluate_terminal_quotients(omicron,
+                                               point, self.log_num_rows, self.challenges, self.terminals)

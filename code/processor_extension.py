@@ -22,7 +22,7 @@ class ProcessorExtension(TableExtension):
 
     def __init__(self, length, num_randomizers, generator, order, a, b, c, d, e, f, alpha, beta, gamma, delta, instruction_permutation_terminal, memory_permutation_terminal, input_evaluation_terminal, output_evaluation_terminal):
         super(ProcessorExtension, self).__init__(
-            a.field, ProcessorTable.width, ProcessorExtension.width, length, num_randomizers, generator, order)
+            a.field, 7, 11, length, num_randomizers, generator, order)
         field = a.field
 
         # terminal values (placeholders)
@@ -53,7 +53,10 @@ class ProcessorExtension(TableExtension):
                           input_evaluation_terminal, output_evaluation_terminal]
 
     @staticmethod
-    def extend(processor_table, a, b, c, d, e, f, alpha, beta, gamma, delta, processor_instruction_permutation_initial, processor_memory_permutation_initial):
+    def extend(processor_table, all_challenges, all_initials):
+        a, b, c, d, e, f, alpha, beta, gamma, delta, eta = all_challenges
+        processor_instruction_permutation_initial, processor_memory_permutation_initial = all_initials
+
         # algebra stuff
         field = processor_table.field
         xfield = a.field
@@ -107,11 +110,11 @@ class ProcessorExtension(TableExtension):
 
             extended_matrix += [new_row]
 
-        processor_table.base_width = processor_table.width
-        processor_table.width = len(extended_matrix[0])
         processor_table.field = xfield
         processor_table.matrix = extended_matrix
         processor_table.codewords = [[xfield.lift(c) for c in cdwd] for cdwd in processor_table.codewords]
+        # processor_table.initials = all_initials
+        # processor_table.challenges = all_challenges
 
         extended_processor_table = ProcessorExtension(processor_table.length, processor_table.num_randomizers, processor_table.generator, processor_table.order,
                                                       a, b, c, d, e, f, alpha, beta, gamma, delta, instruction_permutation_running_product, memory_permutation_running_product, input_evaluation_running_evaluation, output_evaluation_running_evaluation)
@@ -119,9 +122,9 @@ class ProcessorExtension(TableExtension):
 
         extended_processor_table.field = xfield
 
-        assert(len(processor_table.polynomials) == ProcessorTable.width)
+        assert(len(processor_table.polynomials) == 7)
         extended_processor_table.polynomials = processor_table.polynomials
-        assert(len(processor_table.codewords) == ProcessorTable.width)
+        assert(len(processor_table.codewords) == 7)
         extended_processor_table.codewords = [
             [xfield.lift(c) for c in cdwd] for cdwd in processor_table.codewords]
 

@@ -15,7 +15,7 @@ class MemoryExtension(TableExtension):
 
     def __init__(self, length, num_randomizers, generator, order, d, e, f, beta, permutation_terminal):
         super(MemoryExtension, self).__init__(
-            d.field, MemoryTable.width, MemoryExtension.width, length, num_randomizers, generator, order)
+            d.field, 3, MemoryExtension.width, length, num_randomizers, generator, order)
 
         # terminal values
         self.permutation_terminal = permutation_terminal
@@ -37,7 +37,9 @@ class MemoryExtension(TableExtension):
         return memory_extension
 
     @staticmethod
-    def extend(memory_table, d, e, f, beta, processor_memory_permutation_initial):
+    def extend(memory_table, all_challenges, all_initials):
+        a, b, c, d, e, f, alpha, beta, gamma, delta, eta = all_challenges
+        processor_instruction_permutation_initial, processor_memory_permutation_initial = all_initials
 
         # algebra stuff
         field = memory_table.field
@@ -61,11 +63,11 @@ class MemoryExtension(TableExtension):
 
             extended_matrix += [new_row]
 
-        memory_table.base_width = memory_table.width
-        memory_table.width = len(extended_matrix[0])
         memory_table.matrix = extended_matrix
         memory_table.field = xfield
         memory_table.codewords = [[xfield.lift(c) for c in cdwd] for cdwd in memory_table.codewords]
+        # memory_table.initials = all_initials
+        # memory_table.challenges = all_challenges
 
         extended_memory_table = MemoryExtension(
             memory_table.length, memory_table.num_randomizers, memory_table.generator, memory_table.order, d, e, f, beta, memory_permutation_running_product)

@@ -47,6 +47,7 @@ class Fri:
             #     [values[j][i] for j in range(xfield.modulus.degree())]), xfield) for i in range(self.length)]
             # return xcdwd
             if xfield == None:
+                assert(len(polynomial.coefficients) != 0), "trying to xevaluate zero polynomial with no target field"
                 xfield = polynomial.coefficients[0].field
             return fast_coset_evaluate(polynomial, xfield.lift(self.offset), xfield.lift(self.omega), self.length)
 

@@ -10,8 +10,7 @@ from univariate import Polynomial
 
 class TableExtension(Table):
     def __init__(self, xfield, base_width, width, length, num_randomizers, generator, order):
-        super().__init__(xfield, width, length, num_randomizers, generator, order)
-        self.base_width = base_width
+        super().__init__(xfield, base_width, width, length, num_randomizers, generator, order)
         self.xfield = xfield
 
     def interpolate_extension(self, omega, order):

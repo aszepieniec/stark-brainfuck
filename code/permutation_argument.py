@@ -10,13 +10,6 @@ class PermutationArgument:
 
     def quotient(self, fri_domain):
         field = fri_domain.omega.field
-        print("len of self.all_tables:", len(self.all_tables))
-        print("self.lhs:", self.lhs)
-        print("self.rhs:", self.rhs)
-        print("width of lhs table:", self.all_tables[self.lhs[0]].width)
-        print("width of rhs table:", self.all_tables[self.rhs[0]].width)
-        print("number of lhs codewords:", len(self.all_tables[self.lhs[0]].codewords))
-        print("number of rhs codewords:", len(self.all_tables[self.rhs[0]].codewords))
         difference_codeword = [l - r for l, r in zip(self.all_tables[self.lhs[0]].codewords[self.lhs[1]],
                                                      self.all_tables[self.rhs[0]].codewords[self.rhs[1]])]
         zerofier = [fri_domain(i) - field.one()

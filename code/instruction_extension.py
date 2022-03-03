@@ -15,7 +15,7 @@ class InstructionExtension(TableExtension):
 
     def __init__(self, length, num_randomizers, generator, order, a, b, c, alpha, eta, permutation_terminal, evaluation_terminal):
         super(InstructionExtension, self).__init__(
-            a.field, InstructionTable.width, InstructionExtension.width, length, num_randomizers, generator, order)
+            a.field, 3, InstructionExtension.width, length, num_randomizers, generator, order)
 
         # terminal values (placeholders)
         self.permutation_terminal = self.field.zero()
@@ -44,7 +44,9 @@ class InstructionExtension(TableExtension):
         return instruction_extension
 
     @staticmethod
-    def extend(instruction_table, a, b, c, alpha, eta, processor_instruction_permutation_initial):
+    def extend(instruction_table, all_challenges, all_initials):
+        a, b, c, d, e, f, alpha, beta, gamma, delta, eta = all_challenges
+        processor_instruction_permutation_initial, processor_memory_permutation_initial = all_initials
         # algebra stuff
         field = instruction_table.field
         xfield = a.field
@@ -86,11 +88,11 @@ class InstructionExtension(TableExtension):
 
             extended_matrix += [new_row]
 
-        instruction_table.base_width = instruction_table.width
         instruction_table.field = xfield
-        instruction_table.width = len(extended_matrix[0])
         instruction_table.matrix = extended_matrix
         instruction_table.codewords = [[xfield.lift(c) for c in cdwd] for cdwd in instruction_table.codewords]
+        # instruction_table.initials = all_initials
+        # instruction_table.challenges = all_challenges
 
         extended_instruction_table = InstructionExtension(
             instruction_table.length, instruction_table.num_randomizers, instruction_table.generator, instruction_table.order, a, b, c, alpha, eta, permutation_running_product, evaluation_running_sum)

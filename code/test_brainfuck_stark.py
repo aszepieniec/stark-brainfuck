@@ -6,11 +6,11 @@ from os.path import exists
 def test_bfs():
     generator = BaseField.main().generator()
     xfield = ExtensionField.main()
-    program = VirtualMachine.compile(">>[++-]<++++++++")
+    #program = VirtualMachine.compile(">>[++-]<++++++++")
     program = VirtualMachine.compile(
         ">++++++++++[>+++><<-]>+++><<>.................")
-    program = VirtualMachine.compile(
-        ",+.")
+    # program = VirtualMachine.compile(",+.")
+    # program = VirtualMachine.compile("++++++++++++++++++++.")
 
     running_time, input_symbols, output_symbols = VirtualMachine.run(program)
 
