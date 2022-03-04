@@ -666,25 +666,18 @@ class BrainfuckStark:
 
         # get root of table extensions
         extension_root = proof_stream.pull()
-        print("<- extension tree root:", hexlify(extension_root))
+
         # get terminals
         processor_instruction_permutation_terminal = proof_stream.pull()
-        print("<- processor instruction permutation terminal:",
-              processor_instruction_permutation_terminal)
         processor_memory_permutation_terminal = proof_stream.pull()
-        print("<- processor memory permutation terminal:",
-              processor_memory_permutation_terminal)
         processor_input_evaluation_terminal = proof_stream.pull()
-        print("<- processor input evaluation terminal:",
-              processor_input_evaluation_terminal)
         processor_output_evaluation_terminal = proof_stream.pull()
-        print("<- processor output evaluation terminal:",
-              processor_output_evaluation_terminal)
         instruction_evaluation_terminal = proof_stream.pull()
-        print("<- instruction evaluation terminal:",
-              instruction_evaluation_terminal)
-        terminals = [processor_instruction_permutation_terminal, processor_memory_permutation_terminal,
-                     processor_input_evaluation_terminal, processor_output_evaluation_terminal, instruction_evaluation_terminal]
+        terminals = [processor_instruction_permutation_terminal,
+                     processor_memory_permutation_terminal,
+                     processor_input_evaluation_terminal,
+                     processor_output_evaluation_terminal,
+                     instruction_evaluation_terminal]
 
         # generate extension tables for type information
         # i.e., do not populate tables
