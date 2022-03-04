@@ -69,7 +69,7 @@ class BrainfuckStark:
 
         # instantiate permutation objects
         processor_instruction_permutation = PermutationArgument(
-            self.base_tables, (0, ProcessorTable.instruction_permutation), (1, InstructionExtension.permutation))
+            self.base_tables, (0, ProcessorTable.instruction_permutation), (1, InstructionTable.permutation))
         processor_memory_permutation = PermutationArgument(
             self.base_tables, (0, ProcessorTable.memory_permutation), (2, MemoryTable.permutation))
         self.permutation_arguments = [
