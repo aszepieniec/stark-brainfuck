@@ -4,7 +4,7 @@ from ip import ProofStream
 from merkle import Merkle
 from fri import *
 from instruction_table import InstructionTable
-from io_table import IOTable, InputTable, OutputTable
+from io_table import InputTable, OutputTable
 from labeled_list import LabeledList
 from memory_table import MemoryTable
 from permutation_argument import PermutationArgument
