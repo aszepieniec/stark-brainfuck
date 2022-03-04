@@ -106,38 +106,13 @@ class BrainfuckStark:
         self.fri = Fri(generator, omega, fri_domain_length,
                        self.expansion_factor, self.num_colinearity_checks, self.xfield)
 
-    # def transition_degree_bounds(self, transition_constraints):
-    #     point_degrees = [1] + [self.original_trace_length +
-    #                            self.num_randomizers-1] * 2*self.num_registers
-    #     return [max(sum(r*l for r, l in zip(point_degrees, k)) for k, v in a.dictionary.items()) for a in transition_constraints]
-
-    # def transition_quotient_degree_bounds(self, transition_constraints):
-    #     return [d - (self.original_trace_length-1) for d in self.transition_degree_bounds(transition_constraints)]
-
-    # def max_degree(self, transition_constraints):
-    #     md = max(self.transition_quotient_degree_bounds(transition_constraints))
-    #     return (1 << (len(bin(md)[2:]))) - 1
-
-    # def boundary_zerofiers(self, boundary):
-    #     zerofiers = []
-    #     for s in range(self.num_registers):
-    #         points = [self.omicron ^ c for c, r, v in boundary if r == s]
-    #         zerofiers = zerofiers + [Polynomial.zerofier_domain(points)]
-    #     return zerofiers
-
-    # def boundary_interpolants(self, boundary):
-    #     interpolants = []
-    #     for s in range(self.num_registers):
-    #         points = [(c, v) for c, r, v in boundary if r == s]
-    #         domain = [self.omicron ^ c for c, v in points]
-    #         values = [v for c, v in points]
-    #         interpolants = interpolants + \
-    #             [Polynomial.interpolate_domain(domain, values)]
-    #     return interpolants
-
-    # def boundary_quotient_degree_bounds(self, randomized_trace_length, boundary):
-    #     randomized_trace_degree = randomized_trace_length - 1
-    #     return [randomized_trace_degree - bz.degree() for bz in self.boundary_zerofiers(boundary)]
+    def get_terminals(self):
+        terminals = [self.processor_table.instruction_permutation_terminal,
+                     self.processor_table.memory_permutation_terminal,
+                     self.processor_table.input_evaluation_terminal,
+                     self.processor_table.output_evaluation_terminal,
+                     self.instruction_table.evaluation_terminal]
+        return terminals
 
     def sample_weights(self, number, randomness):
         return [self.xfield.sample(blake2b(randomness + bytes(i)).digest()) for i in range(number)]
@@ -158,24 +133,6 @@ class BrainfuckStark:
         if integer == 0 or integer == 1:
             return 1
         return 1 << (len(bin(integer-1)[2:]))
-
-    # @staticmethod
-    # def xntt(poly, omega, order):
-    #     xfield = poly.coefficients[0].field
-    #     field = xfield.polynomial.coefficients[0].field
-    #     # decompose
-    #     coeffs_lists = [poly.coefficients[i][j]
-    #                     for j in range(3) for i in range(1+poly.degree())]
-    #     # pad
-    #     for i in range(len(coeffs_lists)):
-    #         coeffs_lists[i] += [field.zero()] * \
-    #             (order - len(coeffs_lists[i]))
-    #     # ntt
-    #     transformed_lists = [ntt(omega, cl) for cl in coeffs_lists]
-    #     # recompose
-    #     codeword = [ExtensionFieldElement(Polynomial(
-    #         [transformed_lists[i][j] for j in range(3)]), field) for i in range(order)]
-    #     return codeword
 
     def prove(self, running_time, program, processor_matrix, instruction_matrix, input_matrix, output_matrix, proof_stream=None):
         assert(running_time == len(processor_matrix))
@@ -209,9 +166,9 @@ class BrainfuckStark:
         # for fast (NTT-based) polynomial arithmetic
         omega = self.fri.domain.omega
         order = self.fri.domain.length
-        # while order > self.max_degree+1:
-        #     omega = omega ^ 2
-        #     order = order // 2
+        while order > self.max_degree+1:
+            omega = omega ^ 2
+            order = order // 2
 
         # interpolate columns of all tables
         base_polynomials = reduce(
@@ -288,14 +245,6 @@ class BrainfuckStark:
         # print("extending ...")
         # tick = time.time()
 
-        # sample initials
-        processor_instruction_permutation_initial = self.xfield.sample(
-            os.urandom(3*8))
-        processor_memory_permutation_initial = self.xfield.sample(
-            os.urandom(3*8))
-        initials = [processor_instruction_permutation_initial,
-                    processor_memory_permutation_initial]
-
         # extend tables
         # processor_extension = ProcessorExtension.extend(
         #     self.processor_table, challenges, initials)
@@ -307,6 +256,8 @@ class BrainfuckStark:
         # output_extension = IOExtension.extend(self.output_table, challenges, initials)
         # extension_tables = [processor_extension, instruction_extension,
         #                     memory_extension, input_extension, output_extension]
+        initials = [self.xfield.sample(os.urandom(3*8))
+                    for i in range(len(self.permutation_arguments))]
         challenges_copy = [ch for ch in challenges]
         for table in self.base_tables:
             table.extend(challenges, initials)
@@ -326,13 +277,14 @@ class BrainfuckStark:
         # print("computing table extensions took", (tock - tick), "seconds")
 
         # get terminal values
-        processor_instruction_permutation_terminal = self.instruction_table.permutation_terminal
-        processor_memory_permutation_terminal = self.memory_table.permutation_terminal
-        processor_input_evaluation_terminal = self.input_table.evaluation_terminal
-        processor_output_evaluation_terminal = self.output_table.evaluation_terminal
-        instruction_evaluation_terminal = self.instruction_table.evaluation_terminal
-        terminals = [processor_instruction_permutation_terminal, processor_memory_permutation_terminal,
-                     processor_input_evaluation_terminal, processor_output_evaluation_terminal, instruction_evaluation_terminal]
+        # processor_instruction_permutation_terminal = self.instruction_table.permutation_terminal
+        # processor_memory_permutation_terminal = self.memory_table.permutation_terminal
+        # processor_input_evaluation_terminal = self.input_table.evaluation_terminal
+        # processor_output_evaluation_terminal = self.output_table.evaluation_terminal
+        # instruction_evaluation_terminal = self.instruction_table.evaluation_terminal
+        # terminals = [processor_instruction_permutation_terminal, processor_memory_permutation_terminal,
+        #              processor_input_evaluation_terminal, processor_output_evaluation_terminal, instruction_evaluation_terminal]
+        terminals = self.get_terminals()
 
         # tick = time.time()
         # print("interpolating extensions ...")
@@ -408,12 +360,6 @@ class BrainfuckStark:
         #     (IOExtension.width - IOTable.width)
         # print("commitment to extension polynomials took",
         #   (tock - tick), "seconds")
-
-        # self.input_table.xtest(challenges_copy, terminals)
-        print("challenges:")
-        for ch in challenges:
-            print(ch)
-        self.output_table.xtest(challenges_copy, terminals)
 
         # if os.environ.get('DEBUG') is not None:
         #     self.processor_table.test()

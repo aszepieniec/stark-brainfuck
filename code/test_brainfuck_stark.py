@@ -12,7 +12,7 @@ def test_bfs():
     # program = VirtualMachine.compile(",+.")
     # program = VirtualMachine.compile("++++++++++++++++++++.")
     # program = VirtualMachine.compile(",.........")
-    program = VirtualMachine.compile(",,,.")
+    program = VirtualMachine.compile(",...")
 
     running_time, input_symbols, output_symbols = VirtualMachine.run(program)
 
