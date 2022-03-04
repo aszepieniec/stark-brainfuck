@@ -1,8 +1,4 @@
 from binascii import hexlify
-from concurrent.futures import process
-from dataclasses import field
-from email.mime import base
-from platform import processor
 from extension_field import ExtensionField, ExtensionFieldElement
 from ip import ProofStream
 from merkle import Merkle
@@ -11,11 +7,8 @@ from instruction_extension import InstructionExtension
 from instruction_table import InstructionTable
 from io_table import IOTable, InputTable, OutputTable
 from labeled_list import LabeledList
-from memory_extension import MemoryExtension
 from memory_table import MemoryTable
 from permutation_argument import PermutationArgument
-from processor_extension import ProcessorExtension
-from io_extension import IOExtension
 from processor_table import ProcessorTable
 from salted_merkle import SaltedMerkle
 from univariate import *
@@ -77,9 +70,9 @@ class BrainfuckStark:
 
         # instantiate permutation objects
         processor_instruction_permutation = PermutationArgument(
-            self.base_tables, (0, ProcessorExtension.instruction_permutation), (1, InstructionExtension.permutation))
+            self.base_tables, (0, ProcessorTable.instruction_permutation), (1, InstructionExtension.permutation))
         processor_memory_permutation = PermutationArgument(
-            self.base_tables, (0, ProcessorExtension.memory_permutation), (2, MemoryExtension.permutation))
+            self.base_tables, (0, ProcessorTable.memory_permutation), (2, MemoryTable.permutation))
         self.permutation_arguments = [
             processor_instruction_permutation, processor_memory_permutation]
 
@@ -1155,7 +1148,7 @@ class BrainfuckStark:
             print("len(terms) after output terminals: ", len(terms))
 
             # ******************** difference quotients ********************
-            difference = (processor_point[ProcessorExtension.instruction_permutation] -
+            difference = (processor_point[ProcessorTable.instruction_permutation] -
                           instruction_point[InstructionExtension.permutation])
             quotient = difference / \
                 (self.xfield.lift(self.fri.domain(index)) - self.xfield.one())
@@ -1170,7 +1163,7 @@ class BrainfuckStark:
                       self.xfield.lift(self.fri.domain(index) ^ shift)]
 
             difference = (
-                processor_point[ProcessorExtension.memory_permutation] - memory_point[MemoryExtension.permutation])
+                processor_point[ProcessorTable.memory_permutation] - memory_point[MemoryTable.permutation])
             quotient = difference / \
                 (self.xfield.lift(self.fri.domain(index)) - self.xfield.one())
             terms += [quotient]
