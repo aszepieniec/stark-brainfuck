@@ -390,37 +390,43 @@ class BrainfuckStark:
         # gather polynomials derived from generalized AIR constraints relating to boundary, transition, and terminals
         quotient_codewords = LabeledList()
         # print("processor table:")
-        quotient_codewords.concatenate(self.processor_table.all_quotients_labeled(
-            self.fri.domain, self.processor_table.codewords, challenges, terminals))
-        # print("instruction table:")
-        quotient_codewords.concatenate(self.instruction_table.all_quotients_labeled(
-            self.fri.domain, self.instruction_table.codewords, challenges, terminals))
-        # print("memory table:")
-        quotient_codewords.concatenate(self.memory_table.all_quotients_labeled(
-            self.fri.domain, self.memory_table.codewords, challenges, terminals))
-        # print("input table:")
-        quotient_codewords.concatenate(self.input_table.all_quotients_labeled(self.fri.domain, self.input_table.codewords,
-                                                                              challenges, terminals))
-        # print("output table:")
-        quotient_codewords.concatenate(self.output_table.all_quotients_labeled(self.fri.domain, self.output_table.codewords,
-                                                                               challenges, terminals))
+        # quotient_codewords.concatenate(self.processor_table.all_quotients_labeled(
+        #     self.fri.domain, self.processor_table.codewords, challenges, terminals))
+        # # print("instruction table:")
+        # quotient_codewords.concatenate(self.instruction_table.all_quotients_labeled(
+        #     self.fri.domain, self.instruction_table.codewords, challenges, terminals))
+        # # print("memory table:")
+        # quotient_codewords.concatenate(self.memory_table.all_quotients_labeled(
+        #     self.fri.domain, self.memory_table.codewords, challenges, terminals))
+        # # print("input table:")
+        # quotient_codewords.concatenate(self.input_table.all_quotients_labeled(self.fri.domain, self.input_table.codewords,
+        #                                                                       challenges, terminals))
+        # # print("output table:")
+        # quotient_codewords.concatenate(self.output_table.all_quotients_labeled(self.fri.domain, self.output_table.codewords,
+        #                                                                        challenges, terminals))
+        for table in self.base_tables:
+            quotient_codewords.concatenate(table.all_quotients_labeled(
+                self.fri.domain, table.codewords, challenges, terminals))
 
         quotient_degree_bounds = LabeledList()
         # print("number of degree bounds:")
-        quotient_degree_bounds.concatenate(
-            self.processor_table.all_quotient_degree_bounds_labeled(challenges, terminals))
+        # quotient_degree_bounds.concatenate(
+        #     self.processor_table.all_quotient_degree_bounds_labeled(challenges, terminals))
 
-        quotient_degree_bounds.concatenate(
-            self.instruction_table.all_quotient_degree_bounds_labeled(challenges, terminals))
+        # quotient_degree_bounds.concatenate(
+        #     self.instruction_table.all_quotient_degree_bounds_labeled(challenges, terminals))
 
-        quotient_degree_bounds.concatenate(
-            self.memory_table.all_quotient_degree_bounds_labeled(challenges, terminals))
+        # quotient_degree_bounds.concatenate(
+        #     self.memory_table.all_quotient_degree_bounds_labeled(challenges, terminals))
 
-        quotient_degree_bounds.concatenate(
-            self.input_table.all_quotient_degree_bounds_labeled(challenges, terminals))
+        # quotient_degree_bounds.concatenate(
+        #     self.input_table.all_quotient_degree_bounds_labeled(challenges, terminals))
 
-        quotient_degree_bounds.concatenate(
-            self.output_table.all_quotient_degree_bounds_labeled(challenges, terminals))
+        # quotient_degree_bounds.concatenate(
+        #     self.output_table.all_quotient_degree_bounds_labeled(challenges, terminals))
+        for table in self.base_tables:
+            quotient_degree_bounds.concatenate(
+                table.all_quotient_degree_bounds_labeled(challenges, terminals))
 
         # ... and equal initial values
         for pa in self.permutation_arguments:
@@ -450,22 +456,24 @@ class BrainfuckStark:
         # print("computing quotients took", (tock - tick), "seconds")
 
         # send terminals
-        proof_stream.push(
-            self.processor_table.instruction_permutation_terminal)
-        proof_stream.push(self.processor_table.memory_permutation_terminal)
-        proof_stream.push(self.processor_table.input_evaluation_terminal)
-        proof_stream.push(self.processor_table.output_evaluation_terminal)
-        proof_stream.push(self.instruction_table.evaluation_terminal)
-        print("-> processor instruction permutation terminal:",
-              self.processor_table.instruction_permutation_terminal)
-        print("-> processor memory permutation terminal",
-              self.processor_table.memory_permutation_terminal)
-        print("-> processor input permutation terminal",
-              self.processor_table.input_evaluation_terminal)
-        print("-> processor output permutation terminal",
-              self.processor_table.output_evaluation_terminal)
-        print("-> instruction program evaluation terminal",
-              self.instruction_table.evaluation_terminal)
+        # proof_stream.push(
+        #     self.processor_table.instruction_permutation_terminal)
+        # proof_stream.push(self.processor_table.memory_permutation_terminal)
+        # proof_stream.push(self.processor_table.input_evaluation_terminal)
+        # proof_stream.push(self.processor_table.output_evaluation_terminal)
+        # proof_stream.push(self.instruction_table.evaluation_terminal)
+        # print("-> processor instruction permutation terminal:",
+        #       self.processor_table.instruction_permutation_terminal)
+        # print("-> processor memory permutation terminal",
+        #       self.processor_table.memory_permutation_terminal)
+        # print("-> processor input permutation terminal",
+        #       self.processor_table.input_evaluation_terminal)
+        # print("-> processor output permutation terminal",
+        #       self.processor_table.output_evaluation_terminal)
+        # print("-> instruction program evaluation terminal",
+        #       self.instruction_table.evaluation_terminal)
+        for t in terminals:
+            proof_stream.push(t)
 
         # get weights for nonlinear combination
         #  - 1 for randomizer polynomials
