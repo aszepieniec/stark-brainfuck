@@ -46,16 +46,6 @@ class Table:
     def interpolant_degree(self):
         return self.get_interpolation_domain_length() - 1
 
-    # @abstractmethod
-    # @staticmethod
-    # def transition_constraints():
-    #     pass
-
-    # @abstractmethod
-    # @staticmethod
-    # def boundary_constraints():
-    #     pass
-
     def test(self):
         for i in range(len(self.base_boundary_constraints())):
             mpo = self.base_boundary_constraints()[i]
@@ -120,11 +110,6 @@ class Table:
                 print("indicated challenge:", challenges[self.terminal_index])
                 assert(False)
 
-    def interpolate(self, omega, order):
-        self.polynomials = self.interpolate_columns(
-            omega, order, column_indices=range(self.base_width))
-        return self.polynomials
-
     def interpolate_columns(self, omega, omega_order, column_indices):
         assert(omega.has_order_po2(omega_order)
                ), "omega does not have claimed order"
@@ -156,30 +141,6 @@ class Table:
 
         return polynomials
 
-    def evaluate(self, domain):
-        self.codewords = self.evaluate_columns(domain, range(self.base_width))
-        return self.codewords
-
-    def evaluate_columns(self, domain, indices):
-        codewords = [domain.evaluate(self.polynomials[i]) for i in indices]
-        return codewords
-
-    def interpolate_extension(self, omega, order):
-        polynomials = self.interpolate_columns(
-            omega, order, range(self.base_width, self.full_width))
-        self.polynomials += polynomials
-        return polynomials
-
-    def evaluate_extension(self, domain):
-        codewords = self.xevaluate_columns(
-            domain, range(self.base_width, self.full_width))
-        self.codewords += codewords
-        return codewords
-
-    def xevaluate_columns(self, domain, indices):
-        codewords = [domain.xevaluate(self.polynomials[i]) for i in indices]
-        return codewords
-
     def lde(self, domain):
         polynomials = self.interpolate_columns(
             domain.omega, domain.length, column_indices=range(self.base_width))
@@ -192,10 +153,6 @@ class Table:
         codewords = [domain.xevaluate(p, xfield) for p in polynomials]
         self.codewords += codewords
         return codewords
-
-      #
-    # # #
-      #
 
     @abstractmethod
     def boundary_constraints_ext(self):
@@ -335,13 +292,10 @@ class Table:
             quotient_codewords += [[mpo.evaluate([codewords[j][i] for j in range(
                 self.full_width)]) * self.field.lift(zerofier_inverse[i]) for i in range(domain.length)]]
 
-        if os.environ.get('DEBUG1') is not None:
-            print(
-                f"before domain interpolation of term quotients in {type(self)}")
+        if os.environ.get('DEBUG') is not None:
             for i in range(len(quotient_codewords)):
                 qc = quotient_codewords[i]
                 interpolated = domain.xinterpolate(qc)
-                print(f"degree of interpolation: {interpolated.degree()}")
                 if interpolated.degree() >= domain.length - 1:
                     print("interpolated degree:", interpolated.degree())
                     print("domain length:", domain.length)
@@ -359,7 +313,6 @@ class Table:
                     print(type(codeword))
                     print(type(domain))
                     assert(False)
-            print("Done!")
 
         return quotient_codewords
 
@@ -427,8 +380,7 @@ class Table:
         return values
 
     def evaluate_quotients(self, omicron, omegai, point, shifted_point):
-        return self.evaluate_boundary_quotients(omicron, omegai, point)
-        + self.evaluate_transition_quotients(omicron,
-                                             omegai, point, shifted_point, self.log_num_rows, self.challenges)
-        + self.evaluate_terminal_quotients(omicron,
-                                           point, self.log_num_rows, self.challenges, self.terminals)
+        return self.evaluate_boundary_quotients(omicron, omegai, point) \
+            + self.evaluate_transition_quotients(omicron, omegai, point, shifted_point, self.log_num_rows, self.challenges) \
+            + self.evaluate_terminal_quotients(omicron, point,
+                                               self.log_num_rows, self.challenges, self.terminals)
