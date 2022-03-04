@@ -1148,7 +1148,7 @@ class BrainfuckStark:
 
             # ******************** difference quotients ********************
             difference = (processor_point[ProcessorTable.instruction_permutation] -
-                          instruction_point[InstructionExtension.permutation])
+                          instruction_point[InstructionTable.permutation])
             quotient = difference / \
                 (self.xfield.lift(self.fri.domain(index)) - self.xfield.one())
             terms += [quotient]
