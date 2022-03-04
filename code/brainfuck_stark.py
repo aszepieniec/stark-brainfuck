@@ -3,7 +3,6 @@ from extension_field import ExtensionField, ExtensionFieldElement
 from ip import ProofStream
 from merkle import Merkle
 from fri import *
-from instruction_extension import InstructionExtension
 from instruction_table import InstructionTable
 from io_table import IOTable, InputTable, OutputTable
 from labeled_list import LabeledList
