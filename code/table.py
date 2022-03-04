@@ -182,7 +182,7 @@ class Table:
 
     def lde(self, domain):
         polynomials = self.interpolate_columns(
-            self.omicron, self.height, column_indices=range(self.full_width))
+            domain.omega, domain.length, column_indices=range(self.base_width))
         self.codewords = [domain.evaluate(p) for p in polynomials]
         return self.codewords
 

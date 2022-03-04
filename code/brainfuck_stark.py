@@ -163,8 +163,8 @@ class BrainfuckStark:
             order = order // 2
 
         # interpolate columns of all tables
-        base_polynomials = reduce(
-            lambda x, y: x+y, [table.interpolate(omega, order) for table in self.base_tables], [])
+        # base_polynomials = reduce(
+        #     lambda x, y: x+y, [table.interpolate(omega, order) for table in self.base_tables], [])
         # processor_polynomials = processor_table.interpolate(
         #     omega, self.fri_domain_length)
         # instruction_polynomials = instruction_table.interpolate(
@@ -218,7 +218,7 @@ class BrainfuckStark:
         #     memory_base_codewords + input_base_codewords + \
         #     output_base_codewords
         base_codewords = reduce(
-            lambda x, y: x+y, [table.evaluate(self.fri.domain) for table in self.base_tables], [])
+            lambda x, y: x+y, [table.lde(self.fri.domain) for table in self.base_tables], [])
         all_base_codewords = randomizer_codewords + base_codewords
 
         zipped_codeword = list(zip(*all_base_codewords))
