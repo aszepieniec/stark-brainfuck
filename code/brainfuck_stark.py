@@ -439,42 +439,11 @@ class BrainfuckStark:
                      processor_output_evaluation_terminal,
                      instruction_evaluation_terminal]
 
-        # generate extension tables for type information
-        # i.e., do not populate tables
-        # processor_extension = ProcessorExtension(BrainfuckStark.roundup_npo2(self.running_time), self.num_randomizers, self.fri.domain.omega, self.fri.domain.length,
-        #                                          a, b, c, d, e, f, alpha, beta, gamma, delta, processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal)
-        # instruction_extension = InstructionExtension(BrainfuckStark.roundup_npo2(
-        #     self.running_time+len(self.program)), self.num_randomizers, self.fri.domain.omega, self.fri.domain.length, a, b, c, alpha, eta, processor_instruction_permutation_terminal, instruction_evaluation_terminal)
-        # memory_extension = MemoryExtension(BrainfuckStark.roundup_npo2(
-        #     self.running_time), self.num_randomizers, self.fri.domain.omega, self.fri.domain.length, d, e, f, beta, processor_memory_permutation_terminal)
-
-        # input_extension = IOExtension(len(
-        #     self.input_symbols), self.fri.domain.omega, self.fri.domain.length, gamma, processor_input_evaluation_terminal)
-        # output_extension = IOExtension(len(
-        #     self.output_symbols), self.fri.domain.omega, self.fri.domain.length, delta, processor_output_evaluation_terminal)
-
-        # instantiate argument objects
-        # processor_memory_permutation = PermutationArgument(processor_extension,
-        #                                                    ProcessorExtension.memory_permutation,
-        #                                                    memory_extension,
-        #                                                    MemoryExtension.permutation)
-        # processor_instruction_permutation = PermutationArgument(processor_extension,
-        #                                                         ProcessorExtension.instruction_permutation,
-        #                                                         instruction_extension,
-        #                                                         InstructionExtension.permutation)
-        # permutation_arguments = [processor_instruction_permutation,
-        #                          processor_memory_permutation]
-
-        # compute degree bounds
-        # extension_tables = [processor_extension, instruction_extension,
-        #                     memory_extension, input_extension, output_extension]
         base_degree_bounds = reduce(lambda x, y: x + y,
                                     [[table.interpolant_degree(
                                     )] * table.base_width for table in self.base_tables],
                                     [])
 
-        # extension_degree_bounds = [BrainfuckStark.roundup_npo2(processor_extension.height)-1] * (self.processor_table.full_width - self.processor_table.base_width) + [BrainfuckStark.roundup_npo2(instruction_extension.height)-1] * (self.instruction_table.full_width - self.instruction_table.base_width) + [
-        #     BrainfuckStark.roundup_npo2(memory_extension.height)-1] * (self.memory_table.full_width - self.memory_table.base_width) + [BrainfuckStark.roundup_npo2(input_extension.height)-1] * (IOExtension.width - IOTable.width) + [BrainfuckStark.roundup_npo2(output_extension.height)-1] * (IOExtension.width - IOTable.width)
         extension_degree_bounds = reduce(lambda x, y: x+y,
                                          [[table.interpolant_degree()] * (table.full_width - table.base_width)
                                           for table in self.base_tables],
@@ -507,33 +476,6 @@ class BrainfuckStark:
             2*num_quotient_polynomials +
             2*num_difference_quotients,
             weights_seed)
-
-        print("** challenges for weights")
-
-        # # prepare to verify tables
-        # processor_extension = ProcessorExtension.prepare_verify(log_time, challenges=[a, b, c, d, e, f, alpha, beta, gamma, delta], terminals=[
-        #     processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal])
-        # instruction_extension = InstructionExtension.prepare_verify(log_time, challenges=[a, b, c, alpha, eta], terminals=[
-        #     processor_instruction_permutation_terminal, instruction_evaluation_terminal])
-        # memory_extension = MemoryExtension.prepare_verify(log_time, challenges=[
-        #     d, e, f, beta], terminals=[processor_memory_permutation_terminal])
-        # input_extension = IOExtension.prepare_verify(
-        #     log_input, challenges=[gamma], terminals=[processor_input_evaluation_terminal])
-        # output_extension = IOExtension.prepare_verify(
-        #     log_output, challenges=[delta], terminals=[processor_output_evaluation_terminal])
-
-        # # get weights for nonlinear combination
-        # num_base_polynomials = ProcessorTable(self.field).width + InstructionTable(
-        #     self.field).width + MemoryTable(self.field).width + IOTable(self.field).width * 2
-        # num_randomizer_polynomials = 1
-        # num_extension_polynomials = processor_extension.width + instruction_extension.width + \
-        #     memory_extension.width + input_extension.width + \
-        #     output_extension.width - num_base_polynomials
-        # num_quotient_polynomials = processor_extension.num_quotients() + instruction_extension.num_quotients() + \
-        #     memory_extension.num_quotients() + input_extension.num_quotients() + \
-        #     output_extension.num_quotients()
-        # weights = self.sample_weights(2*num_base_polynomials + 2*num_extension_polynomials +
-        #                               num_randomizer_polynomials, proof_stream.verifier_fiat_shamir())
 
         # pull Merkle root of combination codeword
         combination_root = proof_stream.pull()
