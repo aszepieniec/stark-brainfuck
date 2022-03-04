@@ -142,12 +142,13 @@ class VirtualMachine:
                 output_data += chr(int(memory[memory_pointer].value % 256))
             elif program[instruction_pointer] == F(','):
                 instruction_pointer += 1
-                if input_data:
+                if input_counter < len(input_data):
                     char = input_data[input_counter]
                     input_counter += 1
                 else:
                     char = getch()
                     input_data += [char]
+                    input_counter += 1
                 memory[memory_pointer] = BaseFieldElement(ord(char), field)
             else:
                 assert(

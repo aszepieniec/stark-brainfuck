@@ -76,9 +76,12 @@ class BrainfuckStark:
                             self.memory_table, self.input_table, self.output_table]
 
         # instantiate permutation objects
-        processor_instruction_permutation = PermutationArgument(self.base_tables, (0,ProcessorExtension.instruction_permutation), (1, InstructionExtension.permutation))
-        processor_memory_permutation = PermutationArgument(self.base_tables, (0,ProcessorExtension.memory_permutation), (2, MemoryExtension.permutation))
-        self.permutation_arguments = [processor_instruction_permutation, processor_memory_permutation]
+        processor_instruction_permutation = PermutationArgument(
+            self.base_tables, (0, ProcessorExtension.instruction_permutation), (1, InstructionExtension.permutation))
+        processor_memory_permutation = PermutationArgument(
+            self.base_tables, (0, ProcessorExtension.memory_permutation), (2, MemoryExtension.permutation))
+        self.permutation_arguments = [
+            processor_instruction_permutation, processor_memory_permutation]
 
         # compute self.fri domain length
         self.max_degree = 1
@@ -290,7 +293,8 @@ class BrainfuckStark:
             os.urandom(3*8))
         processor_memory_permutation_initial = self.xfield.sample(
             os.urandom(3*8))
-        initials = [processor_instruction_permutation_initial, processor_memory_permutation_initial]
+        initials = [processor_instruction_permutation_initial,
+                    processor_memory_permutation_initial]
 
         # extend tables
         # processor_extension = ProcessorExtension.extend(
@@ -303,6 +307,7 @@ class BrainfuckStark:
         # output_extension = IOExtension.extend(self.output_table, challenges, initials)
         # extension_tables = [processor_extension, instruction_extension,
         #                     memory_extension, input_extension, output_extension]
+        challenges_copy = [ch for ch in challenges]
         for table in self.base_tables:
             table.extend(challenges, initials)
 
@@ -326,7 +331,8 @@ class BrainfuckStark:
         processor_input_evaluation_terminal = self.input_table.evaluation_terminal
         processor_output_evaluation_terminal = self.output_table.evaluation_terminal
         instruction_evaluation_terminal = self.instruction_table.evaluation_terminal
-        terminals = [processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal, instruction_evaluation_terminal]
+        terminals = [processor_instruction_permutation_terminal, processor_memory_permutation_terminal,
+                     processor_input_evaluation_terminal, processor_output_evaluation_terminal, instruction_evaluation_terminal]
 
         # tick = time.time()
         # print("interpolating extensions ...")
@@ -352,11 +358,12 @@ class BrainfuckStark:
         # print("committing to extension polynomials ...")
         # commit to extension polynomials
         # extension_codewords = [self.fri.domain.xevaluate(
-            # p, self.xfield) for p in extension_polynomials]
+        # p, self.xfield) for p in extension_polynomials]
 
         # extension_codewords_ = reduce(lambda x, y: x+y, [table.evaluate_extension(self.fri.domain) for table in self.base_tables], [])
 
-        extension_codewords = reduce(lambda x, y: x+y, [table.ldex(self.fri.domain, self.xfield) for table in self.base_tables], [])
+        extension_codewords = reduce(
+            lambda x, y: x+y, [table.ldex(self.fri.domain, self.xfield) for table in self.base_tables], [])
 
         # processor_extension_codewords = [self.fri.domain.xevaluate(p, self.xfield)
         #                                  for p in processor_extension_polynomials]
@@ -402,6 +409,12 @@ class BrainfuckStark:
         # print("commitment to extension polynomials took",
         #   (tock - tick), "seconds")
 
+        # self.input_table.xtest(challenges_copy, terminals)
+        print("challenges:")
+        for ch in challenges:
+            print(ch)
+        self.output_table.xtest(challenges_copy, terminals)
+
         # if os.environ.get('DEBUG') is not None:
         #     self.processor_table.test()
         #     processor_extension.test()
@@ -414,7 +427,7 @@ class BrainfuckStark:
 
         # combine base + extension
         # extension_codewords = reduce(
-            # lambda x, y: x+y, [table.evaluate_extension(self.fri.domain) for table in extension_tables], [])
+        # lambda x, y: x+y, [table.evaluate_extension(self.fri.domain) for table in extension_tables], [])
         # processor_codewords = [[self.xfield.lift(
         #     c) for c in codeword] for codeword in processor_base_codewords] + processor_extension_codewords
         # instruction_codewords = [[self.xfield.lift(
@@ -431,29 +444,37 @@ class BrainfuckStark:
         # gather polynomials derived from generalized AIR constraints relating to boundary, transition, and terminals
         quotient_codewords = LabeledList()
         # print("processor table:")
-        quotient_codewords.concatenate(self.processor_table.all_quotients_labeled(self.fri.domain, self.processor_table.codewords, challenges, terminals))
+        quotient_codewords.concatenate(self.processor_table.all_quotients_labeled(
+            self.fri.domain, self.processor_table.codewords, challenges, terminals))
         # print("instruction table:")
-        quotient_codewords.concatenate(self.instruction_table.all_quotients_labeled(self.fri.domain, self.instruction_table.codewords, challenges, terminals))
+        quotient_codewords.concatenate(self.instruction_table.all_quotients_labeled(
+            self.fri.domain, self.instruction_table.codewords, challenges, terminals))
         # print("memory table:")
-        quotient_codewords.concatenate(self.memory_table.all_quotients_labeled(self.fri.domain, self.memory_table.codewords, challenges, terminals))
+        quotient_codewords.concatenate(self.memory_table.all_quotients_labeled(
+            self.fri.domain, self.memory_table.codewords, challenges, terminals))
         # print("input table:")
         quotient_codewords.concatenate(self.input_table.all_quotients_labeled(self.fri.domain, self.input_table.codewords,
-                                                                             challenges, terminals))
+                                                                              challenges, terminals))
         # print("output table:")
         quotient_codewords.concatenate(self.output_table.all_quotients_labeled(self.fri.domain, self.output_table.codewords,
-                                                                              challenges, terminals))
+                                                                               challenges, terminals))
 
         quotient_degree_bounds = LabeledList()
         # print("number of degree bounds:")
-        quotient_degree_bounds.concatenate(self.processor_table.all_quotient_degree_bounds_labeled(challenges, terminals))
+        quotient_degree_bounds.concatenate(
+            self.processor_table.all_quotient_degree_bounds_labeled(challenges, terminals))
 
-        quotient_degree_bounds.concatenate(self.instruction_table.all_quotient_degree_bounds_labeled(challenges, terminals))
+        quotient_degree_bounds.concatenate(
+            self.instruction_table.all_quotient_degree_bounds_labeled(challenges, terminals))
 
-        quotient_degree_bounds.concatenate(self.memory_table.all_quotient_degree_bounds_labeled(challenges, terminals))
+        quotient_degree_bounds.concatenate(
+            self.memory_table.all_quotient_degree_bounds_labeled(challenges, terminals))
 
-        quotient_degree_bounds.concatenate(self.input_table.all_quotient_degree_bounds_labeled(challenges, terminals))
+        quotient_degree_bounds.concatenate(
+            self.input_table.all_quotient_degree_bounds_labeled(challenges, terminals))
 
-        quotient_degree_bounds.concatenate(self.output_table.all_quotient_degree_bounds_labeled(challenges, terminals))
+        quotient_degree_bounds.concatenate(
+            self.output_table.all_quotient_degree_bounds_labeled(challenges, terminals))
 
         # ... and equal initial values
         for pa in self.permutation_arguments:
@@ -483,7 +504,8 @@ class BrainfuckStark:
         # print("computing quotients took", (tock - tick), "seconds")
 
         # send terminals
-        proof_stream.push(self.processor_table.instruction_permutation_terminal)
+        proof_stream.push(
+            self.processor_table.instruction_permutation_terminal)
         proof_stream.push(self.processor_table.memory_permutation_terminal)
         proof_stream.push(self.processor_table.input_evaluation_terminal)
         proof_stream.push(self.processor_table.output_evaluation_terminal)
@@ -502,8 +524,10 @@ class BrainfuckStark:
         # get weights for nonlinear combination
         #  - 1 for randomizer polynomials
         #  - 2 for every other polynomial (base, extension, quotients)
-        num_base_polynomials = sum(table.base_width for table in self.base_tables)
-        num_extension_polynomials = sum(table.full_width - table.base_width for table in self.base_tables)
+        num_base_polynomials = sum(
+            table.base_width for table in self.base_tables)
+        num_extension_polynomials = sum(
+            table.full_width - table.base_width for table in self.base_tables)
         num_randomizer_polynomials = 1
         num_quotient_polynomials = len(quotient_degree_bounds)
         weights_seed = proof_stream.prover_fiat_shamir()
@@ -713,7 +737,8 @@ class BrainfuckStark:
         instruction_evaluation_terminal = proof_stream.pull()
         print("<- instruction evaluation terminal:",
               instruction_evaluation_terminal)
-        terminals = [processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal, instruction_evaluation_terminal]
+        terminals = [processor_instruction_permutation_terminal, processor_memory_permutation_terminal,
+                     processor_input_evaluation_terminal, processor_output_evaluation_terminal, instruction_evaluation_terminal]
 
         # generate extension tables for type information
         # i.e., do not populate tables
@@ -759,8 +784,10 @@ class BrainfuckStark:
         # get weights for nonlinear combination
         #  - 1 randomizer
         #  - 2 for every other polynomial (base, extension, quotients)
-        num_base_polynomials = sum(table.base_width for table in self.base_tables)
-        num_extension_polynomials = sum(table.full_width - table.base_width for table in self.base_tables)
+        num_base_polynomials = sum(
+            table.base_width for table in self.base_tables)
+        num_extension_polynomials = sum(
+            table.full_width - table.base_width for table in self.base_tables)
         num_randomizer_polynomials = 1
 
         # num_quotient_polynomials = processor_extension.num_quotients()
@@ -768,7 +795,8 @@ class BrainfuckStark:
         # num_quotient_polynomials += memory_extension.num_quotients()
         # num_quotient_polynomials += input_extension.num_quotients()
         # num_quotient_polynomials += output_extension.num_quotients()
-        num_quotient_polynomials = sum(table.num_quotients(challenges, terminals) for table in self.base_tables)
+        num_quotient_polynomials = sum(table.num_quotients(
+            challenges, terminals) for table in self.base_tables)
 
         num_difference_quotients = len(self.permutation_arguments)
 
@@ -868,7 +896,8 @@ class BrainfuckStark:
             print("len(terms) after base codewords: ", len(terms))
 
             # collect terms: extension
-            extension_offset = num_randomizer_polynomials + sum(table.base_width for table in self.base_tables)
+            extension_offset = num_randomizer_polynomials + \
+                sum(table.base_width for table in self.base_tables)
 
             assert(len(
                 terms) == 2 * extension_offset - num_randomizer_polynomials), f"number of terms {len(terms)} does not match with extension offset {2 * extension_offset - num_randomizer_polynomials}"
@@ -906,7 +935,6 @@ class BrainfuckStark:
                 acc_index+self.output_table.base_width)]
             acc_index += self.output_table.base_width
 
-
             assert(acc_index == extension_offset,
                    "Column count in verifier must match until extension columns")
 
@@ -935,9 +963,11 @@ class BrainfuckStark:
 
             # ******************** processor quotients ********************
             # boundary
-            print("type of points:", ",".join(str(type(p)) for p in processor_point))
+            print("type of points:", ",".join(str(type(p))
+                  for p in processor_point))
             for constraint, bound in zip(self.processor_table.boundary_constraints_ext(challenges), self.processor_table.boundary_quotient_degree_bounds(challenges)):
-                print("type of constraint:", type(constraint), "over", type(list(constraint.dictionary.values())[0]))
+                print("type of constraint:", type(constraint), "over",
+                      type(list(constraint.dictionary.values())[0]))
                 eval = constraint.evaluate(processor_point)
                 quotient = eval / \
                     (self.xfield.lift(self.fri.domain(index)) - self.xfield.one())
@@ -1179,7 +1209,8 @@ class BrainfuckStark:
             # shift = self.max_degree - \
             #     (BrainfuckStark.roundup_npo2(
             #         self.running_time + len(self.program)) + self.num_randomizers - 2)
-            shift = self.max_degree - self.permutation_arguments[0].quotient_degree_bound()
+            shift = self.max_degree - \
+                self.permutation_arguments[0].quotient_degree_bound()
             print("verifier shift:", shift)
             terms += [quotient *
                       self.xfield.lift(self.fri.domain(index) ^ shift)]
@@ -1192,7 +1223,8 @@ class BrainfuckStark:
             # shift = self.max_degree - \
             #     (BrainfuckStark.roundup_npo2(
             #         self.running_time) + self.num_randomizers - 2)
-            shift = self.max_degree - self.permutation_arguments[1].quotient_degree_bound()
+            shift = self.max_degree - \
+                self.permutation_arguments[1].quotient_degree_bound()
             print("verifier shift:", shift)
             terms += [quotient *
                       self.xfield.lift(self.fri.domain(index) ^ shift)]

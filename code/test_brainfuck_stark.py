@@ -11,6 +11,8 @@ def test_bfs():
         ">++++++++++[>+++><<-]>+++><<>.................")
     # program = VirtualMachine.compile(",+.")
     # program = VirtualMachine.compile("++++++++++++++++++++.")
+    # program = VirtualMachine.compile(",.........")
+    program = VirtualMachine.compile(",,,.")
 
     running_time, input_symbols, output_symbols = VirtualMachine.run(program)
 
@@ -43,11 +45,10 @@ def test_bfs():
     #                   memory_matrix, input_matrix, output_matrix)
 
     # collapse matrix into list for input and output
-    input_symbols = [row[0] for row in input_matrix]
-    output_symbols = [row[0] for row in output_matrix]
+    #input_symbols = [row[0] for row in input_matrix]
+    #output_symbols = [row[0] for row in output_matrix]
 
     verdict = bfs.verify(proof)
     assert(verdict == True), "honest proof fails to verify"
     print("output length was:", len(output_symbols))
-    print("proof verified with output: \"" + "".join(
-        [chr(t.value) for t in output_symbols]) + "\"")
+    print("proof verified with output: \"" + "".join(output_symbols) + "\"")

@@ -76,6 +76,50 @@ class Table:
                 assert(mpo.evaluate(point).is_zero(
                 )), f"TRNASITION constraint {i} not satisfied in row {rowidx}; point: {[str(p) for p in point]}; polynomial {str(mpo.partial_evaluate({1: point[1]}))} evaluates to {str(mpo.evaluate(point))}"
 
+    def xtest(self, challenges, terminals):
+        # test boundary constraints
+        boundary_constraints = self.boundary_constraints_ext(challenges)
+        for i in range(len(boundary_constraints)):
+            if self.length == 0:
+                continue
+            mpo = boundary_constraints[i]
+            point = [self.matrix[0][j] for j in range(self.full_width)]
+            assert(mpo.evaluate(point).is_zero())
+
+        # test transition constraints
+        transition_constraints = self.transition_constraints_ext(challenges)
+        for i in range(len(transition_constraints)):
+            if self.length == 0:
+                continue
+            mpo = transition_constraints[i]
+            for j in range(self.height-1):
+                point = [self.matrix[j][k] for k in range(
+                    self.full_width)] + [self.matrix[j+1][k] for k in range(self.full_width)]
+                assert(mpo.evaluate(point).is_zero())
+
+        # test terminal constraints
+        terminal_constraints = self.terminal_constraints_ext(
+            challenges, terminals)
+        for i in range(len(terminal_constraints)):
+            if self.length == 0:
+                continue
+            mpo = terminal_constraints[i]
+            point = [self.matrix[self.height-1][j]
+                     for j in range(self.full_width)]
+            if not mpo.evaluate(point).is_zero():
+                print("self.height:", self.height)
+                print("self.length:", self.length)
+                print("constraint evaluated:", mpo.evaluate(point))
+                print("evaluation column in last row:",
+                      self.matrix[self.height-1][1])
+                print("evaluation column in row index length-1:",
+                      self.matrix[self.length-1][1])
+                print("offset should be:",
+                      self.matrix[self.height-1][1] / self.matrix[self.length-1][1])
+                print("terminal index:", self.terminal_index)
+                print("indicated challenge:", challenges[self.terminal_index])
+                assert(False)
+
     def interpolate(self, omega, order):
         self.polynomials = self.interpolate_columns(
             omega, order, column_indices=range(self.base_width))
@@ -137,12 +181,14 @@ class Table:
         return codewords
 
     def lde(self, domain):
-        polynomials = self.interpolate_columns(self.omicron, self.height, column_indices=range(self.full_width))
+        polynomials = self.interpolate_columns(
+            self.omicron, self.height, column_indices=range(self.full_width))
         self.codewords = [domain.evaluate(p) for p in polynomials]
         return self.codewords
 
     def ldex(self, domain, xfield):
-        polynomials = self.interpolate_columns(domain.omega, domain.length, column_indices=range(self.base_width, self.full_width))
+        polynomials = self.interpolate_columns(
+            domain.omega, domain.length, column_indices=range(self.base_width, self.full_width))
         codewords = [domain.xevaluate(p, xfield) for p in polynomials]
         self.codewords += codewords
         return codewords
@@ -150,7 +196,6 @@ class Table:
       #
     # # #
       #
-
 
     @abstractmethod
     def boundary_constraints_ext(self):
@@ -244,8 +289,10 @@ class Table:
                     print("terminal index:", self.terminal_index)
                     print("self.height:", self.height)
                     print("point:", ",".join(str(p) for p in point))
-                    print("codeword:", ",".join(str(c) for c in composition_codeword[:5]))
-                    print("quotient:", ",".join(str(c) for c in quotient_codeword[:5]))
+                    print("codeword:", ",".join(str(c)
+                          for c in composition_codeword[:5]))
+                    print("quotient:", ",".join(str(c)
+                          for c in quotient_codeword[:5]))
                     assert(False)
                 assert(domain.xinterpolate(
                     quotients[-1]).degree() < domain.length-1), f"quotient polynomial has maximal degree in table {type(self)}"
@@ -288,13 +335,30 @@ class Table:
             quotient_codewords += [[mpo.evaluate([codewords[j][i] for j in range(
                 self.full_width)]) * self.field.lift(zerofier_inverse[i]) for i in range(domain.length)]]
 
-        if os.environ.get('DEBUG') is not None:
+        if os.environ.get('DEBUG1') is not None:
             print(
                 f"before domain interpolation of term quotients in {type(self)}")
-            for qc in quotient_codewords:
+            for i in range(len(quotient_codewords)):
+                qc = quotient_codewords[i]
                 interpolated = domain.xinterpolate(qc)
                 print(f"degree of interpolation: {interpolated.degree()}")
-                assert(interpolated.degree() < domain.length - 1)
+                if interpolated.degree() >= domain.length - 1:
+                    print("interpolated degree:", interpolated.degree())
+                    print("domain length:", domain.length)
+                    print("interpolation degree failure")
+                    constraint = self.terminal_constraints_ext(
+                        challenges, terminals)[i]
+                    codeword = [constraint.evaluate([codewords[j][i] for j in range(
+                        self.full_width)]) for i in range(domain.length)]
+                    interpolated = domain.xinterpolate(codeword)
+                    reevaluated = [interpolated.evaluate(self.field.lift(
+                        self.omicron ^ i)) for i in range(self.height)]
+                    print("reevaluated:", ",".join(str(c)
+                          for c in reevaluated))
+                    print(type(interpolated))
+                    print(type(codeword))
+                    print(type(domain))
+                    assert(False)
             print("Done!")
 
         return quotient_codewords
@@ -349,8 +413,8 @@ class Table:
 
     def evaluate_transition_quotients(self, omicron, omegai, point, next_point, challenges):
         values = []
-        zerofier = (omegai ^ Table.roundup_npo2(self.get_height()) - 1) / \
-            (omegai - omicron.inverse())
+        zerofier = (omegai ^ Table.roundup_npo2(
+            self.get_height()) - 1) / (omegai - omicron.inverse())
         for mpo in self.transition_constraints_ext(challenges):
             values += [mpo.evaluate(point + next_point) / zerofier]
         return values
@@ -363,8 +427,8 @@ class Table:
         return values
 
     def evaluate_quotients(self, omicron, omegai, point, shifted_point):
-        return self.evaluate_boundary_quotients(omicron, omegai, point) \
-            + self.evaluate_transition_quotients(omicron,
-                                                 omegai, point, shifted_point, self.log_num_rows, self.challenges) \
-            + self.evaluate_terminal_quotients(omicron,
-                                               point, self.log_num_rows, self.challenges, self.terminals)
+        return self.evaluate_boundary_quotients(omicron, omegai, point)
+        + self.evaluate_transition_quotients(omicron,
+                                             omegai, point, shifted_point, self.log_num_rows, self.challenges)
+        + self.evaluate_terminal_quotients(omicron,
+                                           point, self.log_num_rows, self.challenges, self.terminals)
