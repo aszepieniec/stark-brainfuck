@@ -624,7 +624,7 @@ class BrainfuckStark:
 
             base_acc_index = num_randomizer_polynomials
             ext_acc_index = extension_offset
-            for point, table in zip([processor_point], [self.processor_table]):
+            for point, table in zip(points, self.base_tables):
                 # boundary
                 for constraint, bound in zip(table.boundary_constraints_ext(challenges), table.boundary_quotient_degree_bounds(challenges)):
                     eval = constraint.evaluate(point)
@@ -720,192 +720,192 @@ class BrainfuckStark:
 
             # ******************** instruction quotients ********************
             # boundary
-            for constraint, bound in zip(self.instruction_table.boundary_constraints_ext(challenges), self.instruction_table.boundary_quotient_degree_bounds(challenges)):
-                eval = constraint.evaluate(instruction_point)
-                quotient = eval / \
-                    (self.xfield.lift(self.fri.domain(index)) - self.xfield.one())
-                terms += [quotient]
-                shift = self.max_degree - bound
-                print("verifier shift:", shift)
-                terms += [quotient *
-                          self.xfield.lift(self.fri.domain(index) ^ shift)]
-            print("len(terms) after instruction boundaries: ", len(terms))
+            # for constraint, bound in zip(self.instruction_table.boundary_constraints_ext(challenges), self.instruction_table.boundary_quotient_degree_bounds(challenges)):
+            #     eval = constraint.evaluate(instruction_point)
+            #     quotient = eval / \
+            #         (self.xfield.lift(self.fri.domain(index)) - self.xfield.one())
+            #     terms += [quotient]
+            #     shift = self.max_degree - bound
+            #     print("verifier shift:", shift)
+            #     terms += [quotient *
+            #               self.xfield.lift(self.fri.domain(index) ^ shift)]
+            # print("len(terms) after instruction boundaries: ", len(terms))
 
-            # transition
-            unit_distance = self.instruction_table.unit_distance(
-                self.fri.domain.length)
-            next_index = (index + unit_distance) % self.fri.domain.length
-            next_instruction_point = tuples[next_index][(num_randomizer_polynomials+self.processor_table.base_width):(
-                num_randomizer_polynomials+self.processor_table.base_width+self.instruction_table.base_width)]
-            next_instruction_point += tuples[next_index][(extension_offset+self.processor_table.full_width-self.processor_table.base_width):(
-                extension_offset+self.processor_table.full_width-self.processor_table.base_width+self.instruction_table.full_width-self.instruction_table.base_width)]
-            for constraint, bound in zip(self.instruction_table.transition_constraints_ext(challenges), self.instruction_table.transition_quotient_degree_bounds(challenges)):
-                eval = constraint.evaluate(
-                    instruction_point + next_instruction_point)
-                quotient = eval * self.xfield.lift(self.fri.domain(index) - self.instruction_table.omicron.inverse()) / (
-                    self.xfield.lift(self.fri.domain(index) ^ BrainfuckStark.roundup_npo2(self.instruction_table.height)) - self.xfield.one())
-                terms += [quotient]
-                shift = self.max_degree - bound
-                print("verifier shift:", shift)
-                terms += [quotient *
-                          self.xfield.lift(self.fri.domain(index) ^ shift)]
-            print("len(terms) after instruction transitions: ", len(terms))
+            # # transition
+            # unit_distance = self.instruction_table.unit_distance(
+            #     self.fri.domain.length)
+            # next_index = (index + unit_distance) % self.fri.domain.length
+            # next_instruction_point = tuples[next_index][(num_randomizer_polynomials+self.processor_table.base_width):(
+            #     num_randomizer_polynomials+self.processor_table.base_width+self.instruction_table.base_width)]
+            # next_instruction_point += tuples[next_index][(extension_offset+self.processor_table.full_width-self.processor_table.base_width):(
+            #     extension_offset+self.processor_table.full_width-self.processor_table.base_width+self.instruction_table.full_width-self.instruction_table.base_width)]
+            # for constraint, bound in zip(self.instruction_table.transition_constraints_ext(challenges), self.instruction_table.transition_quotient_degree_bounds(challenges)):
+            #     eval = constraint.evaluate(
+            #         instruction_point + next_instruction_point)
+            #     quotient = eval * self.xfield.lift(self.fri.domain(index) - self.instruction_table.omicron.inverse()) / (
+            #         self.xfield.lift(self.fri.domain(index) ^ BrainfuckStark.roundup_npo2(self.instruction_table.height)) - self.xfield.one())
+            #     terms += [quotient]
+            #     shift = self.max_degree - bound
+            #     print("verifier shift:", shift)
+            #     terms += [quotient *
+            #               self.xfield.lift(self.fri.domain(index) ^ shift)]
+            # print("len(terms) after instruction transitions: ", len(terms))
 
-            # terminal
-            for constraint, bound in zip(self.instruction_table.terminal_constraints_ext(challenges, terminals), self.instruction_table.terminal_quotient_degree_bounds(challenges, terminals)):
-                eval = constraint.evaluate(instruction_point)
-                quotient = eval / \
-                    (self.xfield.lift(self.fri.domain(index)) -
-                     self.xfield.lift(self.instruction_table.omicron.inverse()))
-                terms += [quotient]
-                shift = self.max_degree - bound
-                print("verifier shift:", shift)
-                terms += [quotient *
-                          self.xfield.lift(self.fri.domain(index) ^ shift)]
-            print("len(terms) after instruction terminals: ", len(terms))
+            # # terminal
+            # for constraint, bound in zip(self.instruction_table.terminal_constraints_ext(challenges, terminals), self.instruction_table.terminal_quotient_degree_bounds(challenges, terminals)):
+            #     eval = constraint.evaluate(instruction_point)
+            #     quotient = eval / \
+            #         (self.xfield.lift(self.fri.domain(index)) -
+            #          self.xfield.lift(self.instruction_table.omicron.inverse()))
+            #     terms += [quotient]
+            #     shift = self.max_degree - bound
+            #     print("verifier shift:", shift)
+            #     terms += [quotient *
+            #               self.xfield.lift(self.fri.domain(index) ^ shift)]
+            # print("len(terms) after instruction terminals: ", len(terms))
 
             # ******************** memory quotients ********************
             # boundary
-            for constraint, bound in zip(self.memory_table.boundary_constraints_ext(challenges), self.memory_table.boundary_quotient_degree_bounds(challenges)):
-                eval = constraint.evaluate(memory_point)
-                quotient = eval / \
-                    (self.xfield.lift(self.fri.domain(index)) - self.xfield.one())
-                terms += [quotient]
-                shift = self.max_degree - bound
-                print("verifier shift:", shift)
-                terms += [quotient *
-                          self.xfield.lift(self.fri.domain(index) ^ shift)]
+            # for constraint, bound in zip(self.memory_table.boundary_constraints_ext(challenges), self.memory_table.boundary_quotient_degree_bounds(challenges)):
+            #     eval = constraint.evaluate(memory_point)
+            #     quotient = eval / \
+            #         (self.xfield.lift(self.fri.domain(index)) - self.xfield.one())
+            #     terms += [quotient]
+            #     shift = self.max_degree - bound
+            #     print("verifier shift:", shift)
+            #     terms += [quotient *
+            #               self.xfield.lift(self.fri.domain(index) ^ shift)]
 
-            # transition
-            unit_distance = self.memory_table.unit_distance(
-                self.fri.domain.length)
-            next_index = (index + unit_distance) % self.fri.domain.length
-            next_memory_point = tuples[next_index][(num_randomizer_polynomials+self.processor_table.base_width+self.instruction_table.base_width):(
-                num_randomizer_polynomials+self.processor_table.base_width+self.instruction_table.base_width+self.memory_table.base_width)]
-            next_memory_point += tuples[next_index][(extension_offset+self.processor_table.full_width-self.processor_table.base_width+self.instruction_table.full_width-self.instruction_table.base_width):(
-                extension_offset+self.processor_table.full_width-self.processor_table.base_width+self.instruction_table.full_width-self.instruction_table.base_width+self.memory_table.full_width-self.memory_table.base_width)]
-            for constraint, bound in zip(self.memory_table.transition_constraints_ext(challenges), self.memory_table.transition_quotient_degree_bounds(challenges)):
-                eval = constraint.evaluate(memory_point + next_memory_point)
-                quotient = eval * self.xfield.lift(self.fri.domain(index) - self.memory_table.omicron.inverse()) / (
-                    self.xfield.lift(self.fri.domain(index) ^ BrainfuckStark.roundup_npo2(self.memory_table.height)) - self.xfield.one())
-                terms += [quotient]
-                shift = self.max_degree - bound
-                print("verifier shift:", shift)
-                terms += [quotient *
-                          self.xfield.lift(self.fri.domain(index) ^ shift)]
+            # # transition
+            # unit_distance = self.memory_table.unit_distance(
+            #     self.fri.domain.length)
+            # next_index = (index + unit_distance) % self.fri.domain.length
+            # next_memory_point = tuples[next_index][(num_randomizer_polynomials+self.processor_table.base_width+self.instruction_table.base_width):(
+            #     num_randomizer_polynomials+self.processor_table.base_width+self.instruction_table.base_width+self.memory_table.base_width)]
+            # next_memory_point += tuples[next_index][(extension_offset+self.processor_table.full_width-self.processor_table.base_width+self.instruction_table.full_width-self.instruction_table.base_width):(
+            #     extension_offset+self.processor_table.full_width-self.processor_table.base_width+self.instruction_table.full_width-self.instruction_table.base_width+self.memory_table.full_width-self.memory_table.base_width)]
+            # for constraint, bound in zip(self.memory_table.transition_constraints_ext(challenges), self.memory_table.transition_quotient_degree_bounds(challenges)):
+            #     eval = constraint.evaluate(memory_point + next_memory_point)
+            #     quotient = eval * self.xfield.lift(self.fri.domain(index) - self.memory_table.omicron.inverse()) / (
+            #         self.xfield.lift(self.fri.domain(index) ^ BrainfuckStark.roundup_npo2(self.memory_table.height)) - self.xfield.one())
+            #     terms += [quotient]
+            #     shift = self.max_degree - bound
+            #     print("verifier shift:", shift)
+            #     terms += [quotient *
+            #               self.xfield.lift(self.fri.domain(index) ^ shift)]
 
-            # terminal
-            for constraint, bound in zip(self.memory_table.terminal_constraints_ext(challenges, terminals), self.memory_table.terminal_quotient_degree_bounds(challenges, terminals)):
-                eval = constraint.evaluate(memory_point)
-                quotient = eval / \
-                    (self.xfield.lift(self.fri.domain(index)) -
-                     self.xfield.lift(self.memory_table.omicron.inverse()))
-                terms += [quotient]
-                shift = self.max_degree - bound
-                print("verifier shift:", shift)
-                terms += [quotient *
-                          self.xfield.lift(self.fri.domain(index) ^ shift)]
-            print("len(terms) after memory: ", len(terms))
+            # # terminal
+            # for constraint, bound in zip(self.memory_table.terminal_constraints_ext(challenges, terminals), self.memory_table.terminal_quotient_degree_bounds(challenges, terminals)):
+            #     eval = constraint.evaluate(memory_point)
+            #     quotient = eval / \
+            #         (self.xfield.lift(self.fri.domain(index)) -
+            #          self.xfield.lift(self.memory_table.omicron.inverse()))
+            #     terms += [quotient]
+            #     shift = self.max_degree - bound
+            #     print("verifier shift:", shift)
+            #     terms += [quotient *
+            #               self.xfield.lift(self.fri.domain(index) ^ shift)]
+            # print("len(terms) after memory: ", len(terms))
 
             # ******************** input quotients ********************
             # boundary
-            for constraint, bound in zip(self.input_table.boundary_constraints_ext(challenges), self.input_table.boundary_quotient_degree_bounds(challenges)):
-                eval = constraint.evaluate(input_point)
-                quotient = eval / \
-                    (self.xfield.lift(self.fri.domain(index)) - self.xfield.one())
-                terms += [quotient]
-                shift = self.max_degree - bound
-                print("verifier shift:", shift)
-                terms += [quotient *
-                          self.xfield.lift(self.fri.domain(index) ^ shift)]
-            print("len(terms) after input boundaries: ", len(terms))
+            # for constraint, bound in zip(self.input_table.boundary_constraints_ext(challenges), self.input_table.boundary_quotient_degree_bounds(challenges)):
+            #     eval = constraint.evaluate(input_point)
+            #     quotient = eval / \
+            #         (self.xfield.lift(self.fri.domain(index)) - self.xfield.one())
+            #     terms += [quotient]
+            #     shift = self.max_degree - bound
+            #     print("verifier shift:", shift)
+            #     terms += [quotient *
+            #               self.xfield.lift(self.fri.domain(index) ^ shift)]
+            # print("len(terms) after input boundaries: ", len(terms))
 
-            # transition
-            unit_distance = self.input_table.unit_distance(
-                self.fri.domain.length)
-            next_index = (index + unit_distance) % self.fri.domain.length
-            next_input_point = tuples[next_index][(num_randomizer_polynomials+self.processor_table.base_width+self.instruction_table.base_width+self.memory_table.base_width):(
-                num_randomizer_polynomials+self.processor_table.base_width+self.instruction_table.base_width+self.memory_table.base_width+self.input_table.base_width)]
-            next_input_point += tuples[next_index][(extension_offset+self.processor_table.full_width-self.processor_table.base_width+self.instruction_table.full_width-self.instruction_table.base_width+self.memory_table.full_width-self.memory_table.base_width):(
-                extension_offset+self.processor_table.full_width-self.processor_table.base_width+self.instruction_table.full_width-self.instruction_table.base_width+self.memory_table.full_width-self.memory_table.base_width+self.input_table.full_width-self.input_table.base_width)]
-            print("Hi from input transition quotient loop")
-            for constraint, bound in zip(self.input_table.transition_constraints_ext(challenges), self.input_table.transition_quotient_degree_bounds(challenges)):
-                print("Hi from input transition quotient loop")
-                eval = constraint.evaluate(input_point + next_input_point)
-                quotient = eval * self.xfield.lift(self.fri.domain(index) - self.input_table.omicron.inverse()) / (
-                    self.xfield.lift(self.fri.domain(index) ^ BrainfuckStark.roundup_npo2(self.input_table.height)) - self.xfield.one())
-                terms += [quotient]
-                shift = self.max_degree - bound
-                print("verifier shift:", shift)
-                terms += [quotient *
-                          self.xfield.lift(self.fri.domain(index) ^ shift)]
-            print("len(terms) after input transitions: ", len(terms))
+            # # transition
+            # unit_distance = self.input_table.unit_distance(
+            #     self.fri.domain.length)
+            # next_index = (index + unit_distance) % self.fri.domain.length
+            # next_input_point = tuples[next_index][(num_randomizer_polynomials+self.processor_table.base_width+self.instruction_table.base_width+self.memory_table.base_width):(
+            #     num_randomizer_polynomials+self.processor_table.base_width+self.instruction_table.base_width+self.memory_table.base_width+self.input_table.base_width)]
+            # next_input_point += tuples[next_index][(extension_offset+self.processor_table.full_width-self.processor_table.base_width+self.instruction_table.full_width-self.instruction_table.base_width+self.memory_table.full_width-self.memory_table.base_width):(
+            #     extension_offset+self.processor_table.full_width-self.processor_table.base_width+self.instruction_table.full_width-self.instruction_table.base_width+self.memory_table.full_width-self.memory_table.base_width+self.input_table.full_width-self.input_table.base_width)]
+            # print("Hi from input transition quotient loop")
+            # for constraint, bound in zip(self.input_table.transition_constraints_ext(challenges), self.input_table.transition_quotient_degree_bounds(challenges)):
+            #     print("Hi from input transition quotient loop")
+            #     eval = constraint.evaluate(input_point + next_input_point)
+            #     quotient = eval * self.xfield.lift(self.fri.domain(index) - self.input_table.omicron.inverse()) / (
+            #         self.xfield.lift(self.fri.domain(index) ^ BrainfuckStark.roundup_npo2(self.input_table.height)) - self.xfield.one())
+            #     terms += [quotient]
+            #     shift = self.max_degree - bound
+            #     print("verifier shift:", shift)
+            #     terms += [quotient *
+            #               self.xfield.lift(self.fri.domain(index) ^ shift)]
+            # print("len(terms) after input transitions: ", len(terms))
 
-            # terminal
-            for constraint, bound in zip(self.input_table.terminal_constraints_ext(challenges, terminals), self.input_table.terminal_quotient_degree_bounds(challenges, terminals)):
-                eval = constraint.evaluate(input_point)
-                quotient = eval / \
-                    (self.xfield.lift(self.fri.domain(index)) -
-                     self.xfield.lift(self.input_table.omicron.inverse()))
-                terms += [quotient]
-                shift = self.max_degree - bound
-                print("verifier shift:", shift)
-                terms += [quotient *
-                          self.xfield.lift(self.fri.domain(index) ^ shift)]
-            print("len(terms) after input terminals: ", len(terms))
+            # # terminal
+            # for constraint, bound in zip(self.input_table.terminal_constraints_ext(challenges, terminals), self.input_table.terminal_quotient_degree_bounds(challenges, terminals)):
+            #     eval = constraint.evaluate(input_point)
+            #     quotient = eval / \
+            #         (self.xfield.lift(self.fri.domain(index)) -
+            #          self.xfield.lift(self.input_table.omicron.inverse()))
+            #     terms += [quotient]
+            #     shift = self.max_degree - bound
+            #     print("verifier shift:", shift)
+            #     terms += [quotient *
+            #               self.xfield.lift(self.fri.domain(index) ^ shift)]
+            # print("len(terms) after input terminals: ", len(terms))
 
             # ******************** output quotients ********************
             # boundary
-            for constraint, bound in zip(self.output_table.boundary_constraints_ext(challenges), self.output_table.boundary_quotient_degree_bounds(challenges)):
-                eval = constraint.evaluate(output_point)
-                quotient = eval / \
-                    (self.xfield.lift(self.fri.domain(index)) - self.xfield.one())
-                terms += [quotient]
-                shift = self.max_degree - bound
-                print("verifier shift:", shift)
-                terms += [quotient *
-                          self.xfield.lift(self.fri.domain(index) ^ shift)]
-            print("len(terms) after output boundaries: ", len(terms))
+            # for constraint, bound in zip(self.output_table.boundary_constraints_ext(challenges), self.output_table.boundary_quotient_degree_bounds(challenges)):
+            #     eval = constraint.evaluate(output_point)
+            #     quotient = eval / \
+            #         (self.xfield.lift(self.fri.domain(index)) - self.xfield.one())
+            #     terms += [quotient]
+            #     shift = self.max_degree - bound
+            #     print("verifier shift:", shift)
+            #     terms += [quotient *
+            #               self.xfield.lift(self.fri.domain(index) ^ shift)]
+            # print("len(terms) after output boundaries: ", len(terms))
 
-            # transition
-            unit_distance = self.output_table.unit_distance(
-                self.fri.domain.length)
-            next_index = (index + unit_distance) % self.fri.domain.length
-            base_start_index = self.processor_table.base_width + \
-                self.instruction_table.base_width + self.memory_table.base_width
-            base_start_index += self.output_table.base_width
-            next_output_point = tuples[next_index][(num_randomizer_polynomials+base_start_index):(
-                num_randomizer_polynomials+base_start_index+self.output_table.base_width)]
-            extension_start_index = self.processor_table.full_width - self.processor_table.base_width + \
-                self.instruction_table.full_width - self.instruction_table.base_width + \
-                self.memory_table.full_width - self.memory_table.base_width
-            extension_start_index += self.output_table.full_width - self.output_table.base_width
-            next_output_point += tuples[next_index][(extension_offset+extension_start_index):(
-                extension_offset+extension_start_index+self.output_table.full_width-self.output_table.base_width)]
-            for constraint, bound in zip(self.output_table.transition_constraints_ext(challenges), self.output_table.transition_quotient_degree_bounds(challenges)):
-                eval = constraint.evaluate(
-                    output_point + next_output_point)
-                quotient = eval * self.xfield.lift(self.fri.domain(index) - self.output_table.omicron.inverse()) / (
-                    self.xfield.lift(self.fri.domain(index) ^ BrainfuckStark.roundup_npo2(self.output_table.height)) - self.xfield.one())
-                terms += [quotient]
-                shift = self.max_degree - bound
-                print("verifier shift:", shift)
-                terms += [quotient *
-                          self.xfield.lift(self.fri.domain(index) ^ shift)]
-            print("len(terms) after output transitions: ", len(terms))
+            # # transition
+            # unit_distance = self.output_table.unit_distance(
+            #     self.fri.domain.length)
+            # next_index = (index + unit_distance) % self.fri.domain.length
+            # base_start_index = self.processor_table.base_width + \
+            #     self.instruction_table.base_width + self.memory_table.base_width
+            # base_start_index += self.output_table.base_width
+            # next_output_point = tuples[next_index][(num_randomizer_polynomials+base_start_index):(
+            #     num_randomizer_polynomials+base_start_index+self.output_table.base_width)]
+            # extension_start_index = self.processor_table.full_width - self.processor_table.base_width + \
+            #     self.instruction_table.full_width - self.instruction_table.base_width + \
+            #     self.memory_table.full_width - self.memory_table.base_width
+            # extension_start_index += self.output_table.full_width - self.output_table.base_width
+            # next_output_point += tuples[next_index][(extension_offset+extension_start_index):(
+            #     extension_offset+extension_start_index+self.output_table.full_width-self.output_table.base_width)]
+            # for constraint, bound in zip(self.output_table.transition_constraints_ext(challenges), self.output_table.transition_quotient_degree_bounds(challenges)):
+            #     eval = constraint.evaluate(
+            #         output_point + next_output_point)
+            #     quotient = eval * self.xfield.lift(self.fri.domain(index) - self.output_table.omicron.inverse()) / (
+            #         self.xfield.lift(self.fri.domain(index) ^ BrainfuckStark.roundup_npo2(self.output_table.height)) - self.xfield.one())
+            #     terms += [quotient]
+            #     shift = self.max_degree - bound
+            #     print("verifier shift:", shift)
+            #     terms += [quotient *
+            #               self.xfield.lift(self.fri.domain(index) ^ shift)]
+            # print("len(terms) after output transitions: ", len(terms))
 
-            # terminal
-            for constraint, bound in zip(self.output_table.terminal_constraints_ext(challenges, terminals), self.output_table.terminal_quotient_degree_bounds(challenges, terminals)):
-                eval = constraint.evaluate(output_point)
-                quotient = eval / \
-                    (self.xfield.lift(self.fri.domain(index)) -
-                     self.xfield.lift(self.output_table.omicron.inverse()))
-                terms += [quotient]
-                shift = self.max_degree - bound
-                print("verifier shift:", shift)
-                terms += [quotient *
-                          self.xfield.lift(self.fri.domain(index) ^ shift)]
-            print("len(terms) after output terminals: ", len(terms))
+            # # terminal
+            # for constraint, bound in zip(self.output_table.terminal_constraints_ext(challenges, terminals), self.output_table.terminal_quotient_degree_bounds(challenges, terminals)):
+            #     eval = constraint.evaluate(output_point)
+            #     quotient = eval / \
+            #         (self.xfield.lift(self.fri.domain(index)) -
+            #          self.xfield.lift(self.output_table.omicron.inverse()))
+            #     terms += [quotient]
+            #     shift = self.max_degree - bound
+            #     print("verifier shift:", shift)
+            #     terms += [quotient *
+            #               self.xfield.lift(self.fri.domain(index) ^ shift)]
+            # print("len(terms) after output terminals: ", len(terms))
 
             # ******************** difference quotients ********************
             difference = (processor_point[ProcessorTable.instruction_permutation] -
