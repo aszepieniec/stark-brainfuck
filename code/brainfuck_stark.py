@@ -428,6 +428,7 @@ class BrainfuckStark:
         extension_root = proof_stream.pull()
 
         # get terminals
+        # TODO: drop names; just get four terminals from proof stream
         processor_instruction_permutation_terminal = proof_stream.pull()
         processor_memory_permutation_terminal = proof_stream.pull()
         processor_input_evaluation_terminal = proof_stream.pull()
@@ -560,45 +561,64 @@ class BrainfuckStark:
             # quotients need to be computed
 
             acc_index = num_randomizer_polynomials
-            processor_point = tuples[index][acc_index:(
-                acc_index+self.processor_table.base_width)]
-            acc_index += self.processor_table.base_width
-            instruction_point = tuples[index][acc_index:(
-                acc_index+self.instruction_table.base_width)]
-            acc_index += self.instruction_table.base_width
-            memory_point = tuples[index][(acc_index):(
-                acc_index+self.memory_table.base_width)]
-            acc_index += self.memory_table.base_width
-            input_point = tuples[index][(acc_index):(
-                acc_index+self.input_table.base_width)]
-            acc_index += self.input_table.base_width
-            output_point = tuples[index][(acc_index):(
-                acc_index+self.output_table.base_width)]
-            acc_index += self.output_table.base_width
+            points = []
+            for table in self.base_tables:
+                step = table.base_width
+                points += [tuples[index][acc_index:(acc_index+step)]]
+                acc_index += step
+
+            # acc_index = num_randomizer_polynomials
+            # processor_point = tuples[index][acc_index:(
+            #     acc_index+self.processor_table.base_width)]
+            # acc_index += self.processor_table.base_width
+            # instruction_point = tuples[index][acc_index:(
+            #     acc_index+self.instruction_table.base_width)]
+            # acc_index += self.instruction_table.base_width
+            # memory_point = tuples[index][(acc_index):(
+            #     acc_index+self.memory_table.base_width)]
+            # acc_index += self.memory_table.base_width
+            # input_point = tuples[index][(acc_index):(
+            #     acc_index+self.input_table.base_width)]
+            # acc_index += self.input_table.base_width
+            # output_point = tuples[index][(acc_index):(
+            #     acc_index+self.output_table.base_width)]
+            # acc_index += self.output_table.base_width
 
             assert(acc_index == extension_offset,
                    "Column count in verifier must match until extension columns")
 
-            acc_index = extension_offset  # Should be unchanged!!
-            processor_point += tuples[index][acc_index:(
-                acc_index+self.processor_table.full_width-self.processor_table.base_width)]
-            acc_index += self.processor_table.full_width-self.processor_table.base_width
+            # acc_index = extension_offset  # Should be unchanged!!
+            # processor_point += tuples[index][acc_index:(
+            #     acc_index+self.processor_table.full_width-self.processor_table.base_width)]
+            # acc_index += self.processor_table.full_width-self.processor_table.base_width
 
-            instruction_point += tuples[index][(acc_index):(
-                acc_index+self.instruction_table.full_width-self.instruction_table.base_width)]
-            acc_index += self.instruction_table.full_width-self.instruction_table.base_width
+            # instruction_point += tuples[index][(acc_index):(
+            #     acc_index+self.instruction_table.full_width-self.instruction_table.base_width)]
+            # acc_index += self.instruction_table.full_width-self.instruction_table.base_width
 
-            memory_point += tuples[index][(acc_index):(
-                acc_index+self.memory_table.full_width-self.memory_table.base_width)]
-            acc_index += self.memory_table.full_width-self.memory_table.base_width
+            # memory_point += tuples[index][(acc_index):(
+            #     acc_index+self.memory_table.full_width-self.memory_table.base_width)]
+            # acc_index += self.memory_table.full_width-self.memory_table.base_width
 
-            input_point += tuples[index][(acc_index):(
-                acc_index+self.input_table.full_width-self.input_table.base_width)]
-            acc_index += self.input_table.full_width-self.input_table.base_width
+            # input_point += tuples[index][(acc_index):(
+            #     acc_index+self.input_table.full_width-self.input_table.base_width)]
+            # acc_index += self.input_table.full_width-self.input_table.base_width
 
-            output_point += tuples[index][(acc_index):(
-                acc_index+self.output_table.full_width-self.output_table.base_width)]
-            acc_index += self.output_table.full_width-self.output_table.base_width
+            # output_point += tuples[index][(acc_index):(
+            #     acc_index+self.output_table.full_width-self.output_table.base_width)]
+            # acc_index += self.output_table.full_width-self.output_table.base_width
+
+            for point, table in zip(points, self.base_tables):
+                step = table.full_width - table.base_width
+                point += tuples[index][acc_index:(acc_index+step)]
+                acc_index += step
+
+            processor_point = points[0]
+            instruction_point = points[1]
+            memory_point = points[2]
+            input_point = points[3]
+            output_point = points[4]
+
             assert(acc_index == len(
                 tuples[index]), "Column count in verifier must match until end")
 
