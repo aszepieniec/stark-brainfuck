@@ -622,55 +622,101 @@ class BrainfuckStark:
             assert(acc_index == len(
                 tuples[index]), "Column count in verifier must match until end")
 
+            base_acc_index = num_randomizer_polynomials
+            ext_acc_index = extension_offset
+            for point, table in zip([processor_point], [self.processor_table]):
+                # boundary
+                for constraint, bound in zip(table.boundary_constraints_ext(challenges), table.boundary_quotient_degree_bounds(challenges)):
+                    eval = constraint.evaluate(point)
+                    quotient = eval / \
+                        (self.xfield.lift(self.fri.domain(index)) - self.xfield.one())
+                    terms += [quotient]
+                    shift = self.max_degree - bound
+                    terms += [quotient *
+                              self.xfield.lift(self.fri.domain(index) ^ shift)]
+
+                # transition
+                unit_distance = table.unit_distance(
+                    self.fri.domain.length)
+                next_index = (index + unit_distance) % self.fri.domain.length
+                next_point = tuples[next_index][base_acc_index:(
+                    base_acc_index+table.base_width)]
+                next_point += tuples[next_index][ext_acc_index:(
+                    ext_acc_index+table.full_width-table.base_width)]
+                base_acc_index += table.base_width
+                ext_acc_index += table.full_width - table.base_width
+                for constraint, bound in zip(table.transition_constraints_ext(challenges), table.transition_quotient_degree_bounds(challenges)):
+                    eval = constraint.evaluate(
+                        point + next_point)
+                    quotient = eval * self.xfield.lift(self.fri.domain(index) - table.omicron.inverse()) / (
+                        self.xfield.lift(self.fri.domain(index) ^ table.height) - self.xfield.one())
+                    terms += [quotient]
+                    shift = self.max_degree - bound
+                    print("verifier shift:", shift)
+                    terms += [quotient *
+                              self.xfield.lift(self.fri.domain(index) ^ shift)]
+
+                # terminal
+                for constraint, bound in zip(table.terminal_constraints_ext(challenges, terminals), table.terminal_quotient_degree_bounds(challenges, terminals)):
+                    eval = constraint.evaluate(point)
+                    quotient = eval / \
+                        (self.xfield.lift(self.fri.domain(index)) -
+                         self.xfield.lift(table.omicron.inverse()))
+                    terms += [quotient]
+                    shift = self.max_degree - bound
+                    print("verifier shift:", shift)
+                    terms += [quotient *
+                              self.xfield.lift(self.fri.domain(index) ^ shift)]
+                print("len(terms) after processor terminals: ", len(terms))
             # ******************** processor quotients ********************
             # boundary
-            print("type of points:", ",".join(str(type(p))
-                  for p in processor_point))
-            for constraint, bound in zip(self.processor_table.boundary_constraints_ext(challenges), self.processor_table.boundary_quotient_degree_bounds(challenges)):
-                print("type of constraint:", type(constraint), "over",
-                      type(list(constraint.dictionary.values())[0]))
-                eval = constraint.evaluate(processor_point)
-                quotient = eval / \
-                    (self.xfield.lift(self.fri.domain(index)) - self.xfield.one())
-                terms += [quotient]
-                shift = self.max_degree - bound
-                print("verifier shift:", shift)
-                terms += [quotient *
-                          self.xfield.lift(self.fri.domain(index) ^ shift)]
-            print("len(terms) after processor boundaries: ", len(terms))
+            # print("type of points:", ",".join(str(type(p))
+            #       for p in processor_point))
+            # for constraint, bound in zip(self.processor_table.boundary_constraints_ext(challenges), self.processor_table.boundary_quotient_degree_bounds(challenges)):
+            #     print("type of constraint:", type(constraint), "over",
+            #           type(list(constraint.dictionary.values())[0]))
+            #     eval = constraint.evaluate(processor_point)
+            #     quotient = eval / \
+            #         (self.xfield.lift(self.fri.domain(index)) - self.xfield.one())
+            #     terms += [quotient]
+            #     shift = self.max_degree - bound
+            #     print("verifier shift:", shift)
+            #     terms += [quotient *
+            #               self.xfield.lift(self.fri.domain(index) ^ shift)]
+            # print("len(terms) after processor boundaries: ", len(terms))
 
             # transition
-            unit_distance = self.processor_table.unit_distance(
-                self.fri.domain.length)
-            next_index = (index + unit_distance) % self.fri.domain.length
-            next_processor_point = tuples[next_index][num_randomizer_polynomials:(
-                num_randomizer_polynomials+self.processor_table.base_width)]
-            next_processor_point += tuples[next_index][extension_offset:(
-                extension_offset+self.processor_table.full_width-self.processor_table.base_width)]
-            for constraint, bound in zip(self.processor_table.transition_constraints_ext(challenges), self.processor_table.transition_quotient_degree_bounds(challenges)):
-                eval = constraint.evaluate(
-                    processor_point + next_processor_point)
-                quotient = eval * self.xfield.lift(self.fri.domain(index) - self.processor_table.omicron.inverse()) / (
-                    self.xfield.lift(self.fri.domain(index) ^ self.processor_table.height) - self.xfield.one())
-                terms += [quotient]
-                shift = self.max_degree - bound
-                print("verifier shift:", shift)
-                terms += [quotient *
-                          self.xfield.lift(self.fri.domain(index) ^ shift)]
-            print("len(terms) after processor transitions: ", len(terms))
+            # unit_distance = self.processor_table.unit_distance(
+            #     self.fri.domain.length)
+            # next_index = (index + unit_distance) % self.fri.domain.length
+            # next_processor_point = tuples[next_index][num_randomizer_polynomials:(
+            #     num_randomizer_polynomials+self.processor_table.base_width)]
+            # next_processor_point += tuples[next_index][extension_offset:(
+            #     extension_offset+self.processor_table.full_width-self.processor_table.base_width)]
+            # for constraint, bound in zip(self.processor_table.transition_constraints_ext(challenges), self.processor_table.transition_quotient_degree_bounds(challenges)):
+            #     eval = constraint.evaluate(
+            #         processor_point + next_processor_point)
+            #     quotient = eval * self.xfield.lift(self.fri.domain(index) - self.processor_table.omicron.inverse()) / (
+            #         self.xfield.lift(self.fri.domain(index) ^ self.processor_table.height) - self.xfield.one())
+            #     terms += [quotient]
+            #     shift = self.max_degree - bound
+            #     print("verifier shift:", shift)
+            #     terms += [quotient *
+            #               self.xfield.lift(self.fri.domain(index) ^ shift)]
+            # print("len(terms) after processor transitions: ", len(terms))
 
-            # terminal
-            for constraint, bound in zip(self.processor_table.terminal_constraints_ext(challenges, terminals), self.processor_table.terminal_quotient_degree_bounds(challenges, terminals)):
-                eval = constraint.evaluate(processor_point)
-                quotient = eval / \
-                    (self.xfield.lift(self.fri.domain(index)) -
-                     self.xfield.lift(self.processor_table.omicron.inverse()))
-                terms += [quotient]
-                shift = self.max_degree - bound
-                print("verifier shift:", shift)
-                terms += [quotient *
-                          self.xfield.lift(self.fri.domain(index) ^ shift)]
-            print("len(terms) after processor terminals: ", len(terms))
+            # # terminal
+            # for constraint, bound in zip(self.processor_table.terminal_constraints_ext(challenges, terminals), self.processor_table.terminal_quotient_degree_bounds(challenges, terminals)):
+            #     eval = constraint.evaluate(processor_point)
+            #     quotient = eval / \
+            #         (self.xfield.lift(self.fri.domain(index)) -
+            #          self.xfield.lift(self.processor_table.omicron.inverse()))
+            #     terms += [quotient]
+            #     shift = self.max_degree - bound
+            #     print("verifier shift:", shift)
+            #     terms += [quotient *
+            #               self.xfield.lift(self.fri.domain(index) ^ shift)]
+            # print("len(terms) after processor terminals: ", len(terms))
 
             # ******************** instruction quotients ********************
             # boundary
