@@ -112,8 +112,6 @@ class Table:
     def interpolate_columns(self, omega, omega_order, column_indices):
         assert(omega.has_order_po2(omega_order)
                ), "omega does not have claimed order"
-        print("called interpolate_columns with omega:", omega, "order:", omega_order,
-              "num randomizers:", self.num_randomizers, "table height:", len(self.matrix))
 
         if self.height == 0:
             return [Polynomial([])] * len(column_indices)
@@ -121,11 +119,8 @@ class Table:
         polynomials = []
         omicron_domain = [self.field.lift(self.omicron ^ i)
                           for i in range(self.height)]
-        print("length of omicron domain:", len(omicron_domain))
-        print("omicron:", self.omicron)
         randomizer_domain = [self.field.lift(omega) * omicron_domain[i]
                              for i in range(self.num_randomizers)]
-        print("length of randomizer domain:", len(randomizer_domain))
         domain = omicron_domain + randomizer_domain
         for c in column_indices:
             trace = [row[c] for row in self.matrix]
@@ -205,19 +200,7 @@ class Table:
         zerofier_inverse = [subgroup_zerofier_inverse[i] *
                             (domain(i) - self.omicron.inverse()) for i in range(domain.length)]
 
-        print("extension table omicron:", self.omicron)
-
         transition_constraints = self.transition_constraints_ext(challenges)
-
-        # symbolic_point = [domain.xinterpolate(c) for c in codewords]
-        # symbolic_point = symbolic_point + \
-        #     [sp.scale(self.xfield.lift(self.omicron)) for sp in symbolic_point]
-        # X = Polynomial([self.field.zero(), self.field.one()])
-        # symbolic_zerofier = (((X ^ interpolation_subgroup_order)) - Polynomial(
-        #     [self.field.one()])) / (X - Polynomial([self.field.lift(self.omicron.inverse())]))
-
-        # for i in range(interpolation_subgroup_order):
-        #     print("value of symbolic zerofier in omicron^%i:" % i, symbolic_zerofier.evaluate(self.field.lift(omicron^i)))
 
         for l in range(len(transition_constraints)):
             mpo = transition_constraints[l]
@@ -232,10 +215,6 @@ class Table:
                                       * self.field.lift(zerofier_inverse[i])]
 
             quotients += [quotient_codeword]
-
-            interpolated = domain.xinterpolate(composition_codeword)
-            print("composition polynomial, evaluated on omicron^1:",
-                  interpolated.evaluate(self.field.lift(self.omicron)))
 
             if os.environ.get('DEBUG') is not None:
                 print(f"before domain interpolation of tq in {type(self)}")
@@ -258,8 +237,6 @@ class Table:
 
     def transition_quotient_degree_bounds(self, challenges):
         max_degrees = [self.interpolant_degree()] * (2*self.full_width)
-        print("in ", str(type(self)),
-              "transition_quotient_degree_bounds, I believe that self.width is", self.full_width)
 
         degree_bounds = []
         transition_constraints = self.transition_constraints_ext(challenges)
@@ -267,14 +244,7 @@ class Table:
             mpo = transition_constraints[i]
             symbolic_degree_bound = mpo.symbolic_degree_bound(max_degrees)
             degree_bounds += [symbolic_degree_bound - self.height + 1]
-            print("symbolic degree bound for transition quotient",
-                  i, ": ", symbolic_degree_bound, "; matching degree bound:", degree_bounds[-1])
         return degree_bounds
-        # trace_degree = self.get_interpolant_degree()
-        # air_degree = max(air.degree()
-        #                  for air in self.transition_constraints_ext(challenges))
-        # composition_degree = trace_degree * air_degree
-        # return [composition_degree - Table.roundup_npo2(self.get_height()) + 1] * len(self.transition_constraints_ext(challenges))
 
     @abstractmethod
     def terminal_constraints_ext(self, challenges, terminals):
@@ -364,8 +334,8 @@ class Table:
         return values
 
     def evaluate_quotients(self, omicron, omegai, point, shifted_point):
-        return self.evaluate_boundary_quotients(omicron, omegai, point)
-        + self.evaluate_transition_quotients(
-            omicron, omegai, point, shifted_point, self.log_num_rows, self.challenges)
-        + self.evaluate_terminal_quotients(omicron, point,
-                                           self.log_num_rows, self.challenges, self.terminals)
+        return self.evaluate_boundary_quotients(omicron, omegai, point) \
+            + self.evaluate_transition_quotients(
+            omicron, omegai, point, shifted_point, self.log_num_rows, self.challenges) \
+            + self.evaluate_terminal_quotients(omicron, point,
+                                               self.log_num_rows, self.challenges, self.terminals)

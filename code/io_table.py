@@ -69,13 +69,6 @@ class IOTable(Table):
         # to get the value of the evaluation terminal after all 2^k rows.
         actual_terminal = evaluation_terminal * offset
 
-        print("terminal index:", self.terminal_index)
-        print("in IOTable -- actual terminal:", actual_terminal)
-        print("but evaluation terminal:", evaluation_terminal)
-        print("offset is iota^", self.height - self.length, " = iota^(",
-              self.height, "-", self.length, ") = ", iota ^ (self.height - self.length))
-        print("iota:", iota)
-
         # polynomials += [evaluation * gamma + input_ - evaluation_next]
 
         return [x[IOTable.evaluation] - evaluation_terminal * offset]
@@ -91,8 +84,6 @@ class IOTable(Table):
         extended_matrix = []
         io_running_evaluation = zero
         evaluation_terminal = zero
-
-        print("In ", str(type(self)), "iota is:", iota)
 
         # loop over all rows of table
         for i in range(len(self.matrix)):
@@ -125,8 +116,6 @@ class InputTable(IOTable):
         self.terminal_index = 2
 
     def extend(self, all_challenges, all_initials):
-        a, b, c, d, e, f, alpha, beta, gamma, delta, eta = all_challenges
-        processor_instruction_permutation_initial, processor_memory_permutation_initial = all_initials
         self.extend_iotable(all_challenges[self.challenge_index])
 
 
@@ -137,6 +126,4 @@ class OutputTable(IOTable):
         self.terminal_index = 3
 
     def extend(self, all_challenges, all_initials):
-        a, b, c, d, e, f, alpha, beta, gamma, delta, eta = all_challenges
-        processor_instruction_permutation_initial, processor_memory_permutation_initial = all_initials
         self.extend_iotable(all_challenges[self.challenge_index])

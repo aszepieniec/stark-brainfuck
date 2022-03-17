@@ -547,36 +547,28 @@ class BrainfuckStark:
             if not verifier_verdict:
                 return False
 
-            # checy equality
+            # check equality
             verifier_verdict = verifier_verdict and combination_leaf == inner_product
             if not verifier_verdict:
                 return False
 
         # verify low degree of combination polynomial
-        polynomial_points = []
         verifier_verdict = self.fri.verify(proof_stream, combination_root)
-        polynomial_points.sort(key=lambda iv: iv[0])
-        if verifier_verdict == False:
-            return False
 
         # verify external terminals:
         a, b, c, d, e, f, alpha, beta, gamma, delta, eta = challenges
         # input
         verifier_verdict = verifier_verdict and processor_input_evaluation_terminal == VirtualMachine.evaluation_terminal(
             [self.xfield(ord(t)) for t in self.input_symbols], gamma)
-        assert(verifier_verdict), "processor input evaluation argument failed"
-        # output
-        # print("type of output symbols:", type(output_symbols),
-        #       "and first element:", type(output_symbols[0]))
+        # assert(verifier_verdict), "processor input evaluation argument failed"
+
         verifier_verdict = verifier_verdict and processor_output_evaluation_terminal == VirtualMachine.evaluation_terminal(
             [self.xfield(ord(t)) for t in self.output_symbols], delta)
-        assert(verifier_verdict), "processor output evaluation argument failed"
+        # assert(verifier_verdict), "processor output evaluation argument failed"
+
         # program
-        print(type(instruction_evaluation_terminal))
-        print(type(VirtualMachine.program_evaluation(
-            self.program, a, b, c, eta)))
         verifier_verdict = verifier_verdict and instruction_evaluation_terminal == VirtualMachine.program_evaluation(
             self.program, a, b, c, eta)
-        assert(verifier_verdict), "instruction program evaluation argument failed"
+        # assert(verifier_verdict), "instruction program evaluation argument failed"
 
         return verifier_verdict

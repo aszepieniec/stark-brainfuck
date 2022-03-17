@@ -347,21 +347,21 @@ class VirtualMachine:
 
         return running_sum
 
-    @ staticmethod
-    def program_permutation_cofactor(program, a, b, c, alpha, initial_value=None):
-        field = program[0].field
-        xfield = a.field
-        if not initial_value:
-            running_product = xfield.one()
-        else:
-            running_product = initial_value
-        padded_program = [xfield.lift(p)
-                          for p in program] + [xfield.zero()]
-        for i in range(len(padded_program)-1):
-            address = xfield.lift(BaseFieldElement(i, field))
-            current_instruction = padded_program[i]
-            next_instruction = padded_program[i+1]
-            running_product *= alpha - a * address - b * \
-                current_instruction - c * next_instruction
+    # @ staticmethod
+    # def program_permutation_cofactor(program, a, b, c, alpha, initial_value=None):
+    #     field = program[0].field
+    #     xfield = a.field
+    #     if not initial_value:
+    #         running_product = xfield.one()
+    #     else:
+    #         running_product = initial_value
+    #     padded_program = [xfield.lift(p)
+    #                       for p in program] + [xfield.zero()]
+    #     for i in range(len(padded_program)-1):
+    #         address = xfield.lift(BaseFieldElement(i, field))
+    #         current_instruction = padded_program[i]
+    #         next_instruction = padded_program[i+1]
+    #         running_product *= alpha - a * address - b * \
+    #             current_instruction - c * next_instruction
 
-        return running_product
+    #     return running_product
