@@ -30,24 +30,9 @@ class Fri:
             return ntt(self.omega, coefficients)
 
         def xevaluate(self, polynomial, xfield=None):
-            # xfield = polynomial.coefficients[0].field
-            # coefficients = [[self.omega.field.zero()] * xfield.modulus.degree()] * (1 + polynomial.degree())
-            # for i in range(len(coefficients)):
-            #     coefficients[i] += [self.omega.field.zero()] * (xfield.modulus.degree() - len(coefficients[i]))
-            # scale = [self.offset^i for i in range(len(coefficients))]
-            # for i in range(len(coefficients)):
-            #     for j in range(xfield.modulus.degree()):
-            #         coefficients[i][j] *= scale[i]
-            # transposed = [[self.omega.field.zero()] * self.length] * xfield.modulus.degree()
-            # for i in range(xfield.modulus.degree()):
-            #     for j in range(len(coefficients)):
-            #         transposed[i][j] = coefficients[j][i]
-            # values = [ntt(self.omega, row) for row in transposed]
-            # xcdwd = [ExtensionFieldElement(Polynomial(
-            #     [values[j][i] for j in range(xfield.modulus.degree())]), xfield) for i in range(self.length)]
-            # return xcdwd
             if xfield == None:
-                assert(len(polynomial.coefficients) != 0), "trying to xevaluate zero polynomial with no target field"
+                assert(len(polynomial.coefficients) !=
+                       0), "trying to xevaluate zero polynomial with no target field"
                 xfield = polynomial.coefficients[0].field
             return fast_coset_evaluate(polynomial, xfield.lift(self.offset), xfield.lift(self.omega), self.length)
 
@@ -69,8 +54,8 @@ class Fri:
     def num_rounds(self):
         codeword_length = self.domain.length
         num_rounds = 0
-        while codeword_length > self.expansion_factor and 4*self.num_colinearity_tests < codeword_length:
-            codeword_length /= 2
+        while codeword_length > self.expansion_factor:
+            codeword_length //= 2
             num_rounds += 1
         return num_rounds
 

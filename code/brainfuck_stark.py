@@ -32,12 +32,12 @@ class BrainfuckStark:
         self.output_symbols = output_symbols
 
         # set parameters
-        self.expansion_factor = 16  # for security and compactness
-        self.expansion_factor = 4  # for speed
-        self.num_colinearity_checks = 40  # for security
-        self.num_colinearity_checks = 1  # for speed
+        log_expansion_factor = 4  # for compactness
+        log_expansion_factor = 2  # for speed
+        self.expansion_factor = 1 << log_expansion_factor
         self.security_level = 160  # for security
-        self.security_level = 1  # for speed
+        self.security_level = 2  # for speed
+        self.num_colinearity_checks = self.security_level // log_expansion_factor
         assert(self.expansion_factor & (self.expansion_factor - 1)
                == 0), "expansion factor must be a power of 2"
         assert(self.expansion_factor >=
