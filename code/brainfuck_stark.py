@@ -47,8 +47,6 @@ class BrainfuckStark:
 
         self.num_randomizers = 1  # TODO: self.security_level
 
-        self.vm = VirtualMachine()
-
         # instantiate table objects
         order = 1 << 32
         smooth_generator = BrainfuckStark.field.primitive_nth_root(order)
@@ -907,34 +905,42 @@ class BrainfuckStark:
             #               self.xfield.lift(self.fri.domain(index) ^ shift)]
             # print("len(terms) after output terminals: ", len(terms))
 
+            for arg in self.permutation_arguments:
+                quotient = arg.evaluate_difference(
+                    points) / (self.xfield.lift(self.fri.domain(index)) - self.xfield.one())
+                terms += [quotient]
+                degree_bound = arg.quotient_degree_bound()
+                shift = self.max_degree - degree_bound
+                terms += [quotient *
+                          self.xfield.lift(self.fri.domain(index) ^ shift)]
             # ******************** difference quotients ********************
-            difference = (processor_point[ProcessorTable.instruction_permutation] -
-                          instruction_point[InstructionTable.permutation])
-            quotient = difference / \
-                (self.xfield.lift(self.fri.domain(index)) - self.xfield.one())
-            terms += [quotient]
+            # difference = (processor_point[ProcessorTable.instruction_permutation] -
+            #               instruction_point[InstructionTable.permutation])
+            # quotient = difference / \
+            #     (self.xfield.lift(self.fri.domain(index)) - self.xfield.one())
+            # terms += [quotient]
+            # # shift = self.max_degree - \
+            # #     (BrainfuckStark.roundup_npo2(
+            # #         self.running_time + len(self.program)) + self.num_randomizers - 2)
             # shift = self.max_degree - \
-            #     (BrainfuckStark.roundup_npo2(
-            #         self.running_time + len(self.program)) + self.num_randomizers - 2)
-            shift = self.max_degree - \
-                self.permutation_arguments[0].quotient_degree_bound()
-            print("verifier shift:", shift)
-            terms += [quotient *
-                      self.xfield.lift(self.fri.domain(index) ^ shift)]
+            #     self.permutation_arguments[0].quotient_degree_bound()
+            # print("verifier shift:", shift)
+            # terms += [quotient *
+            #           self.xfield.lift(self.fri.domain(index) ^ shift)]
 
-            difference = (
-                processor_point[ProcessorTable.memory_permutation] - memory_point[MemoryTable.permutation])
-            quotient = difference / \
-                (self.xfield.lift(self.fri.domain(index)) - self.xfield.one())
-            terms += [quotient]
+            # difference = (
+            #     processor_point[ProcessorTable.memory_permutation] - memory_point[MemoryTable.permutation])
+            # quotient = difference / \
+            #     (self.xfield.lift(self.fri.domain(index)) - self.xfield.one())
+            # terms += [quotient]
+            # # shift = self.max_degree - \
+            # #     (BrainfuckStark.roundup_npo2(
+            # #         self.running_time) + self.num_randomizers - 2)
             # shift = self.max_degree - \
-            #     (BrainfuckStark.roundup_npo2(
-            #         self.running_time) + self.num_randomizers - 2)
-            shift = self.max_degree - \
-                self.permutation_arguments[1].quotient_degree_bound()
-            print("verifier shift:", shift)
-            terms += [quotient *
-                      self.xfield.lift(self.fri.domain(index) ^ shift)]
+            #     self.permutation_arguments[1].quotient_degree_bound()
+            # print("verifier shift:", shift)
+            # terms += [quotient *
+            #           self.xfield.lift(self.fri.domain(index) ^ shift)]
             print("len(terms) after difference: ", len(terms))
 
             assert(len(terms) == len(

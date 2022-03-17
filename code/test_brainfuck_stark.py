@@ -25,7 +25,7 @@ def test_bfs():
     # Print "Hello World!"
     # program = VirtualMachine.compile(
     #     "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.")
-    processor_matrix, instruction_matrix, input_matrix, output_matrix = bfs.vm.simulate(
+    processor_matrix, instruction_matrix, input_matrix, output_matrix = VirtualMachine.simulate(
         program, input_data=input_symbols)
     running_time = len(processor_matrix)
 
