@@ -5,7 +5,6 @@ from merkle import Merkle
 from fri import *
 from instruction_table import InstructionTable
 from io_table import InputTable, OutputTable
-from labeled_list import LabeledList
 from memory_table import MemoryTable
 from permutation_argument import PermutationArgument
 from processor_table import ProcessorTable
@@ -15,7 +14,6 @@ from multivariate import *
 from ntt import *
 from functools import reduce
 import os
-import time
 
 from vm import VirtualMachine
 
@@ -189,27 +187,25 @@ class BrainfuckStark:
         zipped_extension_codeword = list(zip(*extension_codewords))
         extension_tree = SaltedMerkle(zipped_extension_codeword)
         proof_stream.push(extension_tree.root())
-        print("-> extension tree root:", hexlify(extension_tree.root()))
 
         extension_degree_bounds = reduce(lambda x, y: x+y, [[table.interpolant_degree()] * (
             table.full_width - table.base_width) for table in self.base_tables], [])
 
-        quotient_codewords = LabeledList()
+        quotient_codewords = []
 
         for table in self.base_tables:
-            quotient_codewords.concatenate(table.all_quotients_labeled(
-                self.fri.domain, table.codewords, challenges, terminals))
+            quotient_codewords += table.all_quotients(
+                self.fri.domain, table.codewords, challenges, terminals)
 
-        quotient_degree_bounds = LabeledList()
+        quotient_degree_bounds = []
         for table in self.base_tables:
-            quotient_degree_bounds.concatenate(
-                table.all_quotient_degree_bounds_labeled(challenges, terminals))
+            quotient_degree_bounds += table.all_quotient_degree_bounds(
+                challenges, terminals)
 
         # ... and equal initial values
         for pa in self.permutation_arguments:
-            quotient_codewords.append(pa.quotient(self.fri.domain), "diff")
-            quotient_degree_bounds.append(
-                pa.quotient_degree_bound(), "diff")
+            quotient_codewords += [pa.quotient(self.fri.domain)]
+            quotient_degree_bounds += [pa.quotient_degree_bound()]
 
         for t in terminals:
             proof_stream.push(t)
@@ -264,24 +260,22 @@ class BrainfuckStark:
         assert(len(quotient_codewords) ==
                num_quotient_polynomials), f"number of quotient codewords {len(quotient_codewords)} =/= number of quotient polynomials {num_quotient_polynomials}"
 
-        for i in range(len(quotient_codewords)):
-            quotient_codeword_i = quotient_codewords.get(i)
-            quotient_degree_bound_i = quotient_degree_bounds.get(i)
-            terms += [quotient_codeword_i]
+        for quotient_codeword, quotient_degree_bound in zip(quotient_codewords, quotient_degree_bounds):
+            terms += [quotient_codeword]
             if os.environ.get('DEBUG') is not None:
                 interpolated = self.fri.domain.xinterpolate(terms[-1])
                 assert(interpolated.degree() == -1 or interpolated.degree() <=
-                       quotient_degree_bound_i), f"for unshifted quotient polynomial {i}, interpolated degree is {interpolated.degree()} but > degree bound i = {quotient_degree_bound_i}"
-            shift = self.max_degree - quotient_degree_bound_i
+                       quotient_degree_bound), f"for unshifted quotient polynomial {i}, interpolated degree is {interpolated.degree()} but > degree bound i = {quotient_degree_bound}"
+            shift = self.max_degree - quotient_degree_bound
 
-            terms += [[self.xfield.lift(self.fri.domain(j) ^ shift) * quotient_codeword_i[j]
+            terms += [[self.xfield.lift(self.fri.domain(j) ^ shift) * quotient_codeword[j]
                       for j in range(self.fri.domain.length)]]
             if os.environ.get('DEBUG') is not None:
                 print(f"before domain interpolation")
                 interpolated = self.fri.domain.xinterpolate(terms[-1])
                 print(
                     f"degree of interpolation, , quotient_codewords({i}): {interpolated.degree()}")
-                print("quotient  degree bound:", quotient_degree_bound_i)
+                print("quotient  degree bound:", quotient_degree_bound)
                 assert(interpolated.degree(
                 ) == -1 or interpolated.degree() <= self.max_degree), f"for (shifted) quotient polynomial {i}, interpolated degree is {interpolated.degree()} but > max_degree = {self.max_degree}"
 
