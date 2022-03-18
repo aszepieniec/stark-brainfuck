@@ -1,4 +1,4 @@
-from binascii import hexlify
+from evaluation_argument import EvaluationArgument, ProgramEvaluationArgument
 from extension_field import ExtensionField, ExtensionFieldElement
 from ip import ProofStream
 from merkle import Merkle
@@ -14,8 +14,6 @@ from multivariate import *
 from ntt import *
 from functools import reduce
 import os
-
-from vm import VirtualMachine
 
 
 class BrainfuckStark:
@@ -70,6 +68,16 @@ class BrainfuckStark:
             self.base_tables, (0, ProcessorTable.memory_permutation), (2, MemoryTable.permutation))
         self.permutation_arguments = [
             processor_instruction_permutation, processor_memory_permutation]
+
+        # instantiate evaluation objects
+        input_evaluation = EvaluationArgument(
+            8, 2, [BaseFieldElement(ord(i), self.field) for i in input_symbols])
+        output_evaluation = EvaluationArgument(
+            9, 3, [BaseFieldElement(ord(o), self.field) for o in output_symbols])
+        program_evaluation = ProgramEvaluationArgument(
+            [0, 1, 2, 6], 4, program)
+        self.evaluation_arguments = [
+            input_evaluation, output_evaluation, program_evaluation]
 
         # compute fri domain length
         self.max_degree = 1
@@ -556,19 +564,7 @@ class BrainfuckStark:
         verifier_verdict = self.fri.verify(proof_stream, combination_root)
 
         # verify external terminals:
-        a, b, c, d, e, f, alpha, beta, gamma, delta, eta = challenges
-        # input
-        verifier_verdict = verifier_verdict and processor_input_evaluation_terminal == VirtualMachine.evaluation_terminal(
-            [self.xfield(ord(t)) for t in self.input_symbols], gamma)
-        # assert(verifier_verdict), "processor input evaluation argument failed"
-
-        verifier_verdict = verifier_verdict and processor_output_evaluation_terminal == VirtualMachine.evaluation_terminal(
-            [self.xfield(ord(t)) for t in self.output_symbols], delta)
-        # assert(verifier_verdict), "processor output evaluation argument failed"
-
-        # program
-        verifier_verdict = verifier_verdict and instruction_evaluation_terminal == VirtualMachine.program_evaluation(
-            self.program, a, b, c, eta)
-        # assert(verifier_verdict), "instruction program evaluation argument failed"
+        for ea in self.evaluation_arguments:
+            ea.select_terminal(terminals) == ea.compute_terminal(challenges)
 
         return verifier_verdict
