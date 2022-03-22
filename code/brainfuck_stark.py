@@ -1,3 +1,4 @@
+from typing import List
 from evaluation_argument import EvaluationArgument, ProgramEvaluationArgument
 from extension_field import ExtensionField, ExtensionFieldElement
 from ip import ProofStream
@@ -58,14 +59,14 @@ class BrainfuckStark:
         self.output_table = OutputTable(
             self.field, len(output_symbols), smooth_generator, order)
 
-        self.base_tables = [self.processor_table, self.instruction_table,
-                            self.memory_table, self.input_table, self.output_table]
+        self.tables = [self.processor_table, self.instruction_table,
+                       self.memory_table, self.input_table, self.output_table]
 
         # instantiate permutation objects
         processor_instruction_permutation = PermutationArgument(
-            self.base_tables, (0, ProcessorTable.instruction_permutation), (1, InstructionTable.permutation))
+            self.tables, (0, ProcessorTable.instruction_permutation), (1, InstructionTable.permutation))
         processor_memory_permutation = PermutationArgument(
-            self.base_tables, (0, ProcessorTable.memory_permutation), (2, MemoryTable.permutation))
+            self.tables, (0, ProcessorTable.memory_permutation), (2, MemoryTable.permutation))
         self.permutation_arguments = [
             processor_instruction_permutation, processor_memory_permutation]
 
@@ -81,7 +82,7 @@ class BrainfuckStark:
 
         # compute fri domain length
         self.max_degree = 1
-        for table in self.base_tables:
+        for table in self.tables:
             for air in table.base_transition_constraints():
                 degree_bounds = [table.interpolant_degree()] * \
                     table.base_width * 2
@@ -99,7 +100,7 @@ class BrainfuckStark:
         self.fri = Fri(generator, omega, fri_domain_length,
                        self.expansion_factor, self.num_colinearity_checks, self.xfield)
 
-    def get_terminals(self):
+    def get_terminals(self) -> List[ExtensionFieldElement]:
         terminals = [self.processor_table.instruction_permutation_terminal,
                      self.processor_table.memory_permutation_terminal,
                      self.processor_table.input_evaluation_terminal,
@@ -167,11 +168,11 @@ class BrainfuckStark:
         randomizer_codewords += [randomizer_codeword]
 
         base_codewords = reduce(
-            lambda x, y: x+y, [table.lde(self.fri.domain) for table in self.base_tables], [])
+            lambda x, y: x+y, [table.lde(self.fri.domain) for table in self.tables], [])
         all_base_codewords = randomizer_codewords + base_codewords
 
         base_degree_bounds = reduce(
-            lambda x, y: x+y, [[table.interpolant_degree()] * table.base_width for table in self.base_tables], [])
+            lambda x, y: x+y, [[table.interpolant_degree()] * table.base_width for table in self.tables], [])
 
         zipped_codeword = list(zip(*all_base_codewords))
         base_tree = SaltedMerkle(zipped_codeword)
@@ -184,29 +185,29 @@ class BrainfuckStark:
         initials = [self.xfield.sample(os.urandom(3*8))
                     for i in range(len(self.permutation_arguments))]
 
-        for table in self.base_tables:
+        for table in self.tables:
             table.extend(challenges, initials)
 
         terminals = self.get_terminals()
 
         extension_codewords = reduce(
-            lambda x, y: x+y, [table.ldex(self.fri.domain, self.xfield) for table in self.base_tables], [])
+            lambda x, y: x+y, [table.ldex(self.fri.domain, self.xfield) for table in self.tables], [])
 
         zipped_extension_codeword = list(zip(*extension_codewords))
         extension_tree = SaltedMerkle(zipped_extension_codeword)
         proof_stream.push(extension_tree.root())
 
         extension_degree_bounds = reduce(lambda x, y: x+y, [[table.interpolant_degree()] * (
-            table.full_width - table.base_width) for table in self.base_tables], [])
+            table.full_width - table.base_width) for table in self.tables], [])
 
         quotient_codewords = []
 
-        for table in self.base_tables:
+        for table in self.tables:
             quotient_codewords += table.all_quotients(
                 self.fri.domain, table.codewords, challenges, terminals)
 
         quotient_degree_bounds = []
-        for table in self.base_tables:
+        for table in self.tables:
             quotient_degree_bounds += table.all_quotient_degree_bounds(
                 challenges, terminals)
 
@@ -222,9 +223,9 @@ class BrainfuckStark:
         #  - 1 for randomizer polynomials
         #  - 2 for every other polynomial (base, extension, quotients)
         num_base_polynomials = sum(
-            table.base_width for table in self.base_tables)
+            table.base_width for table in self.tables)
         num_extension_polynomials = sum(
-            table.full_width - table.base_width for table in self.base_tables)
+            table.full_width - table.base_width for table in self.tables)
         num_randomizer_polynomials = 1
         num_quotient_polynomials = len(quotient_degree_bounds)
         weights_seed = proof_stream.prover_fiat_shamir()
@@ -305,7 +306,7 @@ class BrainfuckStark:
             self.security_level, indices_seed, self.fri.domain.length)
 
         unit_distances = [table.unit_distance(
-            self.fri.domain.length) for table in self.base_tables]
+            self.fri.domain.length) for table in self.tables]
         unit_distances = list(set(unit_distances))
 
         # open leafs of zipped codewords at indicated positions
@@ -372,25 +373,25 @@ class BrainfuckStark:
 
         base_degree_bounds = reduce(lambda x, y: x + y,
                                     [[table.interpolant_degree(
-                                    )] * table.base_width for table in self.base_tables],
+                                    )] * table.base_width for table in self.tables],
                                     [])
 
         extension_degree_bounds = reduce(lambda x, y: x+y,
                                          [[table.interpolant_degree()] * (table.full_width - table.base_width)
-                                          for table in self.base_tables],
+                                          for table in self.tables],
                                          [])
 
         # get weights for nonlinear combination
         #  - 1 randomizer
         #  - 2 for every other polynomial (base, extension, quotients)
         num_base_polynomials = sum(
-            table.base_width for table in self.base_tables)
+            table.base_width for table in self.tables)
         num_extension_polynomials = sum(
-            table.full_width - table.base_width for table in self.base_tables)
+            table.full_width - table.base_width for table in self.tables)
         num_randomizer_polynomials = 1
 
         num_quotient_polynomials = sum(table.num_quotients(
-            challenges, terminals) for table in self.base_tables)
+            challenges, terminals) for table in self.tables)
 
         num_difference_quotients = len(self.permutation_arguments)
 
@@ -412,7 +413,7 @@ class BrainfuckStark:
             self.security_level, indices_seed, self.fri.domain.length)
 
         unit_distances = [table.unit_distance(
-            self.fri.domain.length) for table in self.base_tables]
+            self.fri.domain.length) for table in self.tables]
         unit_distances = list(set(unit_distances))
 
         # get leafs at indicated positions
@@ -454,7 +455,7 @@ class BrainfuckStark:
 
             # collect terms: extension
             extension_offset = num_randomizer_polynomials + \
-                sum(table.base_width for table in self.base_tables)
+                sum(table.base_width for table in self.tables)
 
             assert(len(
                 terms) == 2 * extension_offset - num_randomizer_polynomials), f"number of terms {len(terms)} does not match with extension offset {2 * extension_offset - num_randomizer_polynomials}"
@@ -469,7 +470,7 @@ class BrainfuckStark:
             # quotients need to be computed
             acc_index = num_randomizer_polynomials
             points = []
-            for table in self.base_tables:
+            for table in self.tables:
                 step = table.base_width
                 points += [tuples[index][acc_index:(acc_index+step)]]
                 acc_index += step
@@ -477,7 +478,7 @@ class BrainfuckStark:
             assert(acc_index == extension_offset,
                    "Column count in verifier must match until extension columns")
 
-            for point, table in zip(points, self.base_tables):
+            for point, table in zip(points, self.tables):
                 step = table.full_width - table.base_width
                 point += tuples[index][acc_index:(acc_index+step)]
                 acc_index += step
@@ -487,7 +488,7 @@ class BrainfuckStark:
 
             base_acc_index = num_randomizer_polynomials
             ext_acc_index = extension_offset
-            for point, table in zip(points, self.base_tables):
+            for point, table in zip(points, self.tables):
                 # boundary
                 for constraint, bound in zip(table.boundary_constraints_ext(challenges), table.boundary_quotient_degree_bounds(challenges)):
                     eval = constraint.evaluate(point)

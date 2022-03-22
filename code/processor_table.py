@@ -64,59 +64,59 @@ class ProcessorTable(Table):
         polynomials = [zero] * 3
 
         if instr == '[':
-            polynomials[ProcessorTable.cycle] = memory_value * (instruction_pointer_next - instruction_pointer - two) + \
+            polynomials[0] = memory_value * (instruction_pointer_next - instruction_pointer - two) + \
                 is_zero * (instruction_pointer_next - next_instruction)
-            polynomials[ProcessorTable.instruction_pointer] = memory_pointer_next - memory_pointer
-            polynomials[ProcessorTable.current_instruction] = memory_value_next - memory_value
+            polynomials[1] = memory_pointer_next - memory_pointer
+            polynomials[2] = memory_value_next - memory_value
 
         elif instr == ']':
-            polynomials[ProcessorTable.cycle] = is_zero * (instruction_pointer_next - instruction_pointer - two) + \
+            polynomials[0] = is_zero * (instruction_pointer_next - instruction_pointer - two) + \
                 memory_value * (instruction_pointer_next - next_instruction)
-            polynomials[ProcessorTable.instruction_pointer] = memory_pointer_next - memory_pointer
-            polynomials[ProcessorTable.current_instruction] = memory_value_next - memory_value
+            polynomials[1] = memory_pointer_next - memory_pointer
+            polynomials[2] = memory_value_next - memory_value
 
         elif instr == '<':
-            polynomials[ProcessorTable.cycle] = instruction_pointer_next - \
+            polynomials[0] = instruction_pointer_next - \
                 instruction_pointer - one
-            polynomials[ProcessorTable.instruction_pointer] = memory_pointer_next - \
+            polynomials[1] = memory_pointer_next - \
                 memory_pointer + one
             # memory value, satisfied by permutation argument
-            polynomials[ProcessorTable.current_instruction] = zero
+            polynomials[2] = zero
 
         elif instr == '>':
-            polynomials[ProcessorTable.cycle] = instruction_pointer_next - \
+            polynomials[0] = instruction_pointer_next - \
                 instruction_pointer - one
-            polynomials[ProcessorTable.instruction_pointer] = memory_pointer_next - \
+            polynomials[1] = memory_pointer_next - \
                 memory_pointer - one
             # memory value, satisfied by permutation argument
-            polynomials[ProcessorTable.current_instruction] = zero
+            polynomials[2] = zero
 
         elif instr == '+':
-            polynomials[ProcessorTable.cycle] = instruction_pointer_next - \
+            polynomials[0] = instruction_pointer_next - \
                 instruction_pointer - one
-            polynomials[ProcessorTable.instruction_pointer] = memory_pointer_next - memory_pointer
-            polynomials[ProcessorTable.current_instruction] = memory_value_next - \
+            polynomials[1] = memory_pointer_next - memory_pointer
+            polynomials[2] = memory_value_next - \
                 memory_value - one
 
         elif instr == '-':
-            polynomials[ProcessorTable.cycle] = instruction_pointer_next - \
+            polynomials[0] = instruction_pointer_next - \
                 instruction_pointer - one
-            polynomials[ProcessorTable.instruction_pointer] = memory_pointer_next - memory_pointer
-            polynomials[ProcessorTable.current_instruction] = memory_value_next - \
+            polynomials[1] = memory_pointer_next - memory_pointer
+            polynomials[2] = memory_value_next - \
                 memory_value + one
 
         elif instr == ',':
-            polynomials[ProcessorTable.cycle] = instruction_pointer_next - \
+            polynomials[0] = instruction_pointer_next - \
                 instruction_pointer - one
-            polynomials[ProcessorTable.instruction_pointer] = memory_pointer_next - memory_pointer
+            polynomials[1] = memory_pointer_next - memory_pointer
             # memory value, set by evaluation argument
-            polynomials[ProcessorTable.current_instruction] = zero
+            polynomials[2] = zero
 
         elif instr == '.':
-            polynomials[ProcessorTable.cycle] = instruction_pointer_next - \
+            polynomials[0] = instruction_pointer_next - \
                 instruction_pointer - one
-            polynomials[ProcessorTable.instruction_pointer] = memory_pointer_next - memory_pointer
-            polynomials[ProcessorTable.current_instruction] = memory_value_next - memory_value
+            polynomials[1] = memory_pointer_next - memory_pointer
+            polynomials[2] = memory_value_next - memory_value
 
         # account for padding:
         # deactivate all polynomials if current instruction is zero
@@ -203,7 +203,8 @@ class ProcessorTable(Table):
       #
 
     def transition_constraints_ext(self, challenges):
-        a, b, c, d, e, f, alpha, beta, gamma, delta, eta = [MPolynomial.constant(ch) for ch in challenges]
+        a, b, c, d, e, f, alpha, beta, gamma, delta, eta = [
+            MPolynomial.constant(ch) for ch in challenges]
         field = challenges[0].field
 
         # names for variables
@@ -242,7 +243,7 @@ class ProcessorTable(Table):
         polynomials += [(instruction_permutation *
                         (alpha - a * instruction_pointer
                          - b * current_instruction
-                                - c * next_instruction)
+                         - c * next_instruction)
                         - instruction_permutation_next) * current_instruction]
         # running product for memory permutation
         polynomials += [memory_permutation *
@@ -370,7 +371,8 @@ class ProcessorTable(Table):
             new_row += [input_evaluation_running_evaluation]
             if row[ProcessorTable.current_instruction] == BaseFieldElement(ord(','), field):
                 input_evaluation_running_evaluation = input_evaluation_running_evaluation * gamma \
-                    + xfield.lift(self.matrix[i+1][ProcessorTable.memory_value])
+                    + xfield.lift(self.matrix[i+1]
+                                  [ProcessorTable.memory_value])
                 # the memory-value register only assumes the input value after the instruction has been performed
 
             # 4. evaluation for output
@@ -383,7 +385,8 @@ class ProcessorTable(Table):
 
         self.field = xfield
         self.matrix = extended_matrix
-        self.codewords = [[xfield.lift(c) for c in cdwd] for cdwd in self.codewords]
+        self.codewords = [[xfield.lift(c) for c in cdwd]
+                          for cdwd in self.codewords]
 
         self.instruction_permutation_terminal = instruction_permutation_running_product
         self.memory_permutation_terminal = memory_permutation_running_product

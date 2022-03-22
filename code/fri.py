@@ -243,12 +243,12 @@ class Fri:
         assert(poly.evaluate_domain(last_domain) ==
                last_codeword), "re-evaluated codeword does not match original!"
         if poly.degree() > degree:
-            print("last codeword does not correspond to polynomial of low enough degree")
-            print("observed degree:", poly.degree())
-            print("but should be:", degree)
-            print("interpolated polynomium was: ", str(poly))
-            print("Length of last codeword was: ", len(last_codeword))
-            print("And expansion factor was: ", self.expansion_factor)
+            # print("last codeword does not correspond to polynomial of low enough degree")
+            # print("observed degree:", poly.degree())
+            # print("but should be:", degree)
+            # print("interpolated polynomial was: ", str(poly))
+            # print("Length of last codeword was: ", len(last_codeword))
+            # print("And expansion factor was: ", self.expansion_factor)
             return False
 
         # get indices

@@ -1,6 +1,7 @@
 from concurrent.futures import process
 from brainfuck_stark import *
 from os.path import exists
+from vm import VirtualMachine
 
 
 def test_bfs():

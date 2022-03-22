@@ -59,7 +59,8 @@ class InstructionTable(Table):
 
     def transition_constraints_ext(self, challenges):
         field = challenges[0].field
-        a, b, c, d, e, f, alpha, beta, gamma, delta, eta = [MPolynomial.constant(ch) for ch in challenges]
+        a, b, c, d, e, f, alpha, beta, gamma, delta, eta = [
+            MPolynomial.constant(ch) for ch in challenges]
         address, current_instruction, next_instruction, permutation, evaluation, \
             address_next, current_instruction_next, next_instruction_next, permutation_next, evaluation_next = MPolynomial.variables(
                 2*self.full_width, field)
@@ -98,37 +99,42 @@ class InstructionTable(Table):
 
     def boundary_constraints_ext(self, challenges):
         field = challenges[0].field
-        a, b, c, d, e, f, alpha, beta, gamma, delta, eta = [MPolynomial.constant(ch) for ch in challenges]
+        a, b, c, d, e, f, alpha, beta, gamma, delta, eta = [
+            MPolynomial.constant(ch) for ch in challenges]
         # format: (cycle, polynomial)
         x = MPolynomial.variables(self.full_width, field)
         one = MPolynomial.constant(self.field.one())
         zero = MPolynomial.zero()
         return [x[InstructionTable.address] - zero,  # address starts at zero
                 # x[self.permutation] - one,  # running product starts at 1
-                x[InstructionTable.evaluation] - 
-                a * x[InstructionTable.address] - 
-                b * x[InstructionTable.current_instruction] - 
+                x[InstructionTable.evaluation] -
+                a * x[InstructionTable.address] -
+                b * x[InstructionTable.current_instruction] -
                 c * x[InstructionTable.next_instruction]]
 
     def terminal_constraints_ext(self, challenges, terminals):
-        a, b, c, d, e, f, alpha, beta, gamma, delta, eta = [MPolynomial(ch) for ch in challenges]
-        processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal, instruction_evaluation_terminal = terminals
+        a, b, c, d, e, f, alpha, beta, gamma, delta, eta = [
+            MPolynomial.constant(ch) for ch in challenges]
+        processor_instruction_permutation_terminal, processor_memory_permutation_terminal, processor_input_evaluation_terminal, processor_output_evaluation_terminal, instruction_evaluation_terminal = [
+            MPolynomial.constant(t) for t in terminals]
         field = challenges[0].field
         x = MPolynomial.variables(self.full_width, field)
 
         constraints = []
 
-        # polynomials += [(permutation * \
-        #                     ( alpha \
-        #                         - a * address  \
-        #                         - b * current_instruction \
-        #                         - c * next_instruction ) \
-        #                 - permutation_next) * current_instruction]
-        constraints += [x[InstructionTable.current_instruction]]
+        # ( permutation * ( alpha \
+        #                    - a * address  \
+        #                    - b * current_instruction \
+        #                    - c * next_instruction ) \
+        #               - permutation_next) * current_instruction
+        constraints += [(x[InstructionTable.permutation] *
+                         (alpha -
+                          a * x[InstructionTable.address] -
+                          b * x[InstructionTable.current_instruction] -
+                          c * x[InstructionTable.next_instruction]) - processor_instruction_permutation_terminal) *
+                        x[InstructionTable.current_instruction]]
 
-        # TODO: Isn't there a constraint missing here relating to the permutation terminal?
-
-        # polynomials += [ifnewaddress *
+        # ifnewaddress *
         #         (
         #             evaluation * eta
         #             + a * address_next
@@ -139,9 +145,9 @@ class InstructionTable(Table):
         #         + ifoldaddress *
         #         (
         #             evaluation - evaluation_next
-        #         )]
+        #         )
         constraints += [x[InstructionTable.evaluation] -
-                        MPolynomial.constant(instruction_evaluation_terminal)]
+                        instruction_evaluation_terminal]
 
         return constraints
 
@@ -191,7 +197,8 @@ class InstructionTable(Table):
 
         self.field = xfield
         self.matrix = extended_matrix
-        self.codewords = [[xfield.lift(c) for c in cdwd] for cdwd in self.codewords]
+        self.codewords = [[xfield.lift(c) for c in cdwd]
+                          for cdwd in self.codewords]
 
         self.permutation_terminal = permutation_running_product
         self.evaluation_terminal = evaluation_running_sum
