@@ -6,6 +6,11 @@ Notes for Alan's Brainfuck STARK tutorial
   trace where the column index defines the register and the row index defines the cycle. The `matrix` values go into a table
   object with an associated name. The table names are: "processor table", "instruction table", "memory table", "input table",
   and "output table". Simulate returns the matrices which form the basis for populating the tables.
+- Each table serves a purpose in the STARK engine: the processor table handles basic consistency in the execution trace,
+  ensuring that the cycle count register increments its value by one in each cycle; the instruction table ensures that the
+  program is consistent with the instructions that are executed on the virtual machine; the memory table ensure consistency
+  in the memory of the Brainfuck virtual machine; the input and output tables ensure that the program is consistent with its
+  user input and the values that the it prints to standard out, respectively.
 - `length` of a table defines the number of rows before padding
 - `height` of a table defines the number of rows after padding to the nearest power of 2.
 - Changes to FRI: 
