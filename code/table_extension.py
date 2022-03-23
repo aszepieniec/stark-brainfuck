@@ -9,19 +9,19 @@ from univariate import Polynomial
 
 
 class TableExtension(Table):
-    def __init__(self, xfield, base_width, width, length, num_randomizers, generator, order):
-        super().__init__(xfield, base_width, width, length, num_randomizers, generator, order)
+    def __init__(self, xfield, base_width, full_width, length, num_randomizers, generator, order):
+        super().__init__(xfield, base_width, full_width, length, num_randomizers, generator, order)
         self.xfield = xfield
 
     def interpolate_extension(self, omega, order):
         polynomials = self.interpolate_columns(
-            omega, order, range(self.base_width, self.width))
+            omega, order, range(self.base_width, self.full_width))
         self.polynomials += polynomials
         return polynomials
 
     # def evaluate_extension(self, domain):
     #     codewords = self.evaluate_columns(
-    #         domain, range(self.base_width, self.width))
+    #         domain, range(self.base_width, self.base_width))
     #     self.codewords += codewords
     #     return codewords
 
