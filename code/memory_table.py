@@ -57,7 +57,7 @@ class MemoryTable(Table):
 
     def base_boundary_constraints(self):
         # format: mpolynomial
-        x = MPolynomial.variables(self.width, self.field)
+        x = MPolynomial.variables(self.base_width, self.field)
         one = MPolynomial.constant(self.field.one())
         zero = MPolynomial.zero()
         return [x[MemoryTable.cycle],
