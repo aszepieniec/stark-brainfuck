@@ -52,4 +52,10 @@ def test_bfs():
     verdict = bfs.verify(proof)
     assert(verdict == True), "honest proof fails to verify"
     print("output length was:", len(output_symbols))
-    print("proof verified with output: \"" + "".join(output_symbols) + "\"")
+
+    if verdict == True:
+        print("proof verified with output: \"" +
+              "".join(output_symbols) + "\"")
+    else:
+        print("proof fails to verify with output:\"" +
+              "".join(output_symbols) + "\"")
