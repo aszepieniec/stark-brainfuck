@@ -15,21 +15,6 @@ class MemoryTable(Table):
         super(MemoryTable, self).__init__(
             field, 3, 4, length, num_randomizers, generator, order)
 
-    # def pad(self, padded_processor_table):
-    #     current_cycle = max(row[MemoryTable.cycle].value for row in self.table)
-    #     while len(self.table) != len(padded_processor_table.table):
-    #         current_cycle += 1
-    #         new_row = [self.field.zero()] * self.width
-    #         new_row[MemoryTable.cycle] = padded_processor_table.table[current_cycle][ProcessorTable.cycle]
-    #         new_row[MemoryTable.memory_pointer] = padded_processor_table.table[current_cycle][ProcessorTable.memory_pointer]
-    #         new_row[MemoryTable.memory_value] = padded_processor_table.table[current_cycle][ProcessorTable.memory_value]
-    #         self.table += [new_row]
-
-    #     self.table.sort(key=lambda r: r[1].value)
-
-    #     assert(len(self.table) & (len(self.table)-1) ==
-    #            0), "after padding memory table, number of rows is not a power of two ..."
-
     @staticmethod
     def derive_matrix(processor_matrix, num_randomizers):
         matrix = [[pt[ProcessorTable.cycle], pt[ProcessorTable.memory_pointer],
@@ -86,7 +71,8 @@ class MemoryTable(Table):
 
     def transition_constraints_ext(self, challenges):
         field = challenges[0].field
-        a, b, c, d, e, f, alpha, beta, gamma, delta, eta = [MPolynomial.constant(c) for c in challenges]
+        a, b, c, d, e, f, alpha, beta, gamma, delta, eta = [
+            MPolynomial.constant(c) for c in challenges]
         cycle, address, value, permutation, \
             cycle_next, address_next, value_next, permutation_next = MPolynomial.variables(
                 8, field)
@@ -119,7 +105,8 @@ class MemoryTable(Table):
 
     def terminal_constraints_ext(self, challenges, terminals):
         field = challenges[0].field
-        a, b, c, d, e, f, alpha, beta, gamma, delta, eta = [MPolynomial.constant(ch) for ch in challenges]
+        a, b, c, d, e, f, alpha, beta, gamma, delta, eta = [
+            MPolynomial.constant(ch) for ch in challenges]
         permutation = terminals[1]
         x = MPolynomial.variables(self.full_width, field)
 
@@ -159,5 +146,6 @@ class MemoryTable(Table):
 
         self.matrix = extended_matrix
         self.field = xfield
-        self.codewords = [[xfield.lift(c) for c in cdwd] for cdwd in self.codewords]
+        self.codewords = [[xfield.lift(c) for c in cdwd]
+                          for cdwd in self.codewords]
         self.permutation_terminal = memory_permutation_running_product
