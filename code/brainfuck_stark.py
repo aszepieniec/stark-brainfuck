@@ -146,7 +146,7 @@ class BrainfuckStark:
 
         # instantiate other table objects
         self.memory_table.matrix = MemoryTable.derive_matrix(
-            self.processor_table.matrix, self.num_randomizers)
+            self.processor_table.matrix)
 
         # create proof stream if we don't have it already
         if proof_stream == None:
