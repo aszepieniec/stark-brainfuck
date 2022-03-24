@@ -119,7 +119,7 @@ class Table:
         polynomials = []
         omicron_domain = [self.field.lift(self.omicron ^ i)
                           for i in range(self.height)]
-        randomizer_domain = [self.field.lift(omega) * omicron_domain[i]
+        randomizer_domain = [self.field.lift(omega^(2*i+1)) # odd powers of omega => no collision with omicron
                              for i in range(self.num_randomizers)]
         domain = omicron_domain + randomizer_domain
         for c in column_indices:
