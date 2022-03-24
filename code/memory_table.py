@@ -16,7 +16,7 @@ class MemoryTable(Table):
             field, 3, 4, length, num_randomizers, generator, order)
 
     @staticmethod
-    def derive_matrix(processor_matrix, num_randomizers):
+    def derive_matrix(processor_matrix):
         matrix = [[pt[ProcessorTable.cycle], pt[ProcessorTable.memory_pointer],
                   pt[ProcessorTable.memory_value]] for pt in processor_matrix]
         matrix.sort(key=lambda mt: mt[MemoryTable.memory_pointer].value)
