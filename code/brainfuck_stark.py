@@ -512,6 +512,9 @@ class BrainfuckStark:
                 for constraint, bound in zip(table.transition_constraints_ext(challenges), table.transition_quotient_degree_bounds(challenges)):
                     eval = constraint.evaluate(
                         point + next_point)
+                    # If height == 0, then there is no subgroup where the transition polynomials should be zero.
+                    # The fast zerofier (based on group theory) needs a non-empty group.
+                    # Forcing it on an empty group generates a division by zero error.
                     if table.height == 0:
                         quotient = self.xfield.zero()
                     else:
