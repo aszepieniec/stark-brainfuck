@@ -78,7 +78,6 @@ class IOTable(Table):
         # algebra stuff
         xfield = iota.field
         zero = xfield.zero()
-        one = xfield.one()
 
         # prepare loop
         extended_matrix = []
