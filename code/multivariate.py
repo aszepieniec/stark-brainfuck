@@ -152,7 +152,9 @@ class MPolynomial:
                0])), f"max degrees length ({len(max_degrees)}) does not match with number of variables (key for first term: {list(self.dictionary.keys())[0]})"
         assert(max_degrees == [max_degrees[0]] * len(max_degrees)
                ), "max degrees must be n repetitions of the same integer"
-        for exponents, _ in self.dictionary.items():
+        for exponents, coefficient in self.dictionary.items():
+            if coefficient.is_zero():
+                continue
             term_degree_bound = 0
             for e, md in zip(exponents, max_degrees):
                 term_degree_bound += e * md
