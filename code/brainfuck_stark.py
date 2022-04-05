@@ -572,6 +572,7 @@ class BrainfuckStark:
 
         # verify external terminals:
         for ea in self.evaluation_arguments:
-            ea.select_terminal(terminals) == ea.compute_terminal(challenges)
+            verifier_verdict = verifier_verdict and ea.select_terminal(
+                terminals) == ea.compute_terminal(challenges)
 
         return verifier_verdict
