@@ -76,7 +76,7 @@ class BrainfuckStark:
         output_evaluation = EvaluationArgument(
             9, 3, [BaseFieldElement(ord(o), self.field) for o in output_symbols])
         program_evaluation = ProgramEvaluationArgument(
-            [0, 1, 2, 6], 4, program)
+            [0, 1, 2, 10], 4, program)
         self.evaluation_arguments = [
             input_evaluation, output_evaluation, program_evaluation]
 
