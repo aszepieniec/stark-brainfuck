@@ -71,14 +71,13 @@ class IOTable(Table):
 
         # polynomials += [evaluation * gamma + input_ - evaluation_next]
 
-        return [x[IOTable.evaluation] - evaluation_terminal * offset]
+        return [x[IOTable.evaluation] - actual_terminal]
 
     def extend_iotable(self, iota):
 
         # algebra stuff
         xfield = iota.field
         zero = xfield.zero()
-        one = xfield.one()
 
         # prepare loop
         extended_matrix = []
