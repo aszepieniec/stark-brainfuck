@@ -42,7 +42,7 @@ def mallorys_simulator(program, input_data=[]):
                               register.next_instruction,
                               register.memory_pointer,
                               register.memory_value,
-                              register.is_zero]]
+                              register.memory_value_inverse]]
 
         instruction_matrix += [[register.instruction_pointer,
                                 register.current_instruction,
@@ -119,13 +119,13 @@ def mallorys_simulator(program, input_data=[]):
         register.memory_value = memory.get(register.memory_pointer, zero)
 
         if register.memory_value.is_zero():
-            register.is_zero = one
+            register.memory_value_inverse = zero
         else:
-            register.is_zero = zero
+            register.memory_value_inverse = register.memory_value.inverse()
 
         # This is the 2nd part of the attack
         if register.current_instruction == F('['):
-            register.is_zero = zero
+            register.memory_value_inverse = BaseFieldElement(42, field)
 
     # collect final state into execution tables
     processor_matrix += [[register.cycle,
@@ -134,7 +134,7 @@ def mallorys_simulator(program, input_data=[]):
                           register.next_instruction,
                           register.memory_pointer,
                           register.memory_value,
-                          register.is_zero]]
+                          register.memory_value_inverse]]
 
     instruction_matrix += [[register.instruction_pointer,
                             register.current_instruction,
@@ -245,5 +245,6 @@ def set_adversarial_is_zero_value_test():
     mallorys_proof = mallorys_bfs.prove(len(mallorys_processor_matrix), program, mallorys_processor_matrix,
                                         mallorys_instruction_matrix, mallorys_input_matrix, mallorys_output_matrix)
     success_of_mallory = mallorys_bfs.verify(mallorys_proof)
-    print("verdict_of_mallory = ", success_of_mallory)
     assert not success_of_mallory, "Mallory's proof must fail to verify"
+    print("Mallory's attack was defeated.")
+    print("https://youtu.be/4aof9KxIJZo")

@@ -64,7 +64,7 @@ class Register:
         self.next_instruction = Register.field.zero()
         self.memory_pointer = Register.field.zero()
         self.memory_value = Register.field.zero()
-        self.is_zero = Register.field.one()
+        self.memory_value_inverse = Register.field.zero()
 
 
 class VirtualMachine:
@@ -197,7 +197,7 @@ class VirtualMachine:
                                   register.next_instruction,
                                   register.memory_pointer,
                                   register.memory_value,
-                                  register.is_zero]]
+                                  register.memory_value_inverse]]
 
             instruction_matrix += [[register.instruction_pointer,
                                     register.current_instruction,
@@ -271,9 +271,9 @@ class VirtualMachine:
             register.memory_value = memory.get(register.memory_pointer, zero)
 
             if register.memory_value.is_zero():
-                register.is_zero = one
+                register.memory_value_inverse = zero
             else:
-                register.is_zero = zero
+                register.memory_value_inverse = register.memory_value.inverse()
 
         # collect final state into execution tables
         processor_matrix += [[register.cycle,
@@ -282,7 +282,7 @@ class VirtualMachine:
                               register.next_instruction,
                               register.memory_pointer,
                               register.memory_value,
-                              register.is_zero]]
+                              register.memory_value_inverse]]
 
         instruction_matrix += [[register.instruction_pointer,
                                 register.current_instruction,
