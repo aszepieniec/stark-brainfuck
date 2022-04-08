@@ -231,12 +231,18 @@ def set_adversarial_is_zero_value_test():
     assert regular_bfs.verify(
         regular_proof), "Regular simulation must pass verifier"
 
-    mallorys_program = VirtualMachine.compile("+>[++<-]")
     mallorys_processor_matrix, mallorys_instruction_matrix, mallorys_input_matrix, mallorys_output_matrix = mallorys_simulator(
-        mallorys_program, input_data=[])
+        program, input_data=[])
+
+    # Verify that the program is executed differently by the two simulators
+    assert len(mallorys_processor_matrix) != len(
+        regular_processor_matrix), "The execution trace of the regular and Mallory simulator must differ"
+    assert regular_processor_matrix[-1][4] != mallorys_processor_matrix[-1][
+        4], "Memory pointer must differ between regular simulation and Mallory's simulation"
+
     mallorys_bfs = BrainfuckStark(
-        len(mallorys_processor_matrix), mallorys_program, [], [])
-    mallorys_proof = mallorys_bfs.prove(len(mallorys_processor_matrix), mallorys_program, mallorys_processor_matrix,
+        len(mallorys_processor_matrix), program, [], [])
+    mallorys_proof = mallorys_bfs.prove(len(mallorys_processor_matrix), program, mallorys_processor_matrix,
                                         mallorys_instruction_matrix, mallorys_input_matrix, mallorys_output_matrix)
     success_of_mallory = mallorys_bfs.verify(mallorys_proof)
     print("verdict_of_mallory = ", success_of_mallory)
