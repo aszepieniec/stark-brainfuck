@@ -9,7 +9,7 @@ class ProcessorTable(Table):
     next_instruction = 3
     memory_pointer = 4
     memory_value = 5
-    is_zero = 6
+    memory_value_inverse = 6
 
     # named indices for extension columns
     instruction_permutation = 7
@@ -31,7 +31,7 @@ class ProcessorTable(Table):
             new_row[ProcessorTable.next_instruction] = self.field.zero()
             new_row[ProcessorTable.memory_pointer] = self.matrix[-1][ProcessorTable.memory_pointer]
             new_row[ProcessorTable.memory_value] = self.matrix[-1][ProcessorTable.memory_value]
-            new_row[ProcessorTable.is_zero] = self.matrix[-1][ProcessorTable.is_zero]
+            new_row[ProcessorTable.memory_value_inverse] = self.matrix[-1][ProcessorTable.memory_value_inverse]
             self.matrix += [new_row]
 
     @staticmethod
@@ -53,24 +53,26 @@ class ProcessorTable(Table):
             if c != instruction:
                 acc *= indeterminate - \
                     MPolynomial.constant(field(ord(c)))
-        return acc  # max degree: 8
+        return acc  # max degree: 7
 
     @staticmethod
-    def instruction_polynomials(instr, cycle, instruction_pointer, current_instruction, next_instruction, memory_pointer, memory_value, is_zero, cycle_next, instruction_pointer_next, current_instruction_next, next_instruction_next, memory_pointer_next, memory_value_next, is_zero_next):
+    def instruction_polynomials(instr, cycle, instruction_pointer, current_instruction, next_instruction, memory_pointer, memory_value, memory_value_inverse, cycle_next, instruction_pointer_next, current_instruction_next, next_instruction_next, memory_pointer_next, memory_value_next, memory_value_inverse_next):
         zero = MPolynomial.zero()
         field = list(cycle.dictionary.values())[0].field
         one = MPolynomial.constant(field.one())
         two = MPolynomial.constant(field.one()+field.one())
         polynomials = [zero] * 3
+        memory_value_is_zero = memory_value * memory_value_inverse - one
 
         if instr == '[':
             polynomials[0] = memory_value * (instruction_pointer_next - instruction_pointer - two) + \
-                is_zero * (instruction_pointer_next - next_instruction)
+                memory_value_is_zero * \
+                (instruction_pointer_next - next_instruction)
             polynomials[1] = memory_pointer_next - memory_pointer
             polynomials[2] = memory_value_next - memory_value
 
         elif instr == ']':
-            polynomials[0] = is_zero * (instruction_pointer_next - instruction_pointer - two) + \
+            polynomials[0] = memory_value_is_zero * (instruction_pointer_next - instruction_pointer - two) + \
                 memory_value * (instruction_pointer_next - next_instruction)
             polynomials[1] = memory_pointer_next - memory_pointer
             polynomials[2] = memory_value_next - memory_value
@@ -123,10 +125,10 @@ class ProcessorTable(Table):
         for i in range(len(polynomials)):
             polynomials[i] *= current_instruction
 
-        return polynomials  # max degree: 3
+        return polynomials  # max degree: 4
 
     @staticmethod
-    def transition_constraints_afo_named_variables(cycle, instruction_pointer, current_instruction, next_instruction, memory_pointer, memory_value, is_zero, cycle_next, instruction_pointer_next, current_instruction_next, next_instruction_next, memory_pointer_next, memory_value_next, is_zero_next):
+    def transition_constraints_afo_named_variables(cycle, instruction_pointer, current_instruction, next_instruction, memory_pointer, memory_value, memory_value_inverse, cycle_next, instruction_pointer_next, current_instruction_next, next_instruction_next, memory_pointer_next, memory_value_next, memory_value_inverse_next):
         field = list(cycle.dictionary.values())[0].field
         one = MPolynomial.constant(field.one())
 
@@ -134,7 +136,7 @@ class ProcessorTable(Table):
 
         # instruction-specific polynomials
         for c in "[]<>+-,.":
-            # max deg 3
+            # max deg 4
             instr = ProcessorTable.instruction_polynomials(c,
                                                            cycle,
                                                            instruction_pointer,
@@ -142,15 +144,15 @@ class ProcessorTable(Table):
                                                            next_instruction,
                                                            memory_pointer,
                                                            memory_value,
-                                                           is_zero,
+                                                           memory_value_inverse,
                                                            cycle_next,
                                                            instruction_pointer_next,
                                                            current_instruction_next,
                                                            next_instruction_next,
                                                            memory_pointer_next,
                                                            memory_value_next,
-                                                           is_zero_next)
-            # max deg: 8
+                                                           memory_value_inverse_next)
+            # max deg: 7
             deselector = ProcessorTable.ifnot_instruction(
                 c, current_instruction)
 
@@ -160,8 +162,11 @@ class ProcessorTable(Table):
 
         # instruction-independent polynomials
         polynomials += [cycle_next - cycle - one]  # cycle increases by one
-        polynomials += [is_zero * memory_value]  # at least one is zero
-        polynomials += [is_zero * (one - is_zero)]  # 0 or 1
+
+        memory_value_is_zero = memory_value * memory_value_inverse - one
+        # Verify that `memory_value_inverse` follows the rules
+        polynomials += [memory_value * memory_value_is_zero]
+        polynomials += [memory_value_inverse * memory_value_is_zero]
 
         return polynomials  # max deg 11
 
@@ -172,16 +177,16 @@ class ProcessorTable(Table):
             next_instruction, \
             memory_pointer, \
             memory_value, \
-            is_zero, \
+            memory_value_inverse, \
             cycle_next, \
             instruction_pointer_next, \
             current_instruction_next, \
             next_instruction_next, \
             memory_pointer_next, \
             memory_value_next, \
-            is_zero_next = MPolynomial.variables(14, self.field)
+            memory_value_inverse_next = MPolynomial.variables(14, self.field)
 
-        return ProcessorTable.transition_constraints_afo_named_variables(cycle, instruction_pointer, current_instruction, next_instruction, memory_pointer, memory_value, is_zero, cycle_next, instruction_pointer_next, current_instruction_next, next_instruction_next, memory_pointer_next, memory_value_next, is_zero_next)
+        return ProcessorTable.transition_constraints_afo_named_variables(cycle, instruction_pointer, current_instruction, next_instruction, memory_pointer, memory_value, memory_value_inverse, cycle_next, instruction_pointer_next, current_instruction_next, next_instruction_next, memory_pointer_next, memory_value_next, memory_value_inverse_next)
 
     def base_boundary_constraints(self):
         # format: (cycle, polynomial)
@@ -194,7 +199,7 @@ class ProcessorTable(Table):
                        # ???, # next instruction
                        x[ProcessorTable.memory_pointer] - zero,
                        x[ProcessorTable.memory_value] - zero,
-                       x[ProcessorTable.is_zero] - one]
+                       x[ProcessorTable.memory_value_inverse] - zero]
 
         return constraints
 
@@ -214,7 +219,7 @@ class ProcessorTable(Table):
             next_instruction, \
             memory_pointer, \
             memory_value, \
-            is_zero, \
+            memory_value_inverse, \
             instruction_permutation, \
             memory_permutation, \
             input_evaluation, \
@@ -225,7 +230,7 @@ class ProcessorTable(Table):
             next_instruction_next, \
             memory_pointer_next, \
             memory_value_next, \
-            is_zero_next, \
+            memory_value_inverse_next, \
             instruction_permutation_next, \
             memory_permutation_next, \
             input_evaluation_next, \
@@ -233,7 +238,7 @@ class ProcessorTable(Table):
 
         # base AIR polynomials
         polynomials = ProcessorTable.transition_constraints_afo_named_variables(cycle, instruction_pointer, current_instruction, next_instruction, memory_pointer, memory_value,
-                                                                                is_zero, cycle_next, instruction_pointer_next, current_instruction_next, next_instruction_next, memory_pointer_next, memory_value_next, is_zero_next)
+                                                                                memory_value_inverse, cycle_next, instruction_pointer_next, current_instruction_next, next_instruction_next, memory_pointer_next, memory_value_next, memory_value_inverse_next)
 
         assert(len(polynomials) ==
                6), f"expected to have 6 transition constraint polynomials, but have {len(polynomials)}"
@@ -274,7 +279,7 @@ class ProcessorTable(Table):
                        # x[self.next_instruction] - ??),
                        x[self.memory_pointer] - zero,
                        x[self.memory_value] - zero,
-                       x[self.is_zero] - one,
+                       x[self.memory_value_inverse] - zero,
                        # x[self.instruction_permutation] - one,
                        # x[self.memory_permutation] - one,
                        x[self.input_evaluation] - zero,
