@@ -177,7 +177,6 @@ class VirtualMachine:
         # initial state
         register = Register()
         register.current_instruction = program[0]
-        # Programs shorter than two instructions aren't valid programs.
         if len(program) == 1:
             register.next_instruction = zero
         else:
