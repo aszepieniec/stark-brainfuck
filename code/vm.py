@@ -160,7 +160,12 @@ class VirtualMachine:
 
         return running_time, input_data, output_data
 
-    @ staticmethod
+    '''
+    Does the same thing as `run`, but records more stuff throughout the execution. In particular, everything that's
+    needed for costructing a STARK proof.
+    '''
+
+    @staticmethod
     def simulate(program, input_data=[]):
         # shorthands
         field = VirtualMachine.field
