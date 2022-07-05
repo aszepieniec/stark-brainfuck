@@ -85,15 +85,17 @@ class VirtualMachine:
 
         # parser
         program = []
-        stack = []
+        stack = []  # keeps track of loop beginnings while (potentially nested) loops are being compiled
         for symbol in brainfuck_code:
             program += [F(symbol)]
+            # to allow skipping a loop and jumping back to the loop's beginning, the respective start and end positions
+            # are recorded in the program. For example, the (nonsensical) program `+[>+<-]+` would be `+[9>+<-]3+`.
             if symbol == '[':
-                program += [zero]
-                stack += [len(program)-1]
+                program += [zero]  # placeholder for position of loop's end, to be filled in once position is known
+                stack += [len(program) - 1]
             elif symbol == ']':
-                program += [BaseFieldElement(stack[-1]+1, field)]
-                program[stack[-1]] = BaseFieldElement(len(program), field)
+                program += [BaseFieldElement(stack[-1] + 1, field)]  # record loop's end
+                program[stack[-1]] = BaseFieldElement(len(program), field)  # record loop's beginning
                 stack = stack[:-1]
 
         return program
@@ -158,7 +160,12 @@ class VirtualMachine:
 
         return running_time, input_data, output_data
 
-    @ staticmethod
+    '''
+    Does the same thing as `run`, but records more stuff throughout the execution. In particular, everything that's
+    needed for costructing a STARK proof.
+    '''
+
+    @staticmethod
     def simulate(program, input_data=[]):
         # shorthands
         field = VirtualMachine.field
@@ -170,7 +177,6 @@ class VirtualMachine:
         # initial state
         register = Register()
         register.current_instruction = program[0]
-        # Programs shorter than two instructions aren't valid programs.
         if len(program) == 1:
             register.next_instruction = zero
         else:
