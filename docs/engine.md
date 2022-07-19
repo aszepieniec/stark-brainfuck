@@ -242,9 +242,7 @@ However, this argument is overkill. It ignores that there are also random probes
 
 Let $s$ be the number of colinearity checks used in FRI,  $t$ be the number of nonlinear combination checks in the AET/AIR part, $\varrho$ be the proportion of points where the codeword in question agrees with the nonlinear combination, and $N$ the length of the codeword. We want to upper bound the malicious prover's success probability, so we are working under the assumption that this nonlinear combination does not correspond to a low-degree polynomial (because otherwise the prover is not being malicous).
 
-Assume that the nonlinear combination codeword has maximal distance from the nearest low-degree codewords. Under this assumption, its Hamming distance from the nearest low-degree codeword is $(1-\rho) N$, where $\rho$ is the expansion factor of FRI.
-
-Since the codeword that the Merkle root decommits to agrees with the nonlinear combination in $\varrho N$ points, 
+Assume that the nonlinear combination codeword has maximal distance from the nearest low-degree codewords. While this assumption is rather heuristic, it is justified by condering that the cheating prover must include at least one unclean division in the nonlinear combination; the probability that this unclean codeword does not have maximal distance is vanishingly small. Under this assumption, the Hamming distance to the nearest low-degree codeword is $(1-\rho) N$, where $\rho$ is the expansion factor of FRI.
 
 We distinguish two cases:
  - Case 1: $\varrho N \leq \rho N$.
