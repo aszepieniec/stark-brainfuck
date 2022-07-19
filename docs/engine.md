@@ -176,9 +176,53 @@ This observation raises the question, is it possible to prove set equality when 
 
 This deduplication technique gives rise to a table-lookup argument[^1]. The lookup table consists of two columns, input and output. The processor (or whatever table is using lookups) has two similar columns along with an explicit indicator. The argument shows that the set of all (input, output) pairs from the indicated rows of the processor table is a subset of the (input, output) pairs defined by the lookup table. Note that the lookup table can be precomputed.
 
+### Table Relations with Zero-Knowledge
+
+It should be noted that every permutation or evaluation argument leaks one linear relation worth of information about the contents of the columns. This information leakage comes from the terminal, which is the last value of the running product or running sum. The prover needs to send this value to the verifier explicitly.
+
+In order to guarantee that this terminal value is independent of the cells of the column, it is important to start the running sum or product with a uniformly random initial value. The prover does *not* send this initial value to the verifier. Instead, the verifier verifies that the two extension columns start with the same initial value by subtracting their interpolating polynomials. This difference polynomial evaluates to zero in $X=1$ iff the extension columns start with the same initial value. So it is divisible by $X-1$ and this division gives rise to a *difference quotient*, which is to be included in the nonlinear combination.
+
 ### Table Interface
 
+In the diagram representation of an automaton every modular component maps onto a table. Every table comes with AIR constraints that establish the correct evolution of the information contained inside. Moreover, table relations assert the correctness of interactions between them.
+
+Translating this notion to source code, it makes sense to create an abstract `Table` class or module that captures important data and constraints interactions to it to a specific interface. So what is the correct interface for tables?
+
+In terms of fields, which fields should and should not be part of a `Table` is largely a matter of taste. However it cannot hurt to list the various data objects that a `Table` pertains to, and suggest names for them.
+
+ - `matrix` is a two-dimensional array of field elements that represents the part of the algebraic execution trace that this table captures. This matrix is smaller before it is extended, and larger afterwards.
+ - `base_width` is the width of the matrix before extension.
+ - `full_width` is the width of the matrix after extension.
+ - `height` is the height of the matrix. This dimension is independent of table extensions. Note that `height` is always a power of 2 because the table is padded to have this height. The virtual machine can run any number of steps. The term `length` denotes the length of the execution trace, but when transforming the execution trace into tables the tables are padded in a way that is consistent with the AIR.
+ - `generator` is the generator of the multiplicative group of the finite field, common to all tables, used to derive the appropriate cosets over which to interpolate the columns or evaluate the polynomials resulting from that operation.
+ - `order` is the multiplicative order of `generator`.
+ - `omicron` is the generator of the subgroup of order `height` over which the columns are interpolated.
+ - `num_randomizers` is the number of randomizers used when interpolating.
+
+Speaking of interpolating – one essential functionality associated with `Table`s is the interpolation of its columns. This method, which might be called `interpolate_columns` outputs one polynomial for each column such that the polynomial passes through all points $(x,y)$ defined by the powers of `omicron` ($x$-coordinates) and the value of the given column ($y$-coordinate). Additionally, the polynomial passes through `num_randomizers`-many points $(x,y)$ defined by fixed $x$-coordinates (that do not coincide with powers of `omicron`) and uniformly random $y$-coordinates. This number has to be set in accordance with the number of consistency checks for verifying the correct nonlinear combination of codewords. This process produces polynomials of degree `height` + `num_randomizers` - 1.
+
+That being said, for reasons of performance the immediate next step following the polynomial interpolation is polynomial evaluation but on a different domain, resultin in Reed-Solomon codewords. The reason for the performance benefit is that arithmetic on polynomials is faster when they are represented as codewords rather than vectors of coefficients. The process of interpolation followed by evaluation on a larger domain is called *low-degree extension* and abbreviated `lde`.
+
+A `Table`'s AIR constraints come in three varieties: boundary, transition, and terminal constraints. All types are represented by multivariate polynomials; the difference is where they apply.
+ - Boundary constraints apply only in the first row. The abstract method `boundary_constraints` returns these.
+ - Transition constraints apply in every consecutive pair of rows. The abstract method `transition_constraints` returns these.
+ - Terminal constraints only apply in the *last* row. The abstract method `terminal_constraints` returns these.
+
+Moreover, all terminal constraints and some transition constraints pertain to the extension columns and can only be articulated relative to the verifier's random scalars $a,b,c, \alpha...$. The suffix `_ext` denotes the inclusion of extension AIR constraints. In general we always want the whole AIR, *i.e.*, including the part covering the extension columns; nevertheless, it is worthwhile having having access to the "base" AIR (*i.e.*, the part covering just the base table) for testing purposes.
+
+Given knowledge of the polynomials (in either representation) and knowledge of the AIR constraints, it is possible to compute the quotients. These are found by evaluating them and dividing out the matching zerofiers. The methods {`evaluate_`}+{`boundary`,`transition`,`terminal`}+`_constraints` perform the evaluation; {`boundary`, `transition`, `terminal`}+`_quotients` produce the quotients. Since we are often interested in all of them, `all_quotients` returns the concatenation of these lists.
+
+Every quotient polynomial necessarily comes with a degree bound that depends on a) the degree of the polynomial that interpolates the column; and b) the concrete AIR that generated the quotient. These degree bounds are used to determine the appropriate shifts in the nonlinear combination. The methods {`boundary_`, `transition_`, `terminal_`}+`quotient_degree_bounds` compute the lists of matching degree bounds. Likewise, we are interested in all of them, so `all_quotient_degree_bounds` returns the concatenation of these lists.
+
 ## Differences with respect to the Anatomy
+
+There are a number of notable differences between this tutorial and the [Anatomy of a STARK](https://aszepieniec.github.io/stark-anatomy/). For convenience this predecessor tutorial is referred to as *the Anatomy*.
+
+### Field and Extension Field
+
+In the present tutorial the field is chosen as $\mathbb{F}_p$ where $p$ is the amazing prime $2^{64}-2^{32}+1$. This prime is *mistakenly*[^2] called the Goldilocks prime by some people.
+
+One of the drawbacks of using this field is that its cardinality is smaller than any reasonable security level. As a result, whenever random scalars from the verifier are needed, they should be sampled from an extension of this field. To this end $\mathbb{F}_{p^3} \cong \frac{\mathbb{F}[X]}{\langle X^3 -X + 1\rangle}$ is used. Moreover, the prover's randomizer polynomial must have coefficients drawn uniformly at random from this field as well, not to mention the random initial values for permutation or evaluation arguments.
 
 ### Salting the Leafs
 
@@ -186,6 +230,45 @@ When zero-knowledge is important, the authentication paths in the Merkle tree of
 
 ### Cleaner FRI Interface
 
+In the Anatomy, FRI returns a list of indices where the top level codeword is probed to check the correct folding with respect to the next codeword. The key point is that the same indices are used to verify the correct nonlinear combination of the codewords that were committed to prior to FRI.
+
+In contrast, the present tutorial uses a different set of indices. Now FRI is a completely standalone protocol that establishes that a given Merkle root decommits to a codeword corresponding to a low-degree polynomial. Likewise, the AET/AIR part of STARK outputs a Merkle root that decommits to a nonlinear combination of codewords committed to earlier. This nonlinear combination is still checked, but in a list of uniformly random indices sampled independently from FRI. While this change does increase the proof size as well as prover and verifier work, the interface between the FRI and AET/AIR parts is cleaner.
+
+This change raises an important question: how many incides do we sample to verify the nonlinear combination in order to target a security of $\lambda$ bits?
+
+Here is a naïve answer: $\lambda$-many indices. A straightforward strategy for the malicious prover is to equivocate between two codewords, A and B. The codeword he commits to takes the value of A in half the locations, and the value of B in the other half. Whereas A is the correct nonlinear combination, B is one that corresponds to a polynomial of low degree. For every probe of the verifier in a random location, the fraud is exposed with probability $1/2$. If the verifier makes $\lambda$ checks, then he will fail to notice the fraud with probability at most $2^{-\lambda}$.
+
+However, this argument is overkill. It ignores that there are also random probes coming from the FRI part of the protocol. While the malicious prover might pass the nonlinear combination check with a hybrid codeword, he needs to do so while guaranteeing that the same hybrid codeword is likely to pass the FRI low-degree test.
+
+Let $s$ be the number of colinearity checks used in FRI,  $t$ be the number of nonlinear combination checks in the AET/AIR part, $\varrho$ be the proportion of points where the codeword in question agrees with the nonlinear combination, and $N$ the length of the codeword. We want to upper bound the malicious prover's success probability, so we are working under the assumption that this nonlinear combination does not correspond to a low-degree polynomial (because otherwise the prover is not being malicous).
+
+Assume that the nonlinear combination codeword has maximal distance from the nearest low-degree codewords. Under this assumption, its Hamming distance from the nearest low-degree codeword is $(1-\rho) N$, where $\rho$ is the expansion factor of FRI.
+
+Since the codeword that the Merkle root decommits to agrees with the nonlinear combination in $\varrho N$ points, 
+
+We distinguish two cases:
+ - Case 1: $\varrho N \leq \rho N$.
+ - Case 2: $\varrho N > \rho N$.
+
+**Case 1: $\varrho N \leq \rho N$.** In this case there is a low-degree codeword that is consistent with the $\varrho N$ nonlinear combination constraints and by selecting this codeword the malicious prover guarantees that the FRI step succeeds. So the probability of success is the probability of sampling $t$ consistent points when only $\varrho N$ out of $N$ points are consistent, or $\frac{\binom{\varrho N}{t}}{\binom{N}{t}} = \frac{(\varrho N)!t!(N-t)!}{(\varrho N - t)! t! N!} = \prod_{i=0}^{t-1} \frac{\varrho N - i}{N - i} < \varrho^t$.
+ 
+**Case 2: $\varrho N > \rho N$.** In this case there is no low-degree codeword that is consistent with all $\varrho N$ nonlinear combination constraints. However, there are low-degree codewords at Hamming distance $(\varrho - \rho)N$ from from this nonlinear combination codeword. Assume without loss of generality that the erroneous coordinates come in pairs $(i, N/2+i)$. The probability of malicious prover success in this case is $\frac{\binom{N/2 - (\varrho - \rho)N/2}{s}}{\binom{N/2}{s}}$ to pass FRI and $\frac{\binom{\varrho N}{t}}{\binom{N}{t}}$ to pass the nonlinear combination checks. A simplified upper bound on the probability of passing both is $(1 - (\varrho - \rho))^s \cdot \varrho^t$.
+
+
+### Include *All* Polynomials
+
+### Reed-Solomon Codeword Domain
+
+### Sparse Zerofiers from Group Theory
+
 ## STARK Engine Workflow
 
+### Run and Simulate
+
+### Prove
+
+### Verify
+
 [^1] This table-lookup argument is similar to [Plookup](https://eprint.iacr.org/2020/315.pdf) except that it uses the element-wise inverse column along with an evaluation argument, whereas Plookup uses a custom argument to establish the correct order of the nonzero consecutive differences.
+
+[^2] Let's set the record straight: Mike Hamburg [coined](https://eprint.iacr.org/2015/625.pdf) the term "the Goldilocks prime" to refer specifically to $2^{448} - 2^{224} - 1$.
