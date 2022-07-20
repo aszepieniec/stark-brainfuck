@@ -252,10 +252,29 @@ We distinguish two cases:
  
 **Case 2: $\varrho N > \rho N$.** In this case there is no low-degree codeword that is consistent with all $\varrho N$ nonlinear combination constraints. However, there are low-degree codewords at Hamming distance $(\varrho - \rho)N$ from from this nonlinear combination codeword. Assume without loss of generality that the erroneous coordinates come in pairs $(i, N/2+i)$. The probability of malicious prover success in this case is $\frac{\binom{N/2 - (\varrho - \rho)N/2}{s}}{\binom{N/2}{s}}$ to pass FRI and $\frac{\binom{\varrho N}{t}}{\binom{N}{t}}$ to pass the nonlinear combination checks. A simplified upper bound on the probability of passing both is $(1 - (\varrho - \rho))^s \cdot \varrho^t$.
 
+To find the optimal value of $\varrho$, derive this expression and equate it to zero. This operation gives
+$$ 0 = \frac{\mathsf{d} (1 - (\varrho - \rho))^s \cdot \varrho^t}{\mathsf{d}\varrho} $$
+$$= - s (1 - (\varrho - \rho))^{s-1} \varrho^t + t (1 - (\varrho - \rho))^s \varrho^{t-1} $$
+$$= -s \varrho + t (1 - (\varrho - \rho)) = t - (s + t)\varrho + t \rho $$
+and so the optimal value is $\varrho = \frac{t(\rho + 1)}{s + t}$.
+
+At this point the malicious prover's success probability is bounded by $\left( \frac{s(1 + \rho)}{s + t} \right)^s \left( \frac{t(1 + \rho)}{s+t}\right)^t$ and for $\lambda$ bits of security this value must be less than $2^{-\lambda}$. This expression implies that one can minimize $s$ or $t$ but not both simultaneously. Let's consider some special cases.
+
+ - $s = - \lambda / \log_2 \rho$, consistent with the security analysis for standalone FRI. In this case it is best to compute the matching $t$ numerically but it is worth noting that it provides $\lambda$ bits of security as soon as $1 + 2 \rho \log_2 \rho \leq 0$ which is the case already for $\rho = 1/4$. 
+ - $s = t$. In this case the probability shrinks (assuming sufficiently large $\rho$) as $2^{-2s}$ and $s = t = \lambda / 2$ or a little more (to account for not-large-enough $\rho$) suffices for $\lambda$ bits of security.
+ - $s = \rho t$. In this case we have $\lambda$ bits of security when $t > \frac{-\lambda}{\rho \log_2 \rho}$.
 
 ### Include *All* Polynomials
 
+The Anatomy only includes the boundary quotient polynomials in the nonlinear combination, and not the trace polynomials from which they are derived, at least when these boundary quotients exist. As a result, the trace polynomials are not proved to be low degree. The omission there does not degrade security because its low degree is implied by the low degree of the transition quotient polynomials and that of the boundary quotient polynomials. 
+
+In the present tutorial, the concrete boundary constraints are not defined yet. While it may be possible to omit some trace polynomials from the nonlinear combination, whether this is secure depends on the concrete arithmetization of the virtual machine. This tutorial's inclusion in the nonlinear combination supports making abstraction of the underlying VM as it certainly does not degrade security.
+
 ### Reed-Solomon Codeword Domain
+
+Whenever a polynomial is computed, it is instantly transformed into a Reed-Solomon codeword of sufficient length. As a result, multiplication and division operations can be performed element-wise, resulting in a non-trivial speedup.
+
+In principle it could be worthwhile to have *two* instances of low-degree extension (LDE). In the first, the interpolated columns are evaluated on a slightly larger intermediate domain to find codeword representatives of the interpolants. These codewords are used for polynomial arithmetic. In the second LDE step these codewords are extended to match with the FRI domain. However, this tutorial decided in favor of simplicity for the purpose of teaching.
 
 ### Sparse Zerofiers from Group Theory
 
