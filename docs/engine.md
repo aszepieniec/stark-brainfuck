@@ -228,6 +228,18 @@ One of the drawbacks of using this field is that its cardinality is smaller than
 
 When zero-knowledge is important, the authentication paths in the Merkle tree of the zipped codeword leak small amounts of information  this step involves appending raw randomness to every leaf before computing the Merkle tree. With this option enabled, an authentication path for one leaf leaks almost no information about the leaf's sibling – and exactly zero bits of information in the random oracle model, which is when an idealized hash function is used for the security proof.
 
+### Zipped Codewords
+
+The Anatomy computes a separate Merkle tree for each codeword. This tutorial zips the codewords together before computing the Merkle tree, so that each leaf contains a tuple of field elements. This change saves time for both prover and verifier and moreover generates smaller proofs.
+
+### Two Stages
+
+More than one Merkle tree is being computed outside of the FRI subprotocol. The first Merkle tree contains the randomizer codeword and the codewords of all base columns. This Merkle root is sent to the verifier who responds with random scalars $a, b, c, \alpha, \ldots$ These random scalars are needed to compute the table extensions, and so the second Merkle tree contains the codewords of the extension columns.
+
+This two-stage approach stands in contrast to the one-stage approach used in the Anatomy. The extra step of interaction makes the present qualify as a *[Randomized AIR with Preprocessing (RAP)](https://hackmd.io/@aztec-network/plonk-arithmetiization-air)*.
+
+The third Merkle tree coincides with the codeword that goes into FRI. However, since the interface to FRI is being culled (see the next section), this Merkle tree is actually being computed prior to FRI.
+
 ### Cleaner FRI Interface
 
 In the Anatomy, FRI returns a list of indices where the top level codeword is probed to check the correct folding with respect to the next codeword. The key point is that the same indices are used to verify the correct nonlinear combination of the codewords that were committed to prior to FRI.
@@ -235,10 +247,6 @@ In the Anatomy, FRI returns a list of indices where the top level codeword is pr
 In contrast, the present tutorial uses a different set of indices. Now FRI is a completely standalone protocol that establishes that a given Merkle root decommits to a codeword corresponding to a low-degree polynomial. Likewise, the AET/AIR part of STARK outputs a Merkle root that decommits to a nonlinear combination of codewords committed to earlier. This nonlinear combination is still checked, but in a list of uniformly random indices sampled independently from FRI. While this change does increase the proof size as well as prover and verifier work, the interface between the FRI and AET/AIR parts is cleaner.
 
 This change raises an important question: how many incides do we sample to verify the nonlinear combination in order to target a security of $\lambda$ bits?
-
-Here is a naïve answer: $\lambda$-many indices. A straightforward strategy for the malicious prover is to equivocate between two codewords, A and B. The codeword he commits to takes the value of A in half the locations, and the value of B in the other half. Whereas A is the correct nonlinear combination, B is one that corresponds to a polynomial of low degree. For every probe of the verifier in a random location, the fraud is exposed with probability $1/2$. If the verifier makes $\lambda$ checks, then he will fail to notice the fraud with probability at most $2^{-\lambda}$.
-
-However, this argument is overkill. It ignores that there are also random probes coming from the FRI part of the protocol. While the malicious prover might pass the nonlinear combination check with a hybrid codeword, he needs to do so while guaranteeing that the same hybrid codeword is likely to pass the FRI low-degree test.
 
 Let $s$ be the number of colinearity checks used in FRI,  $t$ be the number of nonlinear combination checks in the AET/AIR part, $\varrho$ be the proportion of points where the codeword in question agrees with the nonlinear combination, and $N$ the length of the codeword. We want to upper bound the malicious prover's success probability, so we are working under the assumption that this nonlinear combination does not correspond to a low-degree polynomial (because otherwise the prover is not being malicous).
 
@@ -274,17 +282,39 @@ In the present tutorial, the concrete boundary constraints are not defined yet. 
 
 Whenever a polynomial is computed, it is instantly transformed into a Reed-Solomon codeword of sufficient length. As a result, multiplication and division operations can be performed element-wise, resulting in a non-trivial speedup.
 
-In principle it could be worthwhile to have *two* instances of low-degree extension (LDE). In the first, the interpolated columns are evaluated on a slightly larger intermediate domain to find codeword representatives of the interpolants. These codewords are used for polynomial arithmetic. In the second LDE step these codewords are extended to match with the FRI domain. However, this tutorial decided in favor of simplicity for the purpose of teaching.
+In principle it could be worthwhile to have *two* instances of low-degree extension (LDE). In the first, the interpolated columns are evaluated on a slightly larger intermediate domain to find codeword representatives of the interpolants. These codewords are used for polynomial arithmetic. In the second LDE step these codewords are extended to match with the FRI domain. However, this tutorial decided in favor of simplicity for the purpose of explaining.
 
 ### Sparse Zerofiers from Group Theory
 
+The verifier needs to evaluate zerofiers, and there are two options to make this process fast. The Anatomy uses preprocessed zerofiers because the number of cycles. In that context this choice makes sense because the number of cycles is fixed and is not close to a power of two. For the present tutorial, the number of cycles is not fixed. To deal with this problem, the tables are padded until the next power of two, making them compatible with group-theoretical zerofiers.
+
 ## STARK Engine Workflow
 
-### Run and Simulate
+A STARK engine consists of three parts: a virtual machine, a prover, and a verifier. While an execution of the virtual machine does not need be followed up with a prover, the fact that this option exists implies that the instruction set architecture had better be friendly to proving and verifying.
 
-### Prove
+The virtual machine has two modes of operation:
+ - `run` takes the program and the input, executes the program, and returns the output.
+ - `simulate` does the same but additionally outputs the execution trace.
 
-### Verify
+The tuple (input, program, output) is the computational integrity claim, and both the prover and verifier receive it as input. The execution trace is the secret additional input only for the prover.
+
+The prover follows the workflow sketched below. This workflow implicitly defines the matching operations of the verifier. It is presented in an interactive language, but this protocol can obviously be made non-interactive with the [Fiat-Shamir transform](https://aszepieniec.github.io/stark-anatomy/basic-tools#the-fiat-shamir-transform).
+
+ - Populate the tables (base columns only) with data from the execution trace, and pad the tables so that their height matches with the next power of two.
+ - Sample a randomizer polynomial of maximal degree and evaluate it on the FRI domain to get the *randomizer codeword*.
+ - Use low-degree extension to interpolate (with randomizers) all tables' base columns and evaluate the resulting polynomials on the FRI domain, thereby obtaining the *base codewords*.
+ - Zip the randomizer and base codewords and compute their Merkle tree.
+ - Send the Merkle root to the verifier and get back the random scalars $a, b, c, \alpha \ldots$ called *challenges*.
+ - Compute the table extensions with these challenges.
+ - Use low-degree extension to interpolate (again with randomizers) the extension columns, and evaluate the resulting polynomials on the FRI domain, thereby obtaining the *extension codewords*.
+ - Evaluate all AIR constraints point by point in matching locations of the referenced codewords, and divide out the corresponding zerofier. This generates *quotient codewords*.
+ - Zip the extension and quotient codewords and compute a second Merkle tree.
+ - Send the root of this Merkle tree to the verifier and get back $1 + 2b + 2e + 2q$ random scalars called *weights*, where $b$ is the number of base codewords, $e$ is the number of extension codewords, and $q$ is the number of quotient codewords.
+ - Compute a nonlinear combination using 1 weight for the randomizer, 1 weight for each codeword (without shift), and 1 more weight for each codeword shifted by the power of $X$ that makes its corresponding polynomial have maximal degree.
+ - Compute the Merkle tree of this nonlinear combination codeword.
+ - Send the root of this Merkle tree and get back $t$ indices where the correct combination is to be checked.
+ - Open the indicated positions in the nonlinear combination Merkle tree and in both earlier Merkle trees.
+ - Run FRI with the nonlinear combination codeword and using $s$ colinearity checks. This subprotocol establishes that the Merkle root of the nonlinear combination codeword decommits to a codeword that corresponds to a low degree.
 
 [^1] This table-lookup argument is similar to [Plookup](https://eprint.iacr.org/2020/315.pdf) except that it uses the element-wise inverse column along with an evaluation argument, whereas Plookup uses a custom argument to establish the correct order of the nonzero consecutive differences.
 
