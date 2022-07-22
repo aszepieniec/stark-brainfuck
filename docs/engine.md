@@ -288,6 +288,14 @@ In principle it could be worthwhile to have *two* instances of low-degree extens
 
 The verifier needs to evaluate zerofiers, and there are two options to make this process fast. The Anatomy uses preprocessed zerofiers because the number of cycles. In that context this choice makes sense because the number of cycles is fixed and is not close to a power of two. For the present tutorial, the number of cycles is not fixed. To deal with this problem, the tables are padded until the next power of two, making them compatible with group-theoretical zerofiers.
 
+### No Code Snippets
+
+Don't worry, there is fully functional supporting python code. But you'll have to check out the [repository](https://github.com/aszepieniec/stark-brainfuck). The point is that the code will not be interspersed with the text.
+
+### No Security
+
+The purpose of this tutorial is didactical, not performance. That was one of the reasons for selecting python. It is also the reason why we are not reducing the AIR degree as far as we possibly can. And it's *also* the reason why we chose Brainfuck as the target instruction set architecture. However, all of these choices do make for a very poorly performing prover. To keep running times manageable, the target security is set to impossibly small -- 2 bits. The good news is that it's a variable parameter; you can achieve any target security level just by modifying the right line in `brainfuck_stark.py`.
+
 ## STARK Engine Workflow
 
 A STARK engine consists of three parts: a virtual machine, a prover, and a verifier. While an execution of the virtual machine does not need be followed up with a prover, the fact that this option exists implies that the instruction set architecture had better be friendly to proving and verifying.
