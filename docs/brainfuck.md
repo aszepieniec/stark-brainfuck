@@ -26,6 +26,8 @@ Brainfuck is not an instruction set architecture because the instructions are no
 
 To remedy this deficiency, modify the `[` and `]` instructions as follows. The field element immediately following `[` or `]` contains the destination address of the potential jump. The instruction set is now variable-size but nevertheless defines a machine architecture.
 
-## Compiling Brianfuck PL to Brainfuck ISA
+## Compiling Brianfuck PL to Brainfuck ASM
+
+The difference between Brainfuck-programming-language and Brainfuck-assembler necessitates a compiler that computes the mapping. Fortunately, most advanced compiler construction tools are not necessary as there is an exceedingly simple [pushdown automaton](https://en.wikipedia.org/wiki/Pushdown_automaton) that achieves this translation task.
 
 ## Running Brainfuck
