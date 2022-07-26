@@ -20,6 +20,8 @@ Brainfuck defines an automaton that interacts with a program and a memory consis
 
 In order to prove the correct execution of a Brainfuck program efficiently, it pays to define the following dialect. Since the modulus used is $p = 2^{64} - 2^{32} + 1$ it is convenient if the memory elements are elements of the field defined by this prime. Likewise for the instruction and data pointers. So in particular, $p$ is also the number of memory cells as well as the total number of instructions in a program.
 
+Technically, this change means that the concrete language is a dialect of Brianfuck. There are programs whose behavior is different depending on whether it a tradition Brainfuck machine or a Prime Field Brainfuck machine that is executing it. However, any program exhibiting this difference has a running time well beyond what is efficiently provable and moreover the purpose of selecting Brainfuck in the first place was illustration and not interoperability.
+
 ### Brainfuck ISA
 
 Brainfuck is not an instruction set architecture (ISA) because the instructions are not self-contained. They depend on context. Specifically, the `[` and `]` instructions refer to the locations of their matching partners.
