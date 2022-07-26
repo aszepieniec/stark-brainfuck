@@ -29,6 +29,57 @@ One feature of this diagram might be confusing. If the verifier has cleartext ac
 
 ## Tables
 
-## Base Tables
+The two-stage RAP defines base columns in the first stage, and extension columns in the second stage. In between the verifier supplies uniformly random scalars $a, b, c, d, e, f, \alpha, \beta, \delta, \gamma, \eta$.
 
-## Table Extensions
+### ProcessorTable
+
+The ProcessorTable consists of 7 base columns and 4 extension columns. The 7 base columns correspond to the 7 registers. The 4 extension columns correspond to the 4 table relations it is a party to. The columns may be called `InstructionPermutation`, `MemoryPermutation`, `InputEvaluation`, and `OutputEvaluation`.
+
+The boundary constraints for the base columns require that all registers except for `ci` and `ni` be initialized to zero. For the extension columns, `InstructionPermutation` and `MemoryPermutation` both start with a random initial value selected by the prover, but since this value needs to remain secret it is enforced instead through a difference constraint across tables. The `InputEvaluation` and `OutputEvaluation` columns start with 0 – no need to keep secrets here.
+
+The transition constraints for the base columns are rather involved because they capture dependence on the instruction. Let $\mathsf{ci}$ be the variable representing the current instruction register `ci` in the current row. Then define the deselector polynomial for symbol a $\varphi \in \Phi = \{$`[`,`]`,`<`,`>`,`+`,`-`,`,`,`.`$\}$ as 
+$$\varsigma_\varphi(\mathsf{ci}) = \mathsf{ci} \prod_{\phi \in \Phi \backslash \varphi} (\mathsf{ci} - \phi) \enspace .$$
+It evaluates to zero and in any instruction that is not $\varphi$, but to something nonzero in $\varphi$. The utility of this deselector polynomial stems from the fact that it renders conditionally inactive any AIR constraint it is multiplied with – conditionally being whenever the current instruction is different from $\varphi$. This allows us to focus on the AIR transition constraints *assuming* the given instruction, and then multiply whatever we come up with with this deselector polynomial in order to deactivate it whenever the assumption is false.
+
+Another useful trick is to describe the transition constraints in [disjunctive normal form](https://en.wikipedia.org/wiki/Disjunctive_normal_form), also known as OR-of-ANDs. This form is useful because an OR of constraints corresponds to a multiplication of constraint polynomials.
+
+With these tricks in mind, let's find AIR transition constraints for each instruction. Let $\mathsf{clk}, \mathsf{ip}, \mathsf{ci}, \mathsf{ni}, \mathsf{mp}, \mathsf{mv}, \mathsf{inv}, \mathsf{clk}^\star, \mathsf{ip}^\star, \mathsf{ci}^\star, \mathsf{ni}^\star, \mathsf{mp}^\star, \mathsf{mv}^\star, \mathsf{inv}^\star$ be the variables that capture two consecutive rows of base columns. Let furthermore $\mathsf{is\_zero}$ be shorthand for the expression $1 - \mathsf{mv} \cdot \mathsf{inv}$, which takes the value 1 whenever $\mathsf{mv}$ is zero and 0 otherwise.
+ - $\mathsf{ci} =$ `[`:
+   - jump if $\mathsf{mv} = 0$ and skip two otherwise: $(\mathsf{ip}^\star - \mathsf{ip} - 2) \cdot \mathsf{mv} + (\mathsf{ip}^\star - \mathsf{ni}) \cdot \mathsf{is\_zero}$
+   - memory pointer remains: $\mathsf{mp}^\star - \mathsf{mp}$
+   - memory value remains: $\mathsf{mv}^\star - \mathsf{mv}$
+ - $\mathsf{ci} = $ `]`:
+   - jump if $\mathsf{mv} \neq 0$ and skip two otherwise: $(\mathsf{ip}^\star - \mathsf{ip} - 2) \cdot \mathsf{is\_zero} + (\mathsf{ip}^\star - \mathsf{ni}) \cdot \mathsf{mv}$
+   - memory pointer remains: $\mathsf{mp}^\star - \mathsf{mp}$
+   - memory value remains: $\mathsf{mv}^\star - \mathsf{mv}$
+ - $\mathsf{ci} = $ `<`:
+   - instruction pointer increments by one: $\mathsf{ip}^\star - \mathsf{ip} - 1$
+   - memory pointer decrements by one: $\mathsf{mp}^\star - \mathsf{mp} + 1$
+   - memory value is unconstrained.
+ - $\mathsf{ci} = $ `>`:
+   - instruction pointer increments by one: $\mathsf{ip}^\star - \mathsf{ip} - 1$
+   - memory pointer increments by one: $\mathsf{mp}^\star - \mathsf{mp} - 1$
+   - memory value is unconstrained.
+ - $\mathsf{ci} = $ `+`:
+   - instruction pointer increments by one: $\mathsf{ip}^\star - \mathsf{ip} - 1$
+   - memory pointer remains: $\mathsf{mp}^\star - \mathsf{mp}$
+   - memory value increments by one: $\mathsf{mv}^\star - \mathsf{mv} - 1$.
+ - $\mathsf{ci} = $ `-`:
+   - instruction pointer increments by one: $\mathsf{ip}^\star - \mathsf{ip} - 1$
+   - memory pointer remains: $\mathsf{mp}^\star - \mathsf{mp}$
+   - memory value decrements by one: $\mathsf{mv}^\star - \mathsf{mv} + 1$.
+ - $\mathsf{ci} = $ `,`:
+   - instruction pointer increments by one: $\mathsf{ip}^\star - \mathsf{ip} - 1$
+   - memory pointer remains: $\mathsf{mp}^\star - \mathsf{mp}$
+   - memory value is unconstrained.
+ - $\mathsf{ci} = $ `.`:
+   - instruction pointer increments by one: $\mathsf{ip}^\star - \mathsf{ip} - 1$
+   - memory pointer remains: $\mathsf{mp}^\star - \mathsf{mp}$
+   - memory value remains: $\mathsf{mv}^\star - \mathsf{mv}$.
+
+These are the constraints that vary depending on the instruction. They should each be multiplied by their corresponding instruction deselector. And after that multiplication, the polynomials can be summed together – as long as each sum consists of exactly one term for every instruction. The result is three constraint polynomials.
+
+In addition to the above, there are polynomials that do not depend on the current instruction. They are:
+ - clock increases by one: $\mathsf{clk}^\star - \mathsf{clk} - 1$.
+ - inverse is the correct inverse of the memory value (A): $\mathsf{inv} \cdot (1 - \mathsf{inv} \cdot \mathsf{mv})$
+ - inverse is the correct inverse of the memory value (B): $\mathsf{mv} \cdot (1 - \mathsf{inv} \cdot \mathsf{mv})$.
