@@ -86,7 +86,7 @@ In addition to the above, there are polynomials that do not depend on the curren
 
 Those are the transition constraints for the base columns. Next up are the transition constraints for the extension columns. To this end the weights $d, a, b, c, e, f$ are assigned to the first six columns; any selection of columns thereby generates a sum with consistent weights. The evaluation and permutation arguments apply to a single virtual column, which in reality is a weighted sum of selected columns. Let $\mathsf{ipa}, \mathsf{mpa}, \mathsf{iea}, \mathsf{oea}$ be the variables in the current for for the instruction permutation argument, memory permutation argument, input evaluation argument, output evaluation argument, respectively, and $\mathsf{ipa}^\star, \mathsf{mpa}^\star, \mathsf{iea}^\star, \mathsf{oea}^\star$ their counterparts for the next row.
 
- - The instruction permutation argument: applies to columns $\mathsf{ip}$, $\mathsf{ci}$ and $\mathsf{ni}$. Every next element accumulates one factor: $\mathsf{ipa} \cdot (a \cdot \mathsf{ip} + b \cdot \mathsf{ci} + c \cdot \mathsf{ni} - \alpha) - \mathsf{ipa}^\star$.
+ - The instruction permutation argument: applies to columns $\mathsf{ip}$, $\mathsf{ci}$ and $\mathsf{ni}$. Every next element accumulates one factor, but only if the current row is not a padding row because then it remains the same: $\mathsf{ci} \cdot ( \mathsf{ipa} \cdot (a \cdot \mathsf{ip} + b \cdot \mathsf{ci} + c \cdot \mathsf{ni} - \alpha) - \mathsf{ipa}^\star) + (\mathsf{ipa}^\star - \mathsf{ipa}) \cdot \prod_{\varphi \in \Phi} (\mathsf{ci} - \varphi)$.
  - The memory permutation argument: applies to columns $\mathsf{clk}, \mathsf{mp}, \mathsf{mv}$. Every next element accumulates one factor: $\mathsf{mpa} \cdot (d \cdot \mathsf{clk} + e \cdot \mathsf{mp} + f \cdot \mathsf{mv} - \beta) - \mathsf{mpa}^\star$.
  - The input evaluation argument applies to just one column ($\mathsf{mv}$) so the weight is superfluous. The constraint stipulates that the running sum accumulates a term whenever $\mathsf{ci} = $ `,` and remains intact otherwise: $\varsigma_{','}(\mathsf{ni}) \cdot (\mathsf{iea} \cdot \gamma + \mathsf{mv}) + (\mathsf{ni} - ',') \cdot \mathsf{iea} - \mathsf{iea}^\star$.
  - The output evaluation argument is analogous to the input evaluation argument except that the relevant instruction is `.` rather than `,`. The constraint stipulates that the running sum accumulates a term whenever $\mathsf{ci} = $ `.` and remains intact otherwise: $\varsigma_{'.'}(\mathsf{ni}) \cdot (\mathsf{oea} \cdot \delta + \mathsf{mv}) + (\mathsf{ni} - '.') \cdot \mathsf{oea} - \mathsf{oea}^\star$.
@@ -101,7 +101,7 @@ The Processor Table has four table relation arguments and so the prover supplies
 
 The Instruction Table contains more rows than the Processor Table. It contains one row for every row in the Processor Table, in addition to one row for every instruction in the program. The rows are sorted by instruction address, except for the rows that were added for padding. It has 3 base columns: $\mathsf{ip}, \mathsf{ci}, \mathsf{ni}$, and 2 extension columns: $\mathsf{ppa}$ (processor permutation argument) and $\mathsf{pea}$ (program evaluation argument). The base columns are weighted with $a, b, c$ and the extension columns operate relative to $\alpha$ and $\eta$ respectively.
 
-There is only one boundary constraint that applies to the base columns: $\mathsf{ip}$ (<- that's the constraint polynomial), which enforces that the instruction pointer starts with zero. In terms of extension columns, the initial value of $\mathsf{ppa}$ is constrained by a difference constraint but not by a boundary constraint. The initial value of $\mathsf{pea}$ should be equal to the appropriately weighted sum: $a \cdot \mathsf{ip} + b \cdot \mathsf{ci} + c \cdot \mathsf{ni} - \mathsf{pea}$.
+There is only one boundary constraint that applies to the base columns: $\mathsf{ip}$ (<–– that's the constraint polynomial), which enforces that the instruction pointer starts with zero. In terms of extension columns, the initial value of $\mathsf{ppa}$ is constrained by a difference constraint but not by a boundary constraint. The initial value of $\mathsf{pea}$ should be equal to the appropriately weighted sum: $a \cdot \mathsf{ip} + b \cdot \mathsf{ci} + c \cdot \mathsf{ni} - \mathsf{pea}$.
 
 There are four transition constraints that apply to the base columns:
  - The instruction pointer increases by one or not at all: $(\mathsf{ip}^\star - \mathsf{ip}) \cdot (\mathsf{ip}^\star - \mathsf{ip} - 1)$.
@@ -110,10 +110,21 @@ There are four transition constraints that apply to the base columns:
  - If the instruction pointer remains the same, then so does the next instruction: $(\mathsf{ip}^\star - \mathsf{ip} - 1) \cdot (\mathsf{ni}^\star - \mathsf{ni})$.
 
 The second bullet point is redundant because it is implied by the evaluation argument. Speaking of which – the extension columns evolve in accordance with the permutation and evaluation arguments:
- - The permutation argument accumulates one factor in every row if the row is not padding: $\mathsf{ci} \cdot (\mathsf{ppa}^\star - \mathsf{ppa} \cdot (a \cdot \mathsf{ip} + b \cdot \mathsf{ci} + c \cdot \mathsf{ni} - \alpha))$. Recall that in padded rows, $\mathsf{ci} = 0$.
+ - The permutation argument accumulates one factor in every row if the row is not padding and if the instruction pointer does not increase. Otherwise it remains the same. This gives rise to a sum of three separate constraints. Recall that in padded rows, $\mathsf{ci} = 0$.
+   - $\mathsf{ci} \cdot (\mathsf{ip} + 1 - \mathsf{ip}^\star) \cdot (\mathsf{ppa}^\star - \mathsf{ppa} \cdot (a \cdot \mathsf{ip}^\star + b \cdot \mathsf{ci}^\star + c \cdot \mathsf{ni}^\star - \alpha))$
+   - $\left( \prod_{\varphi \in \Phi} \mathsf{ci} - \varphi \right) \cdot (\mathsf{ppa}^\star - \mathsf{ppa})$ with $\Phi =$ {`[`, `]`, `<`, `>`, `+`, `-`, `,`, `.`}
+   - $(\mathsf{ip} - \mathsf{ip}^\star) \cdot (\mathsf{ppa}^\star - \mathsf{ppa})$
  - The evaluation argument accumulates a term in every row that follows a change in $\mathsf{ip}$, and remains the same in every row that does not. This constraint is separable into two terms:
    - $(\mathsf{ip}^\star - \mathsf{ip} - 1) \cdot (\mathsf{pea}^\star - \mathsf{pea} )$
    - $(\mathsf{ip}^\star - \mathsf{ip}) \cdot (\mathsf{pea}^\star - \mathsf{pea} \cdot \eta - (a \cdot \mathsf{ip}^\star + b \cdot \mathsf{ci}^\star + c \cdot \mathsf{ni}^\star))$.
 
 There are two terminals, one for each extension column. The terminal for the processor permutation argument coincides with the terminal for the instruction permutation argument in the ProcessorTable, $T_{\mathsf{ppa}} = T_{\mathsf{ipa}}$, and is sent by the prover. The terminal for the evaluation argument, $T_{\mathsf{pea}}$ is computed locally by the verifier. These terminals give rise to the following terminal constraints:
- - The processor permutation argument has accumulated all rows except for the last: $(\mathsf{ppa}^\star \cdot ( a \cdot \mathsf{ip} + b \cdot \mathsf{ci} + c \cdot \mathsf{ni} - \alpha) - T_{\mathsf{ppa}}) \cdot \mathsf{ci}$.
+ - The processor permutation argument has accumulated all rows: $\mathsf{ppa} - T_{\mathsf{ppa}}$.
+ - The program evaluation argument has also accumulated all rows: $\mathsf{pea} - T_{\mathsf{pea}}$.
+
+### Memory Table
+
+The Memory Table consists of three base columns, $\mathsf{clk}$, $\mathsf{mp}$, and $\mathsf{mv}$, and one extension column $\mathsf{ppa}$ that computes the permutation argument relating the Memory Table to the Processor Table. It uses $d, e, f$ as verifier-supplied weights for the base column and a running product relative to $\beta$.
+
+The rows of the Memory Table are sorted by memory pointer $\mathsf{mp}$ and then by cycle $\mathsf{clk}$. With this order, gaps in cycle count indicate returning to a previously visited memory cell. These return events are precisely the locations where memory consistency should be enforced.
+
