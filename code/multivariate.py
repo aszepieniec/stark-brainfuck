@@ -87,6 +87,8 @@ class MPolynomial:
             return True
 
     def degree(self):
+        if not self.dictionary:
+            return -1
         return max(sum(k) for k in self.dictionary.keys())
 
     # Returns the multivariate polynomials representing each indeterminates linear function
@@ -102,10 +104,12 @@ class MPolynomial:
 
     def evaluate(self, point):
         acc = point[0].field.zero()
+        if self.degree() == -1:
+            return acc
         for k, v in self.dictionary.items():
             prod = v
             assert(len(point) == len(
-                k)), f"number of elements in point {len(point)} does not match with number of variables {len(k)}"
+                k)), f"number of elements in point {len(point)} does not match with number of variables {len(k)} for polynomial {str(self)}"
             for i in range(len(k)):
                 prod = prod * (point[i] ^ k[i])
             acc = acc + prod
@@ -147,6 +151,8 @@ class MPolynomial:
         then
             degree(u(x)) <= `self.symbolic_degree(max_degrees)`
         """
+        if self.degree() == -1:
+            return -1
         total_degree_bound = -1
         assert(len(max_degrees) >= len(list(self.dictionary.keys())[
                0])), f"max degrees length ({len(max_degrees)}) does not match with number of variables (key for first term: {list(self.dictionary.keys())[0]})"

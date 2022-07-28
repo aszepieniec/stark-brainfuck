@@ -83,9 +83,9 @@ class BrainfuckStark:
         # compute fri domain length
         self.max_degree = 1
         for table in self.tables:
-            for air in table.base_transition_constraints():
+            for air in table.transition_constraints_ext([self.xfield.zero()] * 11):
                 degree_bounds = [table.interpolant_degree()] * \
-                    table.base_width * 2
+                    table.full_width * 2
                 degree = air.symbolic_degree_bound(
                     degree_bounds) - (table.height - 1)
                 if self.max_degree < degree:

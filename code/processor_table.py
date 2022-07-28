@@ -207,6 +207,15 @@ class ProcessorTable(Table):
     # # #
       #
 
+    @staticmethod
+    def instruction_zerofier(current_instruction):
+        field = list(current_instruction.dictionary.values())[0].field
+        acc = MPolynomial.constant(field.one())
+        for ch in ['[', ']', '<', '>', '+', '-', ',', '.']:
+            acc *= current_instruction - \
+                MPolynomial.constant(field(ord(ch)))
+        return acc
+
     def transition_constraints_ext(self, challenges):
         a, b, c, d, e, f, alpha, beta, gamma, delta, eta = [
             MPolynomial.constant(ch) for ch in challenges]
@@ -249,7 +258,10 @@ class ProcessorTable(Table):
                         (alpha - a * instruction_pointer
                          - b * current_instruction
                          - c * next_instruction)
-                        - instruction_permutation_next) * current_instruction]
+                        - instruction_permutation_next) * current_instruction +
+                        self.instruction_zerofier(current_instruction) * (instruction_permutation - instruction_permutation_next)]
+        #polynomials += [cycle-cycle] # zero
+
         # running product for memory permutation
         polynomials += [memory_permutation *
                         (beta - d * cycle
@@ -303,7 +315,7 @@ class ProcessorTable(Table):
         #                   - self.b * current_instruction
         #                   - self.c * next_instruction)
         #                 - instruction_permutation_next) * current_instruction]
-        airs += [x[ProcessorTable.current_instruction]]
+        airs += [MPolynomial.constant(terminals[0]) - x[ProcessorTable.instruction_permutation]]
 
         # running product for memory permutation
         # polynomials += [memory_permutation *
@@ -358,6 +370,7 @@ class ProcessorTable(Table):
 
             # 1. running product for instruction permutation
             new_row += [instruction_permutation_running_product]
+            # if not padding
             if not new_row[ProcessorTable.current_instruction].is_zero():
                 instruction_permutation_running_product *= alpha - \
                     a * new_row[ProcessorTable.instruction_pointer] - \
