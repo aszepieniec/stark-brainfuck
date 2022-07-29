@@ -13,9 +13,9 @@
 # you will see them accessed via {{ site.title }}, {{ site.email }}, and so on.
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
-title: Anatomy of a STARK
-email: alan@nervos.org
-description: STARK tutorial with supporting source code in python.
+title: BrainSTARK
+email: alan@neptune.cash
+description: Tutorial on the design of a STARK Engine, complete with working source code.
 twitter_username: aszepieniec
 github_username: aszepieniec
 
