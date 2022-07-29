@@ -34,12 +34,19 @@ class MemoryTable(Table):
         polynomials += [(address_next - address - one)
                         * (address_next - address)]
 
-        # 2. if memory pointer does not increase, then memory value can change only if cycle counter increases by one
+        # 2. If a) memory pointer does not increase; and b) cycle count increases by one; then the memory value may change
+        # a) MV*=/=MV => MP=MP*
+        # (DNF:) <=> MV*==MV \/ MP*=MP
+        polynomials += [(value_next-value)*(address_next-address)]
+        # b) MV*=/=MV => CLK*=CLK+1
+        # (DNF:) <=> MV*==MV \/ CLK*=CLK+1
+        polynomials += [(value_next-value)*(cycle + one - cycle_next)]
+        #  if memory pointer does not increase, then memory value can change only if cycle counter increases by one
         #        <=>. MP*=MP => (MV*=/=MV => CLK*=CLK+1)
         #        <=>. MP*=/=MP \/ (MV*=/=MV => CLK*=CLK+1)
         # (DNF:) <=>. MP*=/=MP \/ MV*=MV \/ CLK*=CLK+1
-        polynomials += [(address_next - address - one) *
-                        (value_next - value) * (cycle_next - cycle - one)]
+        # polynomials += [(address_next - address - one) *
+        #                (value_next - value) * (cycle_next - cycle - one)]
 
         # 3. if memory pointer increases by one, then memory value must be set to zero
         #        <=>. MP*=MP+1 => MV* = 0
@@ -79,9 +86,6 @@ class MemoryTable(Table):
 
         polynomials = MemoryTable.transition_constraints_afo_named_variables(
             cycle, address, value, cycle_next, address_next, value_next)
-
-        assert(len(polynomials) ==
-               3), f"number of transition constraints from MemoryTable is {len(polynomials)}, but expected 3"
 
         polynomials += [permutation *
                         (beta - d * cycle
