@@ -4,7 +4,7 @@ Tutorial for designing and impementing a STARK-compatible VM, along with a fully
 
 ## Go to the Tutorial
 
-The tutorial is available at [Github-Pages](https://github.io/aszepieniec/brainfuck-stark/).
+The tutorial is available at [Github-Pages](https://aszepieniec.github.io/stark-brainfuck/).
 
 ## Running locally (the website, not the tutorial)
 
