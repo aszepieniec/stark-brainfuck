@@ -41,12 +41,6 @@ class MemoryTable(Table):
         # b) MV*=/=MV => CLK*=CLK+1
         # (DNF:) <=> MV*==MV \/ CLK*=CLK+1
         polynomials += [(value_next-value)*(cycle + one - cycle_next)]
-        #  if memory pointer does not increase, then memory value can change only if cycle counter increases by one
-        #        <=>. MP*=MP => (MV*=/=MV => CLK*=CLK+1)
-        #        <=>. MP*=/=MP \/ (MV*=/=MV => CLK*=CLK+1)
-        # (DNF:) <=>. MP*=/=MP \/ MV*=MV \/ CLK*=CLK+1
-        # polynomials += [(address_next - address - one) *
-        #                (value_next - value) * (cycle_next - cycle - one)]
 
         # 3. if memory pointer increases by one, then memory value must be set to zero
         #        <=>. MP*=MP+1 => MV* = 0
