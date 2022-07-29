@@ -35,7 +35,7 @@ The two-stage RAP defines base columns in the first stage, and extension columns
 
 The ProcessorTable consists of 7 base columns and 4 extension columns. The 7 base columns correspond to the 7 registers. The 4 extension columns correspond to the 4 table relations it is a party to. The columns may be called `InstructionPermutation`, `MemoryPermutation`, `InputEvaluation`, and `OutputEvaluation`.
 
-The boundary constraints for the base columns require that all registers except for `ci` and `ni` be initialized to zero. For the extension columns, `InstructionPermutation` and `MemoryPermutation` both start with a random initial value selected by the prover, but since this value needs to remain secret it is enforced instead through a difference constraint across tables. The `InputEvaluation` and `OutputEvaluation` columns start with 0 – no need to keep secrets here.
+The boundary constraints for the base columns require that all registers except for `ci` and `ni` be initialized to zero. For the extension columns, `InstructionPermutation` and `MemoryPermutation` both start with a random initial value selected by the prover, but since this value needs to remain secret it is enforced instead through a difference constraint across tables. The `InputEvaluation` and `OutputEvaluation` columns start with 0 – no need to keep secrets here, and nor are any symbols being read or written.
 
 The transition constraints for the base columns are rather involved because they capture dependence on the instruction. Let $\mathsf{ci}$ be the variable representing the current instruction register `ci` in the current row. Then define the deselector polynomial for symbol a $\varphi \in \Phi = \{$`[`,`]`,`<`,`>`,`+`,`-`,`,`,`.`$\}$ as 
 $$\varsigma_\varphi(\mathsf{ci}) = \mathsf{ci} \prod_{\phi \in \Phi \backslash \varphi} (\mathsf{ci} - \phi) \enspace .$$
@@ -139,5 +139,28 @@ The transition constraints that apply to the base columns are as follows.
 
 The extension column $\mathsf{ppa}$ computes a running product in line with a straightforward permutation argument. In every consecutive pair of rows, the previous row, weighted by $d, e, f$ for columns $\mathsf{clk}, \mathsf{mp}, \mathsf{mv}$ respectively, is accumulated into the next row's running product: $\mathsf{ppa} \cdot (d \cdot \mathsf{clk} + e \cdot \mathsf{mp} + f \cdot \mathsf{mv} - \beta) - \mathsf{ppa}^\star$.
 
-The table has one terminal, $T_{\mathsf{ppa}}$, which coincides with the $T_{\mathsf{mpa}}$ terminal for the Processor Table and which is sent by the prover. It definesa terminal constraint, which enforces the notion that the running product has accumulated all rows but the last: $\mathsf{ppa} \cdot (d \cdot \mathsf{clk} + e \cdot \mathsf{mp} + f \cdot \mathsf{mv} - \beta) - T_{\mathsf{ppa}}$.
+The table has one terminal, $T_{\mathsf{ppa}}$, which coincides with the $T_{\mathsf{mpa}}$ terminal for the Processor Table and which is sent by the prover. It defines a terminal constraint, which enforces the notion that the running product has accumulated all rows but the last: $\mathsf{ppa} \cdot (d \cdot \mathsf{clk} + e \cdot \mathsf{mp} + f \cdot \mathsf{mv} - \beta) - T_{\mathsf{ppa}}$.
 
+### Input and Output Tables
+
+The Input Table and the Output Table are analogous; both are specializations of a more general *IO Table*. The differences, as far as this section is concerned, is the challenge with respect to which the evaluation argument is made: for the Input Table it is $\gamma$ whereas for the Output Table it is $\delta$. The terminal is *not* sent by the prover but computed by the verifier from the input and output.
+
+Let $\mathsf{c}$ denote the base column and $\mathsf{ea}$ the extension column. The challenge $\zeta$ refers to either $\gamma$ or $\delta$.
+
+The boundary constraint applies only to the extension column and stipulates that running sum starts with the column element: $\mathsf{ea} - \mathsf{c}$.
+
+The transition constraint applies the multiply-and-add rule of evaluation arguments: $\zeta \cdot \mathsf{ea} + \mathsf{c}^\star - \mathsf{ea}^\star$.
+
+The terminal constraint, which is relative to the terminal $T_{\mathsf{ea}}$, stipulates that the final running evaluation takes this value: $T_{\mathsf{ea}} - \mathsf{ea}$.
+
+## Difference Constraints
+
+There are two permutation arguments concerning columns that should remain hidden if the STARK proof should achieve zero-knowledge. But the permutation argument yields the value of a polynomial determined by the columns in question, so clearly the terminal value of this permutation argument leaks information.
+
+To avoid this, the first value of the extension columns that compute these permutation arguments is set by the prover to a random inital value. Accordingly, there is no boundary constraint that constrains these columns' initial values. Columns of different tables that compute the same permutation argument start with the same initial. As a result, the terminal is uniformly random and leaks no information about the column without damaging the soundness of the permutation argument.
+
+It is still necessary to establish that the columns in question do in fact start with the same value. Difference constraints achieve this.
+
+Specifically, column $\mathsf{ipa}$ of the Processor Table and column $\mathsf{ppa}$ of the Instruction Table compute matching permutation arguments. The interpolants of these columns, $f_{\mathsf{ipa}}(X)$ and $f_{\mathsf{ppa}}(X)$ evaluate to the same initial in $X = \omicron^0 = 1$. Therefore, the polynomial $f_{\mathsf{ipa}}(X) - f_{\mathsf{ppa}}(X)$ must evaluate to 0 in $X=1$. Phrased differently, this difference polynomial must be divisible by $X-1$. The resulting *difference quotient* must be proven to have degree bounded by $\max(\deg(f_{\mathsf{ipa}}(X)), \deg(f_{\mathsf{ppa}}(X))) - 1$ and to this end the quotient is added to the nonlinear combination.
+
+Likewise, the column $\mathsf{mpa}$ of the Processor Table and the column $\mathsf{ppa}$ of the Memory Table compute the same permutation argument and so start with the same initial. Therefore, the prover should additionally establish that $\frac{f_{\mathsf{mpa}}(X) - f_{\mathsf{ppa}}(X)}{X-1}$ has degree bounded by $\max(\deg(f_{\mathsf{mpa}}(X)), \deg(f_{\mathsf{ppa}}(X))) - 1$.
