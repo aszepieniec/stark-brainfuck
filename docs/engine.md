@@ -23,7 +23,7 @@ While the AIR constraints can be represented as multivariate polynomials, it hel
 
 The prover runs a polynomial interpolation subprocedure to find, for every column, the unique polynomial of degree $T$ that takes the value $i$ rows down in the point $\omicron^i$, where $\omicron$ is a generator of a subgroup of order $T+1$. These polynomials are called the trace polynomials.
 
-Evaluating the AIR constraints in the trace polynomials gives rise to *boundary* and *transition polynomials*. Moreover, every AIR constraint defines a support domain $D \subset \langle \omicron \rangle$ of points where it applies, and with it a zerofier $Z(X)$, which is the unique monic polynomial of degree $|D|$ that evaluates to zero on all of $D$ and no-where else. If the AET satisfies the AIR constraint then this zerofier divides the boundary or transition polynomial cleanly; if the AET does not satisfy the AIR constraint then this division has a nonzero remainder.
+Evaluating the AIR constraints in the trace polynomials gives rise to *boundary* and *transition polynomials*. Moreover, every AIR constraint defines a support domain $D \subset \langle \omicron \rangle$ of points where it applies, and with it a zerofier $Z(X)$, which is the unique monic polynomial of degree $\vert D \vert$ that evaluates to zero on all of $D$ and no-where else. If the AET satisfies the AIR constraint then this zerofier divides the boundary or transition polynomial cleanly; if the AET does not satisfy the AIR constraint then this division has a nonzero remainder.
 
 The prover continues with the *quotient polynomials* of the previous step. Specifically, he wishes to establish their bounded degree. If the AET satisfies the AIR constraints, then the quotient polynomials will be of low degree. If the AET does not satisfy the AIR constraints the malicious prover might be able to find impostor polynomials that agree with the division relation in enough points, but the point is that this impostor polynomial will necessarily have a *high* degree. And then the prover will fail to prove that its degree is low.
 
@@ -104,7 +104,7 @@ The solution is for the prover to commit to both tables. The verifier verifies t
 
 Without loss of generality, we can assume that the prover has access to random scalars $a, b, c, ...$ supplied by the verifier. The prover can use these scalars to compress multiple columns into one, simply by taking a weighted vectorial sum. The verifier uses the same scalars to compute the same weighted sum in select coordinates but obviously never accesses the entire vector.
 
-Both tables are now reduced to a single column each. Let the elements in these columns be $(c_i)_i$ and $(k_i)_i$. The claim is that the only difference is the order, and that as sets $\{c_i\}_i = \{k_i\}_i$. Let $\alpha$ be another random scalar supplied by the verifier. Both tables, which are now reduced to a single column each, are extended with a new column that computes the products $\prod_i (\alpha - c_i)$ and $\prod_i (\alpha - k_i)$, respectively, by integrating a new factor $\alpha - c_i$ or $\alpha - k_i$ into a running product in each row. Specifically, the transition constraint for this extension column is $\forall i > 0: e_{i-1} \cdot (\alpha - c_{i}) = e_{i}$ (and analogously for the other table), where $e_i$ represents the value from the extension column.
+Both tables are now reduced to a single column each. Let the elements in these columns be $(c_ i)_ i$ and $(k_ i)_ i$. The claim is that the only difference is the order, and that as sets $\{c_ i\}_ i = \{k_ i\}_ i$. Let $\alpha$ be another random scalar supplied by the verifier. Both tables, which are now reduced to a single column each, are extended with a new column that computes the products $\prod_i (\alpha - c_ i)$ and $\prod_i (\alpha - k_ i)$, respectively, by integrating a new factor $\alpha - c_i$ or $\alpha - k_i$ into a running product in each row. Specifically, the transition constraint for this extension column is $\forall i > 0: e_{i-1} \cdot (\alpha - c_ i) = e_ i$ (and analogously for the other table), where $e_i$ represents the value from the extension column.
 
 | $c_i$ | $e$ |
 |-------|-----|
@@ -126,8 +126,8 @@ $$ \prod_i (\alpha - c_i) = \prod_i (\alpha - k_i) \enspace .$$
 To see this, just move the factors around until you get identically the same expression.
 
 It is clear upon inspection that whenever we start from two tables whose sets of rows are identical, this technique will suffice to convince the verifier. That's the completeness property. What about soundness? If we start from a pair of tables whose sets of rows are distinct, is it possible to trick the verifier into accepting? It turns out that this technique does induce a soundness degradation originating from two possible events.
- 1. The two tables consist of distinct sets of rows, but after compression using the scalars $a, b, c, ...$ into one column, the two columns happen to be identical (up to order). Conditioned on the existence of such a set of scalars, the probability of sampling them is at most $1 / |\mathbb{F}|$, where $\mathbb{F}$ is the field from which the random coefficients $a, b, c ...$ are sampled. This quantity corresponds to the probability of sampling a kernel vector for given matrix that has a nontrivial column space. After eliminating the conditional, this expression remains an upper bound on the probability of convincing the verifier of a false claim.
- 2. As polynomials, $\prod_i (X - c_i) \neq \prod_i (X - k_i)$, but their values in $X = \alpha$ happen to match. The probability of sampling such an $\alpha$ is bounded by the [Schwartz-Zippel lemma](https://en.wikipedia.org/wiki/Schwartz%E2%80%93Zippel_lemma) at $N / |\mathbb{F}|$, where $\mathbb{F}$ is the field from which the scalar $\alpha$ is sampled and where $N$ is the height of the columns.
+ 1. The two tables consist of distinct sets of rows, but after compression using the scalars $a, b, c, ...$ into one column, the two columns happen to be identical (up to order). Conditioned on the existence of such a set of scalars, the probability of sampling them is at most $1 / \vert \mathbb{F} \vert$, where $\mathbb{F}$ is the field from which the random coefficients $a, b, c ...$ are sampled. This quantity corresponds to the probability of sampling a kernel vector for given matrix that has a nontrivial column space. After eliminating the conditional, this expression remains an upper bound on the probability of convincing the verifier of a false claim.
+ 2. As polynomials, $\prod_i (X - c_ i) \neq \prod_i (X - k_i)$, but their values in $X = \alpha$ happen to match. The probability of sampling such an $\alpha$ is bounded by the [Schwartz-Zippel lemma](https://en.wikipedia.org/wiki/Schwartz%E2%80%93Zippel_lemma) at $N / \vert \mathbb{F} \vert$, where $\mathbb{F}$ is the field from which the scalar $\alpha$ is sampled and where $N$ is the height of the columns.
 
 In summary, as long as the cardinality of $\mathbb{F}$ is on the order of $2^\lambda$ where $\lambda$ is the security parameter, the soundness degradation is negligible.
 
@@ -135,15 +135,15 @@ In summary, as long as the cardinality of $\mathbb{F}$ is on the order of $2^\la
 
 The permutation argument establishes that two tables with the same height have the same rows up to order. In some cases we are interested in an alternative but linked relation: when one table's list of rows appears *in order* as a sublist of another table's list of rows. This relation occurs, for instance, when the processor reads input from a designated input tape. In between reading input symbols, the processor runs for an arbitrary number of cycles. The evaluation argument is what establishes relations such as these.
 
-Without loss of generality, both tables columns are compressed into one with the same technique to produce a linear combination with verifier-supplied weights $a, b, c, ...$. Additionally, the larger table has to have a virtual or explicit indicator column, with values denoted by $\jmath_i$, that takes the value 1 if row $i$ is part of the sublist relation and 0 if it is not. Reusing the same notation as the previous section, the claimed relation is $(c_i)_{i \, | \, \jmath_i = 1} = (k_j)_j$.
+Without loss of generality, both tables columns are compressed into one with the same technique to produce a linear combination with verifier-supplied weights $a, b, c, ...$. Additionally, the larger table has to have a virtual or explicit indicator column, with values denoted by $\jmath_i$, that takes the value 1 if row $i$ is part of the sublist relation and 0 if it is not. Reusing the same notation as the previous section, the claimed relation is $(c_ i)_ {i \, \vert \, \jmath_ i = 1} = (k_ j)_ j$.
 
 Like with the permutation argument both tables will be extended with a new column. Unlike the permutation argument, the evaluation argument interprets the row elements as the coefficients in reverse order, rather than the roots, of a polynomial whose value in $\alpha$ is computed step by step. Specifically, the transition constraints are given by
- - $\forall i > 0 : e_{i} = \jmath_{i} \cdot (\alpha e_{i-1} + c_i) + (1 - \jmath_{i}) \cdot e_{j-1}$ for the larger table, and
- - $\forall j > 0: e_{j} = \alpha e_{j-1} + k_j$ for the smaller one.
+ - $\forall i > 0 : e_ {i} = \jmath_ {i} \cdot (\alpha e_ {i-1} + c_ i) + (1 - \jmath_ {i}) \cdot e_ {j-1}$ for the larger table, and
+ - $\forall j > 0: e_ {j} = \alpha e_{j-1} + k_ j$ for the smaller one.
 
-Note that the factors $\jmath_{i-1}$ and $1-\jmath_{i-1}$ enforce the *conditional* accumulation of a new term. Specifically, in un-indicated rows the running sum does not change whereas in indicated rows it changes in the same way that it changes in the smaller table.
+Note that the factors $\jmath_ {i-1}$ and $1-\jmath_ {i-1}$ enforce the *conditional* accumulation of a new term. Specifically, in un-indicated rows the running sum does not change whereas in indicated rows it changes in the same way that it changes in the smaller table.
 
-| $\jmath_i$ | $c_i$ | $e_i$ |
+| $\jmath_ i$ | $c_ i$ | $e_ i$ |
 |------------|-------|-------|
 | 0 | $u$ | 0 |
 | 1 | $x$ | $x$ |
@@ -152,7 +152,7 @@ Note that the factors $\jmath_{i-1}$ and $1-\jmath_{i-1}$ enforce the *condition
 | 0 | $w$ | $\alpha x + y$ |
 | 1 | $z$ | $\alpha^2 x + \alpha y + z$ |
 
-| $c_j$ | $e_j$ |
+| $c_ j$ | $e_ j$ |
 |-------|-------|
 | $x$ | $x$ |
 | $y$ | $\alpha x + y$|
@@ -162,7 +162,7 @@ Like before, the honest prover is guaranteed to succeed and therefore there is n
 
 ### Other Relations
 
-Conditioning – the function achieved by the variable $\jmath_i$ in the previous section – applies to permutation arguments as well as to evaluation arguments. In this case what is being proved is that a subset of the rows of one table is equal to the set of rows of another table. Or indeed, it can be shown that two tables have a common subset or sublist. The combination with a univariate sumcheck argument can establish that the sublist or subset in question has a given cardinality.
+Conditioning – the function achieved by the variable $\jmath_ i$ in the previous section – applies to permutation arguments as well as to evaluation arguments. In this case what is being proved is that a subset of the rows of one table is equal to the set of rows of another table. Or indeed, it can be shown that two tables have a common subset or sublist. The combination with a univariate sumcheck argument can establish that the sublist or subset in question has a given cardinality.
 
 It should be noted that not all columns need to be included in the random linear combination. Extending the previous examples, it makes no sense to include the input symbols in the permutation check to show the consistency of memory accesses.
 
@@ -174,7 +174,7 @@ This observation raises the question, is it possible to prove set equality when 
  - For both columns of consecutive differences, compute the element-wise inverse column. It contains, for each row, the element's inverse if it is nonzero and zero otherwise. A pair of simple transition constraint establishes that for each row, either the one element is the other's inverse, or else both are zero.
  - The sublists obtained by ignoring zeros are identical and this fact can be established with another permutation argument. For the indicator columns, use the element-wise product ofthe consecutive difference column and the element-wise inverse column.
 
-This deduplication technique gives rise to a table-lookup argument[^1]. The lookup table consists of two columns, input and output. The processor (or whatever table is using lookups) has two similar columns along with an explicit indicator. The argument shows that the set of all (input, output) pairs from the indicated rows of the processor table is a subset of the (input, output) pairs defined by the lookup table. Note that the lookup table can be precomputed.
+This deduplication technique gives rise to a table-lookup argument [^1]. The lookup table consists of two columns, input and output. The processor (or whatever table is using lookups) has two similar columns along with an explicit indicator. The argument shows that the set of all (input, output) pairs from the indicated rows of the processor table is a subset of the (input, output) pairs defined by the lookup table. Note that the lookup table can be precomputed.
 
 ### Table Relations with Zero-Knowledge
 
@@ -220,7 +220,7 @@ There are a number of notable differences between this tutorial and the [Anatomy
 
 ### Field and Extension Field
 
-In the present tutorial the field is chosen as $\mathbb{F}_p$ where $p$ is the amazing prime $2^{64}-2^{32}+1$. This prime is *mistakenly*[^2] called the Goldilocks prime by some people.
+In the present tutorial the field is chosen as $\mathbb{F}_p$ where $p$ is the amazing prime $2^{64}-2^{32}+1$. This prime is *mistakenly* [^2] called the Goldilocks prime by some people.
 
 One of the drawbacks of using this field is that its cardinality is smaller than any reasonable security level. As a result, whenever random scalars from the verifier are needed, they should be sampled from an extension of this field. To this end $\mathbb{F}_{p^3} \cong \frac{\mathbb{F}[X]}{\langle X^3 -X + 1\rangle}$ is used. Moreover, the prover's randomizer polynomial must have coefficients drawn uniformly at random from this field as well, not to mention the random initial values for permutation or evaluation arguments.
 
@@ -324,6 +324,8 @@ The prover follows the workflow sketched below. This workflow implicitly defines
  - Open the indicated positions in the nonlinear combination Merkle tree and in both earlier Merkle trees.
  - Run FRI with the nonlinear combination codeword and using $s$ colinearity checks. This subprotocol establishes that the Merkle root of the nonlinear combination codeword decommits to a codeword that corresponds to a low degree.
 
-[^1] This table-lookup argument is similar to [Plookup](https://eprint.iacr.org/2020/315.pdf) except that it uses the element-wise inverse column along with an evaluation argument, whereas Plookup uses a custom argument to establish the correct order of the nonzero consecutive differences.
+[0](index) - **1** - [2](brainfuck) - [3](arithmetization) - [4](next)
 
-[^2] Let's set the record straight: Mike Hamburg [coined](https://eprint.iacr.org/2015/625.pdf) the term "the Goldilocks prime" to refer specifically to $2^{448} - 2^{224} - 1$.
+[^1]: This table-lookup argument is similar to [Plookup](https://eprint.iacr.org/2020/315.pdf) except that it uses the element-wise inverse column along with an evaluation argument, whereas Plookup uses a custom argument to establish the correct order of the nonzero consecutive differences.
+
+[^2]: Let's set the record straight: Mike Hamburg [coined](https://eprint.iacr.org/2015/625.pdf) the term "the Goldilocks prime" to refer specifically to $2^{448} - 2^{224} - 1$.

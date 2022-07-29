@@ -2,7 +2,7 @@
 
 Congratulations! If you made it to this point, you need to give yourself a pad on the back.
 
-Wait! That's it? In particular, isn't there any code? But of course there is! There is a fully functional python implementation of the compiler, virtual machine, arithmetization, and STARK prover and verifier. Checkout the [github repository](https://github.com/aszepieniec/brainfuck-stark). You can use this source code
+Wait! That's it – isn't there any code? But of course there is! There is a fully functional python implementation of the compiler, virtual machine, arithmetization, and STARK prover and verifier. Checkout the [github repository](https://github.com/aszepieniec/brainfuck-stark). You can use this source code
  - as clarification to some parts of the text that may remain unclear; or
  - as a reference implementation to compare your own implementation with; or
  - not at all, if you want to challenge yourself to write an implementation going only on the text; or
@@ -48,3 +48,5 @@ If we are going to add new operations, why not get rid of old ones too? You coul
  - Speaking of lookup tables, it might be worthwhile to introduce dedicated tables for computing specific operations that are more complicated than simple arithmetic. For instance, hashes are needed all over the place in cryptographic protocols, so it makes sense to support that. And you might want to separate the AIR of the Processor Table from the AIR of the Hash Table.
  - If hashing is natively supported, you might as well optimize the virtual machine architecture for verifying STARK proofs, and then for proving the correct verification of STARK proofs. The result is a *recursive STARK*. Once recursion has been achieved, it is possible to do *incrementally verifiable computation (IVC)*, where you prove the correct verification of a STARK and one extra step of computation. This reduces the cost of producing a proof for very large computations from $O(N \log N)$ to $O(N)$, if you are willing to accept the qualitatively weaker security guarantee. Additionally, you can design *proof carrying data (PCD)* schemes, where by participants in general protocols build on top of each other's proofs.
  - Consider contributing to [Triton VM](https://github.com/TritonVM/triton-vm)! Okay, you got me. This entire tutorial was designed as a gateway drug to get you hooked on Triton. Seriously though, if you liked the subject matter in this tutorial then contributing to a STARK engine is the next logical step. And if you agree with these suggestions for designing a new VM for a STARK engine then you will be pleased to know that we took them to heart when designing Triton.
+
+[0](index) - [1](engine) - [2](brainfuck) - [3](arithmetization) - **4**

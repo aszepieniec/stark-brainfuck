@@ -1,6 +1,6 @@
 # BrainSTARK, Part III: Arithmetization of Brainfuck VM
 
-The virtual machine defines the evolution of two registers and memory. The generic [STARK engine](engine) already contains a high-level description of how memory might work. Therefore, let's focus for starters on the evolution of the set of registers in the processor.
+The virtual machine defines the evolution of two registers and memory. [Part I](engine) already contains a high-level description of how memory might work. Therefore, let's focus for starters on the evolution of the set of registers in the processor.
 
 Using two registers `ip` and `mp` for instruction pointer and memory pointer like the VM defines makes sense. However, this selection is too limited on its own. The constraints need to depend not just on the index contained in `ip` and `mp`, but also on the values these registers point to. To this end, introduce `mv` (*memory value*) and `ci` (*current instruction*). If the current instruction is a potential jump, then we also need to know where to jump to. This address is contained in the next instruction, and so a register is needed for that purpose: `ni`. Also, a potential jump requires some constraints be enforced if `mv` is nonzero and other constraints be enforced if `mv` is zero. The only way to enforce constraints conditioned on the zero-ness of some variable, is with an expression contains the inverse of this variable if it exists and 0 otherwise. Let `inv` be this register, and so in particular we have that `mv * inv` is always 0 or 1. Lastly, in order to make a permutation argument work for establishing correct memory accesses, it is necessary to keep track of jumps in a cycle counter in the table where the rows are sorted for memory address. To this end, introduce a register `clk` whose only purpose is to count the number of cycles have passed.
 
@@ -37,8 +37,8 @@ The ProcessorTable consists of 7 base columns and 4 extension columns. The 7 bas
 
 The boundary constraints for the base columns require that all registers except for `ci` and `ni` be initialized to zero. For the extension columns, `InstructionPermutation` and `MemoryPermutation` both start with a random initial value selected by the prover, but since this value needs to remain secret it is enforced instead through a difference constraint across tables. The `InputEvaluation` and `OutputEvaluation` columns start with 0 – no need to keep secrets here, and nor are any symbols being read or written.
 
-The transition constraints for the base columns are rather involved because they capture dependence on the instruction. Let $\mathsf{ci}$ be the variable representing the current instruction register `ci` in the current row. Then define the deselector polynomial for symbol a $\varphi \in \Phi = \{$`[`,`]`,`<`,`>`,`+`,`-`,`,`,`.`$\}$ as 
-$$\varsigma_\varphi(\mathsf{ci}) = \mathsf{ci} \prod_{\phi \in \Phi \backslash \varphi} (\mathsf{ci} - \phi) \enspace .$$
+The transition constraints for the base columns are rather involved because they capture dependence on the instruction. Let $\mathsf{ci}$ be the variable representing the current instruction register `ci` in the current row. Then define the deselector polynomial for symbol a $\varphi \in \Phi = \lbrace$`[`,`]`,`<`,`>`,`+`,`-`,`,`,`.`$\rbrace$ as 
+$$\varsigma_\varphi(\mathsf{ci}) = \mathsf{ci} \prod_ {\phi \in \Phi \backslash \varphi} (\mathsf{ci} - \phi) \enspace .$$
 It evaluates to zero and in any instruction that is not $\varphi$, but to something nonzero in $\varphi$. The utility of this deselector polynomial stems from the fact that it renders conditionally inactive any AIR constraint it is multiplied with – conditionally being whenever the current instruction is different from $\varphi$. This allows us to focus on the AIR transition constraints *assuming* the given instruction, and then multiply whatever we come up with with this deselector polynomial in order to deactivate it whenever the assumption is false.
 
 Another useful trick is to describe the transition constraints in [disjunctive normal form](https://en.wikipedia.org/wiki/Disjunctive_normal_form), also known as OR-of-ANDs. This form is useful because an OR of constraints corresponds to a multiplication of constraint polynomials.
@@ -164,3 +164,11 @@ It is still necessary to establish that the columns in question do in fact start
 Specifically, column $\mathsf{ipa}$ of the Processor Table and column $\mathsf{ppa}$ of the Instruction Table compute matching permutation arguments. The interpolants of these columns, $f_{\mathsf{ipa}}(X)$ and $f_{\mathsf{ppa}}(X)$ evaluate to the same initial in $X = \omicron^0 = 1$. Therefore, the polynomial $f_{\mathsf{ipa}}(X) - f_{\mathsf{ppa}}(X)$ must evaluate to 0 in $X=1$. Phrased differently, this difference polynomial must be divisible by $X-1$. The resulting *difference quotient* must be proven to have degree bounded by $\max(\deg(f_{\mathsf{ipa}}(X)), \deg(f_{\mathsf{ppa}}(X))) - 1$ and to this end the quotient is added to the nonlinear combination.
 
 Likewise, the column $\mathsf{mpa}$ of the Processor Table and the column $\mathsf{ppa}$ of the Memory Table compute the same permutation argument and so start with the same initial. Therefore, the prover should additionally establish that $\frac{f_{\mathsf{mpa}}(X) - f_{\mathsf{ppa}}(X)}{X-1}$ has degree bounded by $\max(\deg(f_{\mathsf{mpa}}(X)), \deg(f_{\mathsf{ppa}}(X))) - 1$.
+
+## Picture
+
+Credit goes to [Ferdinand](https://github.com/jan-ferdinand) for producing the following diagram overview of the proof generation pipeline.
+
+![](graphics/bf-stark_pipeline.svg)
+
+[0](index) - [1](engine) - [2](brainfuck) - **3** - [4](next)

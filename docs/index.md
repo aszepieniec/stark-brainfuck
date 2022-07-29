@@ -28,3 +28,13 @@ This tutorial assumes some familiarity with SNARKs in general, STARKs in particu
 The tutorial text contains snippets of python code to illustrate key principles. To see how everything works together as a whole, checkout the [repository](https://github.com/aszepieniec/stark-brainfuck/).
 
 The purpose of this tutorial and the supporting code is educational, and as a result questions about performance are left largely by the wayside. Indeed, for a performant STARK engine you might not want to use python, let alone support Brainfuck.
+
+## Brother
+
+This tutorial has a [brother](https://neptune.cash/learn/brainfuck-tutorial/) written by [Thorkil](https://github.com/Sword-Smith) and [Ferdinand](https://github.com/jan-ferdinand). This sibling is more of a guide to the Brainfuck-STARK codebase rather than a comprehensive answer to the question, how does one produce a STARK engine? The reader might benefit from comparing both sources.
+
+## Acknowledgements
+
+Many thanks go to [Thorkil Værge](https://github.com/Sword-Smith) for helping to debug the codebase, and to him, [Ferdinand Sauer](https://github.com/jan-ferdinand), and [Bobbin Threadbare](https://github.com/bobbinth) for countless useful discussions.
+
+**0** - [1](engine) - [2](brainfuck) - [3](arithmetization) - [4](next)

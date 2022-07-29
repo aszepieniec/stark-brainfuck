@@ -56,3 +56,5 @@ In the case of the Brainfuck VM, the program terminates when the instruction poi
  - If `program[ip] == '-'` then a) decrement the indicated data element `data[dp] = data[dp] - 1` and b) increment the instruction pointer `ip = ip + 1`.
  - If `program[ip] == '.'` then a) output the indicated data element `data[dp]` and b) increment the instruction pointer `ip = ip + 1`.
  - If `program[ip] == ','` then a) set the indicated data element `data[dp]` to the input symbol and b) increment the instruction pointer `ip = ip + 1`.
+
+[0](index) - [1](engine) - **2** - [3](arithmetization) - [4](next)
