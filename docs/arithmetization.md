@@ -128,3 +128,16 @@ The Memory Table consists of three base columns, $\mathsf{clk}$, $\mathsf{mp}$, 
 
 The rows of the Memory Table are sorted by memory pointer $\mathsf{mp}$ and then by cycle $\mathsf{clk}$. With this order, gaps in cycle count indicate returning to a previously visited memory cell. These return events are precisely the locations where memory consistency should be enforced.
 
+The boundary constraints for the base columns are $\mathsf{clk} = \mathsf{mp} = \mathsf{mv} = 0$ in the first row. The extnesion column is unconstrained in the first row, because this value should be the secret random initial.
+
+The transition constraints that apply to the base columns are as follows.
+ - The memory pointer increases by one or remains the same: $(\mathsf{mp} + 1 - \mathsf{mp}^\star) \cdot (\mathsf{mp} - \mathsf{mp}^\star)$.
+ - If the memory pointer increases by one, then the new memory value must be zero: $(\mathsf{mp} - \mathsf{mp}^\star) \cdot \mathsf{mv}^\star$.
+ - If a) the memory pointer does not change; and b) the cycle count increases by one, then c) the memory value may change. This constraint requires two separate polynomials:
+   - $(\mathsf{mp} - \mathsf{mp}^\star) \cdot (\mathsf{mv}^\star - \mathsf{mv})$
+   - $(\mathsf{clk} - 1 - \mathsf{clk}^\star) \cdot (\mathsf{mv}^\star - \mathsf{mv})$.
+
+The extension column $\mathsf{ppa}$ computes a running product in line with a straightforward permutation argument. In every consecutive pair of rows, the previous row, weighted by $d, e, f$ for columns $\mathsf{clk}, \mathsf{mp}, \mathsf{mv}$ respectively, is accumulated into the next row's running product: $\mathsf{ppa} \cdot (d \cdot \mathsf{clk} + e \cdot \mathsf{mp} + f \cdot \mathsf{mv} - \beta) - \mathsf{ppa}^\star$.
+
+The table has one terminal, $T_{\mathsf{ppa}}$, which coincides with the $T_{\mathsf{mpa}}$ terminal for the Processor Table and which is sent by the prover. It definesa terminal constraint, which enforces the notion that the running product has accumulated all rows but the last: $\mathsf{ppa} \cdot (d \cdot \mathsf{clk} + e \cdot \mathsf{mp} + f \cdot \mathsf{mv} - \beta) - T_{\mathsf{ppa}}$.
+
