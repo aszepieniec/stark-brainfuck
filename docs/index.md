@@ -29,9 +29,9 @@ The tutorial text contains snippets of python code to illustrate key principles.
 
 The purpose of this tutorial and the supporting code is educational, and as a result questions about performance are left largely by the wayside. Indeed, for a performant STARK engine you might not want to use python, let alone support Brainfuck.
 
-## Brother
+## Companion
 
-This tutorial has a [brother](https://neptune.cash/learn/brainfuck-tutorial/) written by [Thorkil](https://github.com/Sword-Smith) and [Ferdinand](https://github.com/jan-ferdinand). This sibling is more of a guide to the Brainfuck-STARK codebase rather than a comprehensive answer to the question, how does one produce a STARK engine? The reader might benefit from comparing both sources.
+This tutorial has a [companion](https://neptune.cash/learn/brainfuck-tutorial/) written by [Thorkil](https://github.com/Sword-Smith) and [Ferdinand](https://github.com/jan-ferdinand). This sibling is more of a guide to the Brainfuck-STARK codebase rather than a comprehensive answer to the question, how does one produce a STARK engine? The reader might benefit from comparing both sources.
 
 ## Acknowledgements
 
