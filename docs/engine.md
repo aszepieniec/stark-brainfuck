@@ -4,7 +4,7 @@
 
 The word STARK can mean one of several things.
 
- - STARK $_1$: The acronym stands for Scalable Transparent ARgument of Knowledge, which applies to any SNARK (or even interactive SARK) has at most a polylogarithmic prover overhead and no trusted setup.
+ - STARK $_1$: The acronym stands for Scalable Transparent ARgument of Knowledge, which applies to any SNARK (or even interactive SARK) that has at most a polylogarithmic prover overhead and no trusted setup.
  - STARK $_2$: A specific way of building STARK $_1$'s by using AETs and AIRs and plugging the resulting polynomials into FRI to prove their bounded degree.
  - STARK $_3$: a concrete proof object resulting from a STARK $_2$ prover.
 
@@ -19,9 +19,9 @@ The AET is *integral* if all Arithmetic Intermediate Representation (AIR) constr
  - Boundary constraints apply only at the beginning or at the end. Boundary constraints are represented as polynomials in $\mathsf{w}$ variables. Boundary constraints enforce, for instance, that the initial state is correct.
  - Transition constraints apply to every consecutive pair of rows, and can be represented as polynomials in $2\mathsf{w}$ variables. They enforce that the state transition function was evaluated correctly.
 
-While the AIR constraints can be represented as multivariate polynomials, it helps to think of them as maps $\mathbb{F}^{\mathsf{w}} \rightarrow \mathbb{F}$ or $\mathbb{F}^{2\mathsf{w}} \rightarrow \mathbb{F}$. This perspective extends the evaluation map from vectors of $\mathsf{w}$ or $2\mathsf{w}$ field elements to vectors of as many codewords or polynomials.
+While the AIR constraints can be represented as multivariate polynomial equations, it helps to think of them as maps $\mathbb{F}^{\mathsf{w}} \rightarrow \mathbb{F}$ or $\mathbb{F}^{2\mathsf{w}} \rightarrow \mathbb{F}$ that must evaluate to zero on AETs that are integral and to something nonzero on AETs that are not. This perspective allows to generalize the argument from vectors of $\mathsf{w}$ or $2\mathsf{w}$ *field elements* to vectors of as many *codewords* or as many *polynomials*.
 
-The prover runs a polynomial interpolation subprocedure to find, for every column, the unique polynomial of degree $T$ that takes the value $i$ rows down in the point $\omicron^i$, where $\omicron$ is a generator of a subgroup of order $T+1$. These polynomials are called the trace polynomials.
+The prover runs a polynomial interpolation subprocedure to find, for every column, a low-degree polynomial that takes the value of the column $i$ rows down in the point $\omicron^i$, where $\omicron$ is a generator of a subgroup of order $T+1$. These polynomials are called the trace polynomials.
 
 Evaluating the AIR constraints in the trace polynomials gives rise to *boundary* and *transition polynomials*. Moreover, every AIR constraint defines a support domain $D \subset \langle \omicron \rangle$ of points where it applies, and with it a zerofier $Z(X)$, which is the unique monic polynomial of degree $\vert D \vert$ that evaluates to zero on all of $D$ and no-where else. If the AET satisfies the AIR constraint then this zerofier divides the boundary or transition polynomial cleanly; if the AET does not satisfy the AIR constraint then this division has a nonzero remainder.
 
@@ -33,9 +33,11 @@ The prover commits to these polynomials as follows. First he evaluates them on a
 
 One obvious optimization is available at this point. It is possible to zip the codewords before computing Merkle trees. In fact, after zipping, only one Merkle tree needs to be computed. The leafs of this Merkle tree correspond to tuples of field elements.
 
-The next step is to combine the polynomials' codewords into one codeword using random weights from the verifier. For every quotient polynomial $q_i(X)$, there is a degree bound $b_i$ originating from the known trace length $T$ and AIR constraint degree. The prover combines the nonlinear combination
+The next step is to combine the polynomials' codewords into one codeword using random weights from the verifier. For every quotient polynomial $q_i(X)$, there is a degree bound $b_i$ originating from the known trace length $T$, the number of randomizers, and the AIR constraint degree. The prover combines the nonlinear combination
 $$ \sum_{i=0} \alpha_i \cdot q_i(X) + \beta_i \cdot X^{\mathsf{d} - b_i} \cdot q_i(X) \enspace ,$$
 where the weights $\alpha_i$ and $\beta_i$ are provided by the verifier, and where $\mathsf{d}$ is the maximum degree bound provably be FRI. The codeword associated with this polynomial is the input to FRI.
+
+In other words, the input to FRI is the sum of all codewords multiplied with weights $\alpha_i$ and again with weights $X^{\mathsf{d}-b_i} \beta_i$. The second part is necessary to adequately bound the individual degrees of $q_i(X)$.
 
 ### FRI
 
@@ -47,7 +49,7 @@ In the last round, the prover sends the codeword in the clear. The length of thi
 
 ## From STARK to STARK Engine
 
-The STARK mechanics described above suffice for proving the integral evolution of a *simple* state, *i.e.,* on that is fully determined by $\mathsf{w}$ registers. It suffices for a digital signature scheme based on a proof of knowledge of a preimage under a hash function, or a verifiable delay function. But there is a considerable gap between that and a general-purpose virtual machine.
+The STARK mechanics described above suffice for proving the integral evolution of a *simple* state, *i.e.,* on that is fully determined by $\mathsf{w}$ registers. It suffices for a [digital signature scheme based on a proof of knowledge of a preimage under a hash function](https://aszepieniec.github.io/stark-anatomy/rescue-prime), or a verifiable delay function. But there is a considerable gap between that and a general-purpose virtual machine.
 
 For instance, a machine following the [von Neumann architecture](https://en.wikipedia.org/wiki/Von_Neumann_architecture) needs to
  1. read the next instruction from memory and decode it;
@@ -57,7 +59,7 @@ For instance, a machine following the [von Neumann architecture](https://en.wiki
 
  ![Von Neumann machine architecture](graphics/von-neumann.svg)
 
-At best, the simple state evolution descibes the evolution of the machine's register set, which takes place inside the processor. But how does the processor interact with external data sources and sinks? More importantly, how to prove and verify the integrity of these interactions?
+At best, the simple state evolution descibes the evolution of the machine's register set, which takes place inside the processor. But how does the processor interact with external data sources and sinks, like reading from and writing to memory? More importantly, how to prove and verify the integrity of these interactions?
 
 ## Tables
 
@@ -68,7 +70,7 @@ Let's use as an illustrative example the case where the processor writes somethi
 
 Note that this simple register set does not contain a register for the current instruction. In reality the interactions with the RAM are only necessary if the instruction pertains to it -- specifically, if it is a read or write instruction. We will need to add a register to this effect in order for the instruction set to be capable of doing other things beyond reading from and writing to RAM. For the time being we can tolerate this omission by requiring that the value of `mv` corresponds to the RAM at location `mp` in *every* cycle, even cycles where the instruction has nothing to do with memory. Whenever `mp` changes, `mv` automatically changes also.
 
-The execution trace illustrates two of the problems we want to address.
+This execution trace illustrates two of the problems we want to address.
 
 | `clk` | `mp` | `mv` |
 |-------|------|------|
@@ -80,7 +82,7 @@ The execution trace illustrates two of the problems we want to address.
 The entire RAM is initialized to zero. At the start of the computation, `mp` is set to zero as well. In cycle 1, the memory cell at location 0 (because `mp`=0) is set to 5.  In cycle 2, the memory pointer is set to 1, and the memory value register assumes the value of the RAM at this location, which happens to be zero. In cycle 3, the memory point is set back to 0, and the memory value register assumes the value of the RAM at this location, which now turns out to be 5 because it was set to this value in cycle 1.
 
 The two problems we wish to address are these:
- 1. The initial value of all memory cells is zero, but these memory cells can be accessed in the middle of an execution trace. In this trace, there is nothing 'initial' about the initial value of memory cells and in particular there is no boundary constraint that can be enforced at a fixed location.
+ 1. The initial value of all memory cells is zero, but these zero-valued memory cells can be accessed in the middle of an execution trace. In this trace, there is nothing 'initial' about the initial value of memory cells and in particular there is no boundary constraint that can be enforced at a fixed location.
  2. When the memory pointer register `mp` is reset to a previous value, the memory value register `mv` changes. Its new value now must be consistent with the value it had the last time the memory pointer pointed to it. This constraint pertains to two rows, but the problem is that these two rows are generally not consecutive and not even spaced apart by a static amount. Transition constraints can only apply to *consecutive* pairs of rows.
 
 Notice how both of these issues can be solved through traditional transition constraints if only the table's rows were sorted not by clock cycle but by memory pointer first and then clock cycle. In that case we would have this table:
@@ -98,13 +100,13 @@ The transition constraints that enforce the issues raised above can now be artic
 
 The STARK prover obviously cannot commit to this table instead of the one sorted by cycle count because doing so would undermine the transition constraints that enforce the correct evolution of the register set through time. It seems as though we have to choose: we can *either* enforce the correct evolution of the register set through time, *or* the consistency of RAM accesses.
 
-The solution is for the prover to commit to both tables. The verifier verifies two sets of AIR constraints, one for the processor table and one for the memory table. But one question remains: how does the verifier verify that these tables pertain to the same execution trace? A *permutation argument* is what establishes that the set of rows of the two tables are identical.
+The solution is for the prover to commit to both tables. The verifier verifies two sets of AIR constraints, one for the processor table and one for the memory table. But one question remains: how does the verifier verify that these tables pertain to the same execution trace? A *permutation argument* is what establishes that the sets of rows of the two tables are identical.
 
 ### Permutation Arguments
 
-Without loss of generality, we can assume that the prover has access to random scalars $a, b, c, ...$ supplied by the verifier. The prover can use these scalars to compress multiple columns into one, simply by taking a weighted vectorial sum. The verifier uses the same scalars to compute the same weighted sum in select coordinates but obviously never accesses the entire vector.
+Without loss of generality, we can assume that the prover has access to random scalars $a, b, c, ...$ supplied by the verifier. The prover can use these scalars to compress multiple columns into one, simply by taking a weighted vectorial sum. The verifier uses the same scalars to compute the same weighted sum in select coordinates but obviously never accesses the entire vector. This construction of taking weighted sums allows us to *reduce* a claim about the identical sets of *rows of two tables*, to an equivalent but easier to prove claim about the identical sets of *elements of two rows*.
 
-Both tables are now reduced to a single column each. Let the elements in these columns be $(c_ i)_ i$ and $(k_ i)_ i$. The claim is that the only difference is the order, and that as sets $\{c_ i\}_ i = \{k_ i\}_ i$. Let $\alpha$ be another random scalar supplied by the verifier. Both tables, which are now reduced to a single column each, are extended with a new column that computes the products $\prod_i (\alpha - c_ i)$ and $\prod_i (\alpha - k_ i)$, respectively, by integrating a new factor $\alpha - c_i$ or $\alpha - k_i$ into a running product in each row. Specifically, the transition constraint for this extension column is $\forall i > 0: e_{i-1} \cdot (\alpha - c_ i) = e_ i$ (and analogously for the other table), where $e_i$ represents the value from the extension column.
+Both tables are now reduced to a single column each. Let the elements in these columns be $(c_ i)_ i$ and $(k_ i)_ i$. The claim is that the only difference is the order, and that as sets $\lbrace c_ i \rbrace_ i = \lbrace k_ i\rbrace_ i$. Let $\alpha$ be another random scalar supplied by the verifier. Both tables, which are now reduced to a single column each, are extended with a new column that computes the products $\prod_i (\alpha - c_ i)$ and $\prod_i (\alpha - k_ i)$, respectively, by integrating a new factor $\alpha - c_i$ or $\alpha - k_i$ into a running product in each row. Specifically, the transition constraint for this extension column is $\forall i > 0: e_{i-1} \cdot (\alpha - c_ i) = e_ i$ (and analogously for the other table), where $e_i$ represents the value from the extension column.
 
 | $c_i$ | $e$ |
 |-------|-----|
@@ -135,7 +137,7 @@ In summary, as long as the cardinality of $\mathbb{F}$ is on the order of $2^\la
 
 The permutation argument establishes that two tables with the same height have the same rows up to order. In some cases we are interested in an alternative but linked relation: when one table's list of rows appears *in order* as a sublist of another table's list of rows. This relation occurs, for instance, when the processor reads input from a designated input tape. In between reading input symbols, the processor runs for an arbitrary number of cycles. The evaluation argument is what establishes relations such as these.
 
-Without loss of generality, both tables columns are compressed into one with the same technique to produce a linear combination with verifier-supplied weights $a, b, c, ...$. Additionally, the larger table has to have a virtual or explicit indicator column, with values denoted by $\jmath_i$, that takes the value 1 if row $i$ is part of the sublist relation and 0 if it is not. Reusing the same notation as the previous section, the claimed relation is $(c_ i)_ {i \, \vert \, \jmath_ i = 1} = (k_ j)_ j$.
+Without loss of generality, both tables columns are compressed into one column with the same technique to produce a linear combination with verifier-supplied weights $a, b, c, ...$. Additionally, the larger table has to have a virtual or explicit indicator column, with values denoted by $\jmath_i$, that takes the value 1 if row $i$ is part of the sublist relation and 0 if it is not. Reusing the same notation as the previous section, the claimed relation is $(c_ i)_ {i \, \vert \, \jmath_ i = 1} = (k_ j)_ j$.
 
 Like with the permutation argument both tables will be extended with a new column. Unlike the permutation argument, the evaluation argument interprets the row elements as the coefficients in reverse order, rather than the roots, of a polynomial whose value in $\alpha$ is computed step by step. Specifically, the transition constraints are given by
  - $\forall i > 0 : e_ {i} = \jmath_ {i} \cdot (\alpha e_ {i-1} + c_ i) + (1 - \jmath_ {i}) \cdot e_ {j-1}$ for the larger table, and
@@ -164,7 +166,7 @@ Like before, the honest prover is guaranteed to succeed and therefore there is n
 
 Conditioning – the function achieved by the variable $\jmath_ i$ in the previous section – applies to permutation arguments as well as to evaluation arguments. In this case what is being proved is that a subset of the rows of one table is equal to the set of rows of another table. Or indeed, it can be shown that two tables have a common subset or sublist. The combination with a univariate sumcheck argument can establish that the sublist or subset in question has a given cardinality.
 
-It should be noted that not all columns need to be included in the random linear combination. Extending the previous examples, it makes no sense to include the input symbols in the permutation check to show the consistency of memory accesses.
+It should be noted that not all columns need to be included in the random linear combination. Extending the previous examples, it makes no sense to include the input symbols in the permutation check to show the consistency of memory accesses. Not all columns must be present in all tables.
 
 The relation that is proved by a permutation argument is actually *multiset equality* rather than set equality – multiplicity matters. When including the `clk` column, the two notions are one and the same because `clk` guarantees that every row in a table is unique.
 
@@ -184,7 +186,7 @@ In order to guarantee that this terminal value is independent of the cells of th
 
 ### Table Interface
 
-In the diagram representation of an automaton every modular component maps onto a table. Every table comes with AIR constraints that establish the correct evolution of the information contained inside. Moreover, table relations assert the correctness of interactions between them.
+In the diagram representation of an automaton (far) above every modular component maps onto a table. Every table comes with AIR constraints that establish the correct evolution of the information contained inside. Moreover, table relations assert the correctness of interactions between them.
 
 Translating this notion to source code, it makes sense to create an abstract `Table` class or module that captures important data and constraints interactions to it to a specific interface. So what is the correct interface for tables?
 
@@ -199,7 +201,9 @@ In terms of fields, which fields should and should not be part of a `Table` is l
  - `omicron` is the generator of the subgroup of order `height` over which the columns are interpolated.
  - `num_randomizers` is the number of randomizers used when interpolating.
 
-Speaking of interpolating – one essential functionality associated with `Table`s is the interpolation of its columns. This method, which might be called `interpolate_columns` outputs one polynomial for each column such that the polynomial passes through all points $(x,y)$ defined by the powers of `omicron` ($x$-coordinates) and the value of the given column ($y$-coordinate). Additionally, the polynomial passes through `num_randomizers`-many points $(x,y)$ defined by fixed $x$-coordinates (that do not coincide with powers of `omicron`) and uniformly random $y$-coordinates. This number has to be set in accordance with the number of consistency checks for verifying the correct nonlinear combination of codewords. This process produces polynomials of degree `height` + `num_randomizers` - 1.
+Speaking of interpolating – one essential functionality associated with `Table`s is the interpolation of its columns. This method, which might be called `interpolate_columns` outputs one polynomial for each column such that the polynomial passes through all points $(x,y)$ defined by the powers of `omicron` ($x$-coordinates) and the value of the given column ($y$-coordinate). Additionally, the polynomial passes through `num_randomizers`-many points $(x,y)$ defined by fixed $x$-coordinates (that do not coincide with powers of `omicron`) and uniformly random $y$-coordinates. This process of interpolation produces polynomials of degree `height` + `num_randomizers` - 1.
+
+The number of randomizers has to be set in accordance with the number of nonlinear combination checks for verifying the correct nonlinear combination of codewords. Specifically, every nonlinear combination check generates up to two accesses in each of the trace polynomials, because of the transition constraints. We want the value of the trace polynomials at these locations to be uniformly distributed. So we need two times the number of nonlinear combination checks – that number of randomizers.
 
 That being said, for reasons of performance the immediate next step following the polynomial interpolation is polynomial evaluation but on a different domain, resultin in Reed-Solomon codewords. The reason for the performance benefit is that arithmetic on polynomials is faster when they are represented as codewords rather than vectors of coefficients. The process of interpolation followed by evaluation on a larger domain is called *low-degree extension* and abbreviated `lde`.
 
@@ -210,7 +214,7 @@ A `Table`'s AIR constraints come in three varieties: boundary, transition, and t
 
 Moreover, all terminal constraints and some transition constraints pertain to the extension columns and can only be articulated relative to the verifier's random scalars $a,b,c, \alpha...$. The suffix `_ext` denotes the inclusion of extension AIR constraints. In general we always want the whole AIR, *i.e.*, including the part covering the extension columns; nevertheless, it is worthwhile having having access to the "base" AIR (*i.e.*, the part covering just the base table) for testing purposes.
 
-Given knowledge of the polynomials (in either representation) and knowledge of the AIR constraints, it is possible to compute the quotients. These are found by evaluating them and dividing out the matching zerofiers. The methods {`evaluate_`}+{`boundary`,`transition`,`terminal`}+`_constraints` perform the evaluation; {`boundary`, `transition`, `terminal`}+`_quotients` produce the quotients. Since we are often interested in all of them, `all_quotients` returns the concatenation of these lists.
+Given knowledge of the polynomials (in either representation) and knowledge of the AIR constraints, it is possible to compute the quotients. These are found by evaluating them and dividing out the matching zerofiers. The methods {`evaluate_`}+{`boundary`,`transition`,`terminal`}+`_constraints` perform this evaluation; {`boundary`, `transition`, `terminal`}+`_quotients` produce the quotients. Since we are interested in all of them, `all_quotients` returns the concatenation of these lists.
 
 Every quotient polynomial necessarily comes with a degree bound that depends on a) the degree of the polynomial that interpolates the column; and b) the concrete AIR that generated the quotient. These degree bounds are used to determine the appropriate shifts in the nonlinear combination. The methods {`boundary_`, `transition_`, `terminal_`}+`quotient_degree_bounds` compute the lists of matching degree bounds. Likewise, we are interested in all of them, so `all_quotient_degree_bounds` returns the concatenation of these lists.
 
@@ -226,7 +230,7 @@ One of the drawbacks of using this field is that its cardinality is smaller than
 
 ### Salting the Leafs
 
-When zero-knowledge is important, the authentication paths in the Merkle tree of the zipped codeword leak small amounts of information  this step involves appending raw randomness to every leaf before computing the Merkle tree. With this option enabled, an authentication path for one leaf leaks almost no information about the leaf's sibling – and exactly zero bits of information in the random oracle model, which is when an idealized hash function is used for the security proof.
+When zero-knowledge is important, the authentication paths in the Merkle tree of the zipped codeword leak small amounts of information. This step involves appending raw randomness to every leaf before computing the Merkle tree. With this option enabled, an authentication path for one leaf leaks almost no information about the leaf's sibling – and exactly zero bits of information in the random oracle model, which is when an idealized hash function is used for the security proof.
 
 ### Zipped Codewords
 
@@ -238,15 +242,17 @@ More than one Merkle tree is being computed outside of the FRI subprotocol. The 
 
 This two-stage approach stands in contrast to the one-stage approach used in the Anatomy. The extra step of interaction makes the present qualify as a *[Randomized AIR with Preprocessing (RAP)](https://hackmd.io/@aztec-network/plonk-arithmetiization-air)*.
 
-The third Merkle tree coincides with the codeword that goes into FRI. However, since the interface to FRI is being culled (see the next section), this Merkle tree is actually being computed prior to FRI.
+The third Merkle tree coincides with the codeword that goes into FRI. However, since the interface to FRI is being changed (see the next section), this Merkle tree is actually being computed prior to FRI.
 
 ### Cleaner FRI Interface
 
 In the Anatomy, FRI returns a list of indices where the top level codeword is probed to check the correct folding with respect to the next codeword. The key point is that the same indices are used to verify the correct nonlinear combination of the codewords that were committed to prior to FRI.
 
-In contrast, the present tutorial uses a different set of indices. Now FRI is a completely standalone protocol that establishes that a given Merkle root decommits to a codeword corresponding to a low-degree polynomial. Likewise, the AET/AIR part of STARK outputs a Merkle root that decommits to a nonlinear combination of codewords committed to earlier. This nonlinear combination is still checked, but in a list of uniformly random indices sampled independently from FRI. While this change does increase the proof size as well as prover and verifier work, the interface between the FRI and AET/AIR parts is cleaner.
+In contrast, the present tutorial uses a different set of indices. Now FRI is a completely standalone protocol that establishes that a given Merkle root decommits to a codeword corresponding to a low-degree polynomial. Likewise, the AET/AIR part of STARK outputs a Merkle root that decommits to a nonlinear combination of codewords committed to earlier. This nonlinear combination is still checked, but in a list of uniformly random indices sampled independently from FRI. While this change does increase the proof size as well as prover and verifier work, the interface between the FRI and AET/AIR parts is cleaner. This change is conducive to [Halo-style recursion](https://eprint.iacr.org/2020/1536), whereby the recursive verifier verifies the nonlinear combination only, and the FRI part is postponed until the last possible step.
 
-This change raises an important question: how many incides do we sample to verify the nonlinear combination in order to target a security of $\lambda$ bits?
+### Interlude: Setting the Number of Nonlinear Combination Checks
+
+This cleaner interface to FRI raises an important question: how many incides do we sample to verify the nonlinear combination in order to target a security of $\lambda$ bits?
 
 Let $s$ be the number of colinearity checks used in FRI,  $t$ be the number of nonlinear combination checks in the AET/AIR part, $\varrho$ be the proportion of points where the codeword in question agrees with the nonlinear combination, and $N$ the length of the codeword. We want to upper bound the malicious prover's success probability, so we are working under the assumption that this nonlinear combination does not correspond to a low-degree polynomial (because otherwise the prover is not being malicous).
 
@@ -276,21 +282,21 @@ At this point the malicious prover's success probability is bounded by $\left( \
 
 The Anatomy only includes the boundary quotient polynomials in the nonlinear combination, and not the trace polynomials from which they are derived, at least when these boundary quotients exist. As a result, the trace polynomials are not proved to be low degree. The omission there does not degrade security because its low degree is implied by the low degree of the transition quotient polynomials and that of the boundary quotient polynomials. 
 
-In the present tutorial, the concrete boundary constraints are not defined yet. While it may be possible to omit some trace polynomials from the nonlinear combination, whether this is secure depends on the concrete arithmetization of the virtual machine. This tutorial's inclusion in the nonlinear combination supports making abstraction of the underlying VM as it certainly does not degrade security.
+In the present tutorial, the concrete boundary constraints are are intentionally abstract. While it may be possible to omit some trace polynomials from the nonlinear combination, whether this is secure depends on the concrete arithmetization of the virtual machine. This tutorial's inclusion in the nonlinear combination supports making abstraction of the underlying VM.
 
 ### Reed-Solomon Codeword Domain
 
 Whenever a polynomial is computed, it is instantly transformed into a Reed-Solomon codeword of sufficient length. As a result, multiplication and division operations can be performed element-wise, resulting in a non-trivial speedup.
 
-In principle it could be worthwhile to have *two* instances of low-degree extension (LDE). In the first, the interpolated columns are evaluated on a slightly larger intermediate domain to find codeword representatives of the interpolants. These codewords are used for polynomial arithmetic. In the second LDE step these codewords are extended to match with the FRI domain. However, this tutorial decided in favor of simplicity for the purpose of explaining.
+In principle it could be worthwhile to have *two* instances of low-degree extension (LDE). In the first, the interpolated columns are evaluated on a slightly larger intermediate domain to find codeword representatives of the interpolants. These codewords are used for polynomial arithmetic. In the second LDE step these codewords are extended to match with the FRI domain. This tutorial decided against using two separate domains for the sake of simplicity.
 
 ### Sparse Zerofiers from Group Theory
 
-The verifier needs to evaluate zerofiers, and there are two options to make this process fast. The Anatomy uses preprocessed zerofiers because the number of cycles. In that context this choice makes sense because the number of cycles is fixed and is not close to a power of two. For the present tutorial, the number of cycles is not fixed. To deal with this problem, the tables are padded until the next power of two, making them compatible with group-theoretical zerofiers.
+The verifier needs to evaluate zerofiers, and there are two options to make this process fast. The Anatomy uses preprocessed zerofiers because the number of cycles there is far from a power of two. In that context this choice makes sense because the number of cycles is fixed and is not close to a power of two. For the present tutorial, the number of cycles is not fixed. To deal with this problem, the tables are padded until the next power of two, making them compatible with group-theoretical zerofiers, which can be evaluated in $O(\log N)$ time.
 
 ### No Code Snippets
 
-Don't worry, there is fully functional supporting python code. But you'll have to check out the [repository](https://github.com/aszepieniec/stark-brainfuck). The point is that the code will not be interspersed with the text.
+If you are a person who finds it easier to read code than (maths-heavy) text, then you can check out the [repository](https://github.com/aszepieniec/stark-brainfuck) for a fully functional python implementation. Developed prior to writing the present explanation. However, the text makes abstraction of the particular implementation and in fact, there will be no code snippets interspersed with the text. 
 
 ### No Security
 
@@ -298,7 +304,7 @@ The purpose of this tutorial is didactical, not performance. That was one of the
 
 ## STARK Engine Workflow
 
-A STARK engine consists of three parts: a virtual machine, a prover, and a verifier. While an execution of the virtual machine does not need be followed up with a prover, the fact that this option exists implies that the instruction set architecture had better be friendly to proving and verifying.
+A STARK engine consists of three parts: a virtual machine, a prover, and a verifier. While an execution of the virtual machine does not need be followed up with a prover, the fact that this option exists implies that the instruction set architecture had better be conducive to proving and verifying. Specifically, it should be easily *arithmetizable* – describable as the zero set of a small number of low-degree multivariate polynomials.
 
 The virtual machine has two modes of operation:
  - `run` takes the program and the input, executes the program, and returns the output.
@@ -316,9 +322,9 @@ The prover follows the workflow sketched below. This workflow implicitly defines
  - Compute the table extensions with these challenges.
  - Use low-degree extension to interpolate (again with randomizers) the extension columns, and evaluate the resulting polynomials on the FRI domain, thereby obtaining the *extension codewords*.
  - Evaluate all AIR constraints point by point in matching locations of the referenced codewords, and divide out the corresponding zerofier. This generates *quotient codewords*.
- - Zip the extension and quotient codewords and compute a second Merkle tree.
+ - Zip the extension codewords and compute a second Merkle tree.
  - Send the root of this Merkle tree to the verifier and get back $1 + 2b + 2e + 2q$ random scalars called *weights*, where $b$ is the number of base codewords, $e$ is the number of extension codewords, and $q$ is the number of quotient codewords.
- - Compute a nonlinear combination using 1 weight for the randomizer, 1 weight for each codeword (without shift), and 1 more weight for each codeword shifted by the power of $X$ that makes its corresponding polynomial have maximal degree.
+ - Compute a nonlinear combination using 1 weight for the randomizer, 1 weight for each codeword (without shift), and 1 more weight for each codeword shifted by the power of $X$ that makes its corresponding polynomial have maximal degree allowed.
  - Compute the Merkle tree of this nonlinear combination codeword.
  - Send the root of this Merkle tree and get back $t$ indices where the correct combination is to be checked.
  - Open the indicated positions in the nonlinear combination Merkle tree and in both earlier Merkle trees.
