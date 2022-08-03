@@ -330,7 +330,9 @@ The prover follows the workflow sketched below. This workflow implicitly defines
  - Open the indicated positions in the nonlinear combination Merkle tree and in both earlier Merkle trees.
  - Run FRI with the nonlinear combination codeword and using $s$ colinearity checks. This subprotocol establishes that the Merkle root of the nonlinear combination codeword decommits to a codeword that corresponds to a low degree.
 
-[0](index) - **1** - [2](brainfuck) - [3](arithmetization) - [4](next)
+| Next up: [Part II: Brainfuck](brainfuck) |
+|-|
+| [0](index) - **1** - [2](brainfuck) - [3](arithmetization) - [4](next) |
 
 [^1]: This table-lookup argument is similar to [Plookup](https://eprint.iacr.org/2020/315.pdf) except that it uses the element-wise inverse column along with an evaluation argument, whereas Plookup uses a custom argument to establish the correct order of the nonzero consecutive differences.
 

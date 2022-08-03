@@ -171,4 +171,7 @@ Credit goes to [Ferdinand](https://github.com/jan-ferdinand) for producing the f
 
 ![](graphics/bf-stark_pipeline.svg)
 
-[0](index) - [1](engine) - [2](brainfuck) - **3** - [4](next)
+
+| Next up: [Part IV: Next Steps](next) |
+|-|
+| [0](index) - [1](engine) - [2](brainfuck) - **3** - [4](next) |
