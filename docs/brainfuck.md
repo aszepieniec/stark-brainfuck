@@ -2,7 +2,7 @@
 
 ## Brainfuck
 
-[Brainfuck](https://en.wikipedia.org/wiki/Brainfuck) is an esoteric programming language consisting just of eight instructions. Despite its simplicity it is Turing-complete, meaning that it is capable of executing any algorithm. And while that simplicity makes producing practical programs rather challenging, it is also makes Brainfuck an excellent choice with which to illustrate the operational principles involved in, say, building a STARK engine.
+[Brainfuck](https://en.wikipedia.org/wiki/Brainfuck) is an esoteric programming language consisting of just eight instructions. Despite its simplicity it is Turing-complete, meaning that it is capable of executing any algorithm. While its simplicity makes producing practical programs rather challenging, it also makes Brainfuck an excellent choice with which to illustrate the operational principles involved in, say, building a STARK engine.
 
 ### The Programming Language
 
@@ -16,11 +16,11 @@ Brainfuck defines an automaton that interacts with a program and a memory consis
  - `.` outputs the value of the currently indicated memory cell.
  - `,` reads a byte from the user input and stores it in the currently indicated memory cell.
 
+The wrap-around modulo 256 is just one reading of the specification. It is rather undefined about what happens when incrementing a cell whose value is already 255 or decrementing a cell whose value is 0.
+
 ### Prime Field Brainfuck
 
-In order to prove the correct execution of a Brainfuck program efficiently, it pays to define the following dialect. Since the modulus used is $p = 2^{64} - 2^{32} + 1$ it is convenient if the memory elements are elements of the field defined by this prime. Likewise for the instruction and data pointers. So in particular, $p$ is also the number of memory cells as well as the total number of instructions in a program.
-
-Technically, this change means that the concrete language is a dialect of Brianfuck. There are programs whose behavior is different depending on whether it a tradition Brainfuck machine or a Prime Field Brainfuck machine that is executing it. However, any program exhibiting this difference has a running time well beyond what is efficiently provable and moreover the purpose of selecting Brainfuck in the first place was illustration and not interoperability.
+In order to prove the correct execution of a Brainfuck program efficiently, it pays to define the following dialect. Since the modulus used is $p = 2^{64} - 2^{32} + 1$ it is convenient if the memory elements are elements of the field defined by this prime. Likewise for the instruction and data pointers. So in particular, $p$ is also the number of memory cells as well as the maximum total number of instructions in a program.
 
 ### Brainfuck ISA
 
@@ -36,14 +36,14 @@ Pushdown automata are generally the computational model of choice for building p
 
 The compiler presented here is *almost* streaming, meaning that it runs over the input sequence once and starts outputting symbols before it reaches the end. The qualifier "almost" indicates that occasionally, the compiler will output placeholder symbols whose concrete value will be set later. 
 
-The compiler keeps track of a stack that stack stores the locations (in the output sequence) of the `[` symbols that have not yet been closed by a matching `]` symbol. Let `c` denote a counter that tracks the total number of symbols sent to output so far. 
+The compiler keeps track of a stack that stores the locations (in the output sequence) of the `[` symbols that have not yet been closed by a matching `]` symbol. Let `c` denote a counter that tracks the total number of symbols sent to output so far. 
  - Whenever a `[` symbol is encountered, two things happen: a) `c` is pushed to the stack, and b) two symbols are pushed to the output: `[` and the placeholder `*`.
  - Whenever a `]` symbol is encountered, three things happen: a) the location `i` of the matching `[` is read from the stack and popped, b) the placeholder in the output sequence at location `i+1` is set to `c+2`, and c) two symbols are pushed to the output: `]` and `i+2`.
  - Whenever any other symbol is encountered, it is pushed to the output sequence with no changes to the stack.
 
 ## Brainfuck VM
 
-The state of a brainfuck virtual machine consists of two registers and the memory. The registers are the instruction pointer `ip` and the data pointer `dp`; both are initially set to zero. The memory is can be represented by various data structures but if it is desirable to avoid allocating unnecessary memory on the host machine, then a dictionary is a good choice. When the dictionary is queried for the value of a new key, it returns 0 -- consistent with the initial value of memory cells.
+The state of a brainfuck virtual machine consists of two registers and the memory. The registers are the instruction pointer `ip` and the data pointer `dp`; both are initially set to zero. The memory can be represented by various data structures but if it is desirable to avoid allocating unnecessary memory on the host machine, then a dictionary is a good choice. When the dictionary is queried for the value of a new key, it returns 0 -- consistent with the initial value of memory cells.
 
 Any virtual machine defines a *state transition function*. Running the virtual machine consists of repeatedly applying this function to the state, until the termination criterion is met.
 
