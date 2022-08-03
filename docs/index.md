@@ -20,8 +20,8 @@ This tutorial assumes some familiarity with SNARKs in general, STARKs in particu
 
  - [Part 1: STARK Engine](engine) reviews the essential principles and notions at play in STARKs, presents the overall design and workflow, and introduces concrete tools that will be used.
  - [Part 2: Brainfuck](brainfuck) describes the language that we are building a STARK engine for.
- - [Part 3: Brainfuck-STARK](brainfuck-stark) describes the arithmetization for Brainfuck, and compiles the STARK engine tools developed earlier to build a STARK engine for Brainfuck.
- - [Part 4: Conclusion](conclusion) concludes this tutorial with some thought-provoking perspectives and ideas and suggestions for next steps. 
+ - [Part 3: Brainfuck-STARK](arithmetization) describes the arithmetization for Brainfuck, and compiles the STARK engine tools developed earlier to build a STARK engine for Brainfuck.
+ - [Part 4: Conclusion](next) concludes this tutorial with some thought-provoking perspectives and ideas and suggestions for next steps. 
 
 ## Supporting Python Code
 
