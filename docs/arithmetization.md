@@ -2,7 +2,11 @@
 
 The virtual machine defines the evolution of two registers and memory. [Part I](engine) already contains a high-level description of how memory might work. Therefore, let's focus for starters on the evolution of the set of registers in the processor.
 
-Using two registers `ip` and `mp` for instruction pointer and memory pointer like the VM defines makes sense. However, this selection is too limited on its own. The constraints need to depend not just on the index contained in `ip` and `mp`, but also on the values these registers point to. To this end, introduce `mv` (*memory value*) and `ci` (*current instruction*). If the current instruction is a potential jump, then we also need to know where to jump to. This address is contained in the next instruction, and so a register is needed for that purpose: `ni`. Also, a potential jump requires some constraints be enforced if `mv` is nonzero and other constraints be enforced if `mv` is zero. The only way to enforce constraints conditioned on the zero-ness of some variable, is with an expression contains the inverse of this variable if it exists and 0 otherwise. Let `inv` be this register, and so in particular we have that `mv * inv` is always 0 or 1. Lastly, in order to make a permutation argument work for establishing correct memory accesses, it is necessary to keep track of jumps in a cycle counter in the table where the rows are sorted for memory address. To this end, introduce a register `clk` whose only purpose is to count the number of cycles have passed.
+Using two registers `ip` and `mp` for instruction pointer and memory pointer like the VM defines makes sense. However, this selection is too limited on its own. The constraints need to depend not just on the index contained in `ip` and `mp`, but also on the values these registers point to.
+
+To this end, introduce `mv` (*memory value*) and `ci` (*current instruction*). If the current instruction is a potential jump, then we also need to know where to jump to. This address is contained in the next instruction, and so a register is needed for that purpose: `ni`. Also, a potential jump requires some constraints be enforced if `mv` is nonzero and other constraints be enforced if `mv` is zero. The only way to enforce constraints conditioned on the zero-ness of some variable, is with an expression that evaluates to the inverse of this variable if it exists and 0 otherwise. Let `inv` be this register, and so in particular we have that `mv * inv` is always 0 or 1.
+
+Lastly, in order to make a permutation argument work for establishing correct memory accesses, it is necessary to keep track of jumps in a cycle counter in the table where the rows are sorted for memory address. To this end, introduce a register `clk` whose only purpose is to count the number of cycles have passed.
 
 So for reference, this is the list of registers in our processor:
  - `clk` – clock, counts the number of cycles that have passed.
@@ -16,10 +20,10 @@ So for reference, this is the list of registers in our processor:
 The processor does not evolve in isolation; rather, it receives an input and produces an output, and it interacts with a program and a memory. These interactions must also be authenticated. Concretely, this means there must be permutation and evaluation arguments between this table, the *Processor Table*, and other Tables.
 
 Specifically:
- - The processor reads from and writes to memory. Whenever the memory pointer `mp` is reset to a prior value, the memory value `mv` must be consistent with the last time this memory cell was set. This consistency is enforced through a permutation argument with the *Memory Table*.
- - The processor reads instructions from a memory-like object that is schematically located in between the processor and the program. On the one hand, a permutation argument establishes that every tuple `(ip, ci, ni)` that the processor ever assumes has a matching row in this *Instruction Table*. On the other hand, an evaluation argument establishes that all rows of this Instruction Table correspond to an instruction and its successor at the given location in the program. The verifier, who has cleartext access to the program, evaluates this terminal locally.
- - The processor reads inputs from a stream of symbols called the Input Table. An evaluation argument establishes that the symbols read by the processor are identical to the symbols that make up the 'input' part of the computational integrity claim.
- - The processor writes outputs to another stream of symbols called the Output Table. An evaluation argument establishes that the symbols written by the processor are identical to the symbols that make up the 'output' part of the computational integrity claim.
+ - The processor reads from and writes to memory. Whenever the memory pointer `mp` is reset to a prior value, the memory value `mv` must be consistent with the last time this memory cell was set. This consistency is enforced through a permutation argument (to establish set equality) with the *Memory Table*.
+ - The processor reads instructions from a memory-like object that is schematically located in between the processor and the program. On the one hand, a permutation argument (for a subset relation) establishes that every tuple `(ip, ci, ni)` that the processor ever assumes has a matching row in this *Instruction Table*. On the other hand, an evaluation argument (for a sublist relation) establishes that all rows of this Instruction Table correspond to an instruction and its successor at the given location in the program. The verifier, who has cleartext access to the program, evaluates this terminal locally.
+ - The processor reads inputs from a stream of symbols called the Input Table. An evaluation argument (for a sublist relation) establishes that the symbols read by the processor are identical to the symbols that make up the 'input' part of the computational integrity claim.
+ - The processor writes outputs to another stream of symbols called the Output Table. An evaluation argument (sublist relation) establishes that the symbols written by the processor are identical to the symbols that make up the 'output' part of the computational integrity claim.
 
 This description gives rise to the following diagram representation of the various tables and their interactions. The red arrows denote evaluation arguments; the blue arrows denote permutation arguments.
 
@@ -29,7 +33,7 @@ One feature of this diagram might be confusing. If the verifier has cleartext ac
 
 ## Tables
 
-The two-stage RAP defines base columns in the first stage, and extension columns in the second stage. In between the verifier supplies uniformly random scalars $a, b, c, d, e, f, \alpha, \beta, \delta, \gamma, \eta$.
+The two-stage RAP (Randomized AIR with Preprocessing) defines base columns in the first stage, and extension columns in the second stage. In between the verifier supplies uniformly random scalars $a, b, c, d, e, f, \alpha, \beta, \delta, \gamma, \eta$.
 
 ### ProcessorTable
 
@@ -39,17 +43,20 @@ The boundary constraints for the base columns require that all registers except 
 
 The transition constraints for the base columns are rather involved because they capture dependence on the instruction. Let $\mathsf{ci}$ be the variable representing the current instruction register `ci` in the current row. Then define the deselector polynomial for symbol a $\varphi \in \Phi = \lbrace$`[`,`]`,`<`,`>`,`+`,`-`,`,`,`.`$\rbrace$ as 
 $$\varsigma_\varphi(\mathsf{ci}) = \mathsf{ci} \prod_ {\phi \in \Phi \backslash \varphi} (\mathsf{ci} - \phi) \enspace .$$
-It evaluates to zero and in any instruction that is not $\varphi$, but to something nonzero in $\varphi$. The utility of this deselector polynomial stems from the fact that it renders conditionally inactive any AIR constraint it is multiplied with – conditionally being whenever the current instruction is different from $\varphi$. This allows us to focus on the AIR transition constraints *assuming* the given instruction, and then multiply whatever we come up with with this deselector polynomial in order to deactivate it whenever the assumption is false.
+It evaluates to zero in any instruction that is not $\varphi$, but to something nonzero in $\varphi$. The utility of this deselector polynomial stems from the fact that it renders conditionally inactive any AIR constraint it is multiplied with – conditionally being whenever the current instruction is different from $\varphi$. This strategy allows us to focus on the AIR transition constraint polynomials that capture the correct evolution *assuming* the given instruction. Later on we multiply whatever we come up with, with this deselector polynomial in order to deactivate it whenever the assumption is false.
 
 Another useful trick is to describe the transition constraints in [disjunctive normal form](https://en.wikipedia.org/wiki/Disjunctive_normal_form), also known as OR-of-ANDs. This form is useful because an OR of constraints corresponds to a multiplication of constraint polynomials.
 
-With these tricks in mind, let's find AIR transition constraints for each instruction. Let $\mathsf{clk}, \mathsf{ip}, \mathsf{ci}, \mathsf{ni}, \mathsf{mp}, \mathsf{mv}, \mathsf{inv}, \mathsf{clk}^\star, \mathsf{ip}^\star, \mathsf{ci}^\star, \mathsf{ni}^\star, \mathsf{mp}^\star, \mathsf{mv}^\star, \mathsf{inv}^\star$ be the variables that capture two consecutive rows of base columns. Let furthermore $\mathsf{is\_zero}$ be shorthand for the expression $1 - \mathsf{mv} \cdot \mathsf{inv}$, which takes the value 1 whenever $\mathsf{mv}$ is zero and 0 otherwise.
+With these tricks in mind, let's find AIR transition constraints for each instruction. Let $\mathsf{clk}, \mathsf{ip}, \mathsf{ci}, \mathsf{ni}, \mathsf{mp}, \mathsf{mv}, \mathsf{inv}, \mathsf{clk}^\star, \mathsf{ip}^\star, \mathsf{ci}^\star, \mathsf{ni}^\star, \mathsf{mp}^\star, \mathsf{mv}^\star, \mathsf{inv}^\star$ be the variables that capture two consecutive rows of base columns. Let furthermore $\mathsf{iszero}$ be shorthand for the expression $1 - \mathsf{mv} \cdot \mathsf{inv}$, which takes the value 1 whenever $\mathsf{mv}$ is zero and 0 otherwise.
+
+What follows is a whole bunch of polynomial equations. By moving all terms to the left hand side, we can drop the $ = 0$ because it is implicit. The equation is satisfied when the left hand side evaluates to zero.
+
  - $\mathsf{ci} =$ `[`:
-   - jump if $\mathsf{mv} = 0$ and skip two otherwise: $(\mathsf{ip}^\star - \mathsf{ip} - 2) \cdot \mathsf{mv} + (\mathsf{ip}^\star - \mathsf{ni}) \cdot \mathsf{is\_zero}$
+   - jump if $\mathsf{mv} = 0$ and skip two otherwise: $(\mathsf{ip}^\star - \mathsf{ip} - 2) \cdot \mathsf{mv} + (\mathsf{ip}^\star - \mathsf{ni}) \cdot \mathsf{iszero}$
    - memory pointer remains: $\mathsf{mp}^\star - \mathsf{mp}$
    - memory value remains: $\mathsf{mv}^\star - \mathsf{mv}$
  - $\mathsf{ci} = $ `]`:
-   - jump if $\mathsf{mv} \neq 0$ and skip two otherwise: $(\mathsf{ip}^\star - \mathsf{ip} - 2) \cdot \mathsf{is\_zero} + (\mathsf{ip}^\star - \mathsf{ni}) \cdot \mathsf{mv}$
+   - jump if $\mathsf{mv} \neq 0$ and skip two otherwise: $(\mathsf{ip}^\star - \mathsf{ip} - 2) \cdot \mathsf{iszero} + (\mathsf{ip}^\star - \mathsf{ni}) \cdot \mathsf{mv}$
    - memory pointer remains: $\mathsf{mp}^\star - \mathsf{mp}$
    - memory value remains: $\mathsf{mv}^\star - \mathsf{mv}$
  - $\mathsf{ci} = $ `<`:
@@ -84,14 +91,15 @@ In addition to the above, there are polynomials that do not depend on the curren
  - inverse is the correct inverse of the memory value (A): $\mathsf{inv} \cdot (1 - \mathsf{inv} \cdot \mathsf{mv})$
  - inverse is the correct inverse of the memory value (B): $\mathsf{mv} \cdot (1 - \mathsf{inv} \cdot \mathsf{mv})$.
 
-Those are the transition constraints for the base columns. Next up are the transition constraints for the extension columns. To this end the weights $d, a, b, c, e, f$ are assigned to the first six columns; any selection of columns thereby generates a sum with consistent weights. The evaluation and permutation arguments apply to a single virtual column, which in reality is a weighted sum of selected columns. Let $\mathsf{ipa}, \mathsf{mpa}, \mathsf{iea}, \mathsf{oea}$ be the variables in the current for for the instruction permutation argument, memory permutation argument, input evaluation argument, output evaluation argument, respectively, and $\mathsf{ipa}^\star, \mathsf{mpa}^\star, \mathsf{iea}^\star, \mathsf{oea}^\star$ their counterparts for the next row.
+Those are the transition constraints for the base columns. Next up are the transition constraints for the extension columns. To this end the weights $d, a, b, c, e, f$ are assigned to the first six columns; any selection of columns thereby generates a sum with consistent weights. The evaluation and permutation arguments apply to a single virtual (compressed) column, which in reality is a weighted sum of selected columns. Let $\mathsf{ipa}, \mathsf{mpa}, \mathsf{iea}, \mathsf{oea}$ be the variables in the current for the instruction permutation argument, memory permutation argument, input evaluation argument, output evaluation argument, respectively, and $\mathsf{ipa}^\star, \mathsf{mpa}^\star, \mathsf{iea}^\star, \mathsf{oea}^\star$ their counterparts for the next row.
 
  - The instruction permutation argument: applies to columns $\mathsf{ip}$, $\mathsf{ci}$ and $\mathsf{ni}$. Every next element accumulates one factor, but only if the current row is not a padding row because then it remains the same: $\mathsf{ci} \cdot ( \mathsf{ipa} \cdot (a \cdot \mathsf{ip} + b \cdot \mathsf{ci} + c \cdot \mathsf{ni} - \alpha) - \mathsf{ipa}^\star) + (\mathsf{ipa}^\star - \mathsf{ipa}) \cdot \prod_{\varphi \in \Phi} (\mathsf{ci} - \varphi)$.
  - The memory permutation argument: applies to columns $\mathsf{clk}, \mathsf{mp}, \mathsf{mv}$. Every next element accumulates one factor: $\mathsf{mpa} \cdot (d \cdot \mathsf{clk} + e \cdot \mathsf{mp} + f \cdot \mathsf{mv} - \beta) - \mathsf{mpa}^\star$.
  - The input evaluation argument applies to just one column ($\mathsf{mv}$) so the weight is superfluous. The constraint stipulates that the running sum accumulates a term whenever $\mathsf{ci} = $ `,` and remains intact otherwise: $\varsigma_{','}(\mathsf{ni}) \cdot (\mathsf{iea} \cdot \gamma + \mathsf{mv}) + (\mathsf{ni} - ',') \cdot \mathsf{iea} - \mathsf{iea}^\star$.
  - The output evaluation argument is analogous to the input evaluation argument except that the relevant instruction is `.` rather than `,`. The constraint stipulates that the running sum accumulates a term whenever $\mathsf{ci} = $ `.` and remains intact otherwise: $\varsigma_{'.'}(\mathsf{ni}) \cdot (\mathsf{oea} \cdot \delta + \mathsf{mv}) + (\mathsf{ni} - '.') \cdot \mathsf{oea} - \mathsf{oea}^\star$.
 
-The Processor Table has four table relation arguments and so the prover supplies the verifier with four terminals, $T_{\mathsf{ipa}}, T_{\mathsf{mpa}}, T_{\mathsf{iea}}, T_{\mathsf{oea}}$. These terminal values determine terminal constraints, which apply in the last row of extension columns.
+The Processor Table has four table relation arguments and so the prover supplies the verifier with four terminals, $T_{\mathsf{ipa}}, T_{\mathsf{mpa}}, T_{\mathsf{iea}}, T_{\mathsf{oea}}$. These terminal values determine terminal constraints, which apply in the last row of extension columns. These terminal constraints are part of what proves the (sub)set and (sub)list relations.
+
  - For the instruction permutation argument, the last row is the only row that was not accumulated into the running product: $\mathsf{ipa} \cdot (a \cdot \mathsf{ip} + b \cdot \mathsf{ci} + c \cdot \mathsf{ni} - \alpha) - T_{\mathsf{ipa}}$.
  - For the memory permutation argument, once again the last row is the only row that was not accumulated into the running product: $\mathsf{mpa} \cdot (d \cdot \mathsf{clk} + e \cdot \mathsf{mp} + f \cdot \mathsf{mv} - \beta) - T_{\mathsf{mpa}}$.
  - For the input evaluation argument, the last element is identical to the terminal: $\mathsf{iea} - T_{\mathsf{iea}}$.
@@ -99,7 +107,9 @@ The Processor Table has four table relation arguments and so the prover supplies
 
 ### Instruction Table
 
-The Instruction Table contains more rows than the Processor Table. It contains one row for every row in the Processor Table, in addition to one row for every instruction in the program. The rows are sorted by instruction address, except for the rows that were added for padding. It has 3 base columns: $\mathsf{ip}, \mathsf{ci}, \mathsf{ni}$, and 2 extension columns: $\mathsf{ppa}$ (processor permutation argument) and $\mathsf{pea}$ (program evaluation argument). The base columns are weighted with $a, b, c$ and the extension columns operate relative to $\alpha$ and $\eta$ respectively.
+The Instruction Table contains more rows than the Processor Table. It contains one row for every row in the Processor Table, in addition to one row for every instruction in the program. The rows are sorted by instruction address; the rows that were added for padding adopt the instruction address of the last instruction. 
+
+The table has 3 base columns: $\mathsf{ip}, \mathsf{ci}, \mathsf{ni}$, and 2 extension columns: $\mathsf{ppa}$ (processor permutation argument) and $\mathsf{pea}$ (program evaluation argument). The base columns are weighted with $a, b, c$ and the extension columns operate relative to $\alpha$ and $\eta$ respectively.
 
 There is only one boundary constraint that applies to the base columns: $\mathsf{ip}$ (<–– that's the constraint polynomial), which enforces that the instruction pointer starts with zero. In terms of extension columns, the initial value of $\mathsf{ppa}$ is constrained by a difference constraint but not by a boundary constraint. The initial value of $\mathsf{pea}$ should be equal to the appropriately weighted sum: $a \cdot \mathsf{ip} + b \cdot \mathsf{ci} + c \cdot \mathsf{ni} - \mathsf{pea}$.
 
@@ -128,7 +138,7 @@ The Memory Table consists of three base columns, $\mathsf{clk}$, $\mathsf{mp}$, 
 
 The rows of the Memory Table are sorted by memory pointer $\mathsf{mp}$ and then by cycle $\mathsf{clk}$. With this order, gaps in cycle count indicate returning to a previously visited memory cell. These return events are precisely the locations where memory consistency should be enforced.
 
-The boundary constraints for the base columns are $\mathsf{clk} = \mathsf{mp} = \mathsf{mv} = 0$ in the first row. The extnesion column is unconstrained in the first row, because this value should be the secret random initial.
+The boundary constraints for the base columns are $\mathsf{clk} = \mathsf{mp} = \mathsf{mv} = 0$ in the first row. These are arguably redundant, however, since the same is already enforced in the Processor Table. The extension column is unconstrained in the first row, because this value should be the secret random initial.
 
 The transition constraints that apply to the base columns are as follows.
  - The memory pointer increases by one or remains the same: $(\mathsf{mp} + 1 - \mathsf{mp}^\star) \cdot (\mathsf{mp} - \mathsf{mp}^\star)$.
@@ -157,7 +167,7 @@ The terminal constraint, which is relative to the terminal $T_{\mathsf{ea}}$, st
 
 There are two permutation arguments concerning columns that should remain hidden if the STARK proof should achieve zero-knowledge. But the permutation argument yields the value of a polynomial determined by the columns in question, so clearly the terminal value of this permutation argument leaks information.
 
-To avoid this, the first value of the extension columns that compute these permutation arguments is set by the prover to a random inital value. Accordingly, there is no boundary constraint that constrains these columns' initial values. Columns of different tables that compute the same permutation argument start with the same initial. As a result, the terminal is uniformly random and leaks no information about the column without damaging the soundness of the permutation argument.
+To avoid this, the first value of the extension columns that compute these permutation arguments is set by the prover to a random initial value. Accordingly, there is no boundary constraint that constrains these columns' initial values. Columns of different tables that compute the same permutation argument start with the same initial. As a result, the terminal is uniformly random and leaks no information about the column without damaging the soundness of the permutation argument.
 
 It is still necessary to establish that the columns in question do in fact start with the same value. Difference constraints achieve this.
 
