@@ -294,26 +294,12 @@ class VirtualMachine:
                                 register.current_instruction,
                                 register.next_instruction]]
 
-        # post-process context tables
         # sort by instruction address
         instruction_matrix.sort(key=lambda row: row[0].value)
 
-        # compute instance data for computation
-        log_time = 0
-        while 1 << log_time < len(processor_matrix):
-            log_time += 1
+        memory_matrix = MemoryTable.derive_matrix(processor_matrix)
 
-        # order = 1 << 32
-        # generator = field.primitive_nth_root(1<<32)
-        # processor_table = ProcessorTable(field, len(processor_matrix), generator, order)
-        # processor_table.table = processor_matrix
-        # instruction_table = InstructionTable(field, len(instruction_matrix), generator, order)
-        # memory_table = MemoryTable(field, len(memory_matrix), generator, order)
-        # input_table = IOTable(field, len(input_matrix), generator, order)
-        # output_table = IOTable(field, len(
-        #     output_matrix), generator, order)
-
-        return processor_matrix, instruction_matrix, input_matrix, output_matrix
+        return processor_matrix, memory_matrix, instruction_matrix, input_matrix, output_matrix
 
     @ staticmethod
     def num_challenges():

@@ -180,14 +180,16 @@ def test_bfs():
     print("input symbols:", input_symbols)
     print("output_symbols:", output_symbols)
 
-    bfs = BrainfuckStark(running_time, program, input_symbols, output_symbols)
-
     # Print "Hello World!"
     # program = VirtualMachine.compile(
     #     "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.")
-    processor_matrix, instruction_matrix, input_matrix, output_matrix = VirtualMachine.simulate(
+    processor_matrix, memory_matrix, instruction_matrix, input_matrix, output_matrix = VirtualMachine.simulate(
         program, input_data=input_symbols)
-    running_time = len(processor_matrix)
+    assert (running_time == len(processor_matrix))
+    memory_length = len(memory_matrix)
+
+    bfs = BrainfuckStark(running_time, memory_length,
+                         program, input_symbols, output_symbols)
 
     filename = "proof.dump"
     if exists(filename):
@@ -195,7 +197,7 @@ def test_bfs():
         proof = pickle.load(fh)
         fh.close()
     else:
-        proof = bfs.prove(len(processor_matrix), program, processor_matrix,
+        proof = bfs.prove(program, processor_matrix, memory_matrix,
                           instruction_matrix, input_matrix, output_matrix)
         fh = open(filename, "wb")
         pickle.dump(proof, fh)

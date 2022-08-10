@@ -21,9 +21,10 @@ class BrainfuckStark:
     field = BaseField.main()
     xfield = ExtensionField.main()
 
-    def __init__(self, running_time, program, input_symbols, output_symbols):
+    def __init__(self, running_time, memory_length, program, input_symbols, output_symbols):
         # set fields of computational integrity claim
         self.running_time = running_time
+        self.memory_length = memory_length
         self.program = program
         self.input_symbols = input_symbols
         self.output_symbols = output_symbols
@@ -53,7 +54,7 @@ class BrainfuckStark:
         self.instruction_table = InstructionTable(
             self.field, running_time + len(program), self.num_randomizers, smooth_generator, order)
         self.memory_table = MemoryTable(
-            self.field, running_time, self.num_randomizers, smooth_generator, order)
+            self.field, memory_length, self.num_randomizers, smooth_generator, order)
         self.input_table = InputTable(
             self.field, len(input_symbols), smooth_generator, order)
         self.output_table = OutputTable(
@@ -130,25 +131,23 @@ class BrainfuckStark:
             return 1
         return 1 << (len(bin(integer-1)[2:]))
 
-    def prove(self, running_time, program, processor_matrix, instruction_matrix, input_matrix, output_matrix, proof_stream=None):
-        assert(running_time == len(processor_matrix))
-        assert(running_time + len(program) == len(instruction_matrix))
+    def prove(self, program, processor_matrix, memory_matrix, instruction_matrix, input_matrix, output_matrix, proof_stream=None):
+        running_time = len(processor_matrix)
+        assert (running_time + len(program) == len(instruction_matrix))
 
         # populate tables' matrices
         self.processor_table.matrix = processor_matrix
+        self.memory_table.matrix = memory_matrix
         self.instruction_table.matrix = instruction_matrix
         self.input_table.matrix = input_matrix
         self.output_table.matrix = output_matrix
 
         # pad table to height 2^k
         self.processor_table.pad()
+        self.memory_table.pad()
         self.instruction_table.pad()
         self.input_table.pad()
         self.output_table.pad()
-
-        # instantiate other table objects
-        self.memory_table.matrix = MemoryTable.derive_matrix(
-            self.processor_table.matrix)
 
         # create proof stream if we don't have it already
         if proof_stream == None:
