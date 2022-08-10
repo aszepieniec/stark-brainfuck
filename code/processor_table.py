@@ -260,13 +260,13 @@ class ProcessorTable(Table):
                          - c * next_instruction)
                         - instruction_permutation_next) * current_instruction +
                         self.instruction_zerofier(current_instruction) * (instruction_permutation - instruction_permutation_next)]
-        #polynomials += [cycle-cycle] # zero
+        # polynomials += [cycle-cycle] # zero
 
         # running product for memory permutation
-        polynomials += [memory_permutation *
+        polynomials += [(memory_permutation *
                         (beta - d * cycle
                          - e * memory_pointer - f * memory_value)
-                        - memory_permutation_next]
+                        - memory_permutation_next) * current_instruction + (memory_permutation - memory_permutation_next) * ProcessorTable.instruction_zerofier(current_instruction)]
         # running evaluation for input
         polynomials += [(input_evaluation_next - input_evaluation * gamma - memory_value_next) * ProcessorTable.ifnot_instruction(
             ',', current_instruction) * current_instruction + (input_evaluation_next - input_evaluation) * ProcessorTable.if_instruction(',', current_instruction)]
@@ -315,15 +315,28 @@ class ProcessorTable(Table):
         #                   - self.b * current_instruction
         #                   - self.c * next_instruction)
         #                 - instruction_permutation_next) * current_instruction]
-        airs += [MPolynomial.constant(terminals[0]) - x[ProcessorTable.instruction_permutation]]
+        airs += [MPolynomial.constant(terminals[0]) -
+                 x[ProcessorTable.instruction_permutation]]
 
         # running product for memory permutation
-        # polynomials += [memory_permutation *
-        #                 (self.beta - self.d * cycle
-        #                  - self.e * memory_pointer - self.f * memory_value)
-        #                 - memory_permutation_next]
-        airs += [MPolynomial.constant(terminals[1]) - x[ProcessorTable.memory_permutation] * (
-            beta - d * x[ProcessorTable.cycle] - e * x[ProcessorTable.memory_pointer] - f * x[ProcessorTable.memory_value])]
+        # polynomials += [(memory_permutation *
+        #                   (beta
+        #                       - d * cycle
+        #                       - e * memory_pointer
+        #                       - f * memory_value)
+        #                   - memory_permutation_next) * current_instruction
+        #               + (memory_permutation - memory_permutation_next)
+        #                   * ProcessorTable.instruction_zerofier(current_instruction)]
+        airs += [(MPolynomial.constant(terminals[1])
+                  - x[ProcessorTable.memory_permutation]
+                  * (beta
+                     - d * x[ProcessorTable.cycle]
+                     - e * x[ProcessorTable.memory_pointer]
+                     - f * x[ProcessorTable.memory_value]))
+                 * x[ProcessorTable.current_instruction]
+                 + (MPolynomial.constant(terminals[1]) -
+                    x[ProcessorTable.memory_permutation])
+                 * ProcessorTable.instruction_zerofier(x[ProcessorTable.current_instruction])]
 
         # running evaluation for input
         # polynomials += [(input_evaluation_next \
@@ -381,10 +394,11 @@ class ProcessorTable(Table):
 
             # 2. running product for memory access
             new_row += [memory_permutation_running_product]
-            memory_permutation_running_product *= beta \
-                - d * new_row[ProcessorTable.cycle] \
-                - e * new_row[ProcessorTable.memory_pointer] \
-                - f * new_row[ProcessorTable.memory_value]
+            if not new_row[ProcessorTable.current_instruction].is_zero():
+                memory_permutation_running_product *= beta \
+                    - d * new_row[ProcessorTable.cycle] \
+                    - e * new_row[ProcessorTable.memory_pointer] \
+                    - f * new_row[ProcessorTable.memory_value]
 
             # 3. evaluation for input
             new_row += [input_evaluation_running_evaluation]

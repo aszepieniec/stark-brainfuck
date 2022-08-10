@@ -7,23 +7,44 @@ class MemoryTable(Table):
     cycle = 0
     memory_pointer = 1
     memory_value = 2
+    dummy = 3
 
     # named indices for extension columns
-    permutation = 3
+    permutation = 4
 
     def __init__(self, field, length, num_randomizers, generator, order):
         super(MemoryTable, self).__init__(
-            field, 3, 4, length, num_randomizers, generator, order)
+            field, 4, 5, length, num_randomizers, generator, order)
 
+    # outputs an unpadded but interweaved matrix
     @staticmethod
     def derive_matrix(processor_matrix):
+        zero = processor_matrix[0][ProcessorTable.cycle].field.zero()
+        one = processor_matrix[0][ProcessorTable.cycle].field.one()
+
+        # copy unpadded rows and sort
         matrix = [[pt[ProcessorTable.cycle], pt[ProcessorTable.memory_pointer],
-                  pt[ProcessorTable.memory_value]] for pt in processor_matrix]
+                   pt[ProcessorTable.memory_value], zero] for pt in processor_matrix if not pt[ProcessorTable.current_instruction].is_zero()]
         matrix.sort(key=lambda mt: mt[MemoryTable.memory_pointer].value)
+
+        # insert dummy rows for smooth clk jumps
+        i = 0
+        while i < len(matrix)-1:
+            if matrix[i][MemoryTable.memory_pointer] == matrix[i+1][MemoryTable.memory_pointer] and matrix[i+1][MemoryTable.cycle] != matrix[i][MemoryTable.cycle] + one:
+                matrix.insert(i+1, [matrix[i][MemoryTable.cycle] + one, matrix[i]
+                              [MemoryTable.memory_pointer], matrix[i][MemoryTable.memory_value], one])
+            i += 1
+
         return matrix
 
+    def pad(self):
+        one = self.matrix[0][MemoryTable.cycle].field.one()
+        while len(self.matrix) & (len(self.matrix) - 1) != 0:
+            self.matrix += [self.matrix[-1][MemoryTable.cycle] + one, self.matrix[-1]
+                            [MemoryTable.memory_pointer], self.matrix[-1][MemoryTable.memory_value], one]
+
     @staticmethod
-    def transition_constraints_afo_named_variables(cycle, address, value, cycle_next, address_next, value_next):
+    def transition_constraints_afo_named_variables(cycle, address, value, dummy, cycle_next, address_next, value_next, dummy_next):
         field = list(address.dictionary.values())[0].field
         one = MPolynomial.constant(field.one())
 
@@ -51,10 +72,10 @@ class MemoryTable(Table):
         return polynomials
 
     def base_transition_constraints(self):
-        cycle, address, value, \
-            cycle_next, address_next, value_next = MPolynomial.variables(
-                6, self.field)
-        return MemoryTable.transition_constraints_afo_named_variables(cycle, address, value, cycle_next, address_next, value_next)
+        cycle, address, value, dummy, \
+            cycle_next, address_next, value_next, dummy_next = MPolynomial.variables(
+                2*self.base_width, self.field)
+        return MemoryTable.transition_constraints_afo_named_variables(cycle, address, value, dummy, cycle_next, address_next, value_next, dummy_next)
 
     def base_boundary_constraints(self):
         # format: mpolynomial
@@ -72,20 +93,21 @@ class MemoryTable(Table):
 
     def transition_constraints_ext(self, challenges):
         field = challenges[0].field
+        one = MPolynomial.constant(field.one())
         a, b, c, d, e, f, alpha, beta, gamma, delta, eta = [
             MPolynomial.constant(c) for c in challenges]
-        cycle, address, value, permutation, \
-            cycle_next, address_next, value_next, permutation_next = MPolynomial.variables(
-                8, field)
+        cycle, address, value, dummy, permutation,  \
+            cycle_next, address_next, value_next, dummy_next, permutation_next = MPolynomial.variables(
+                2*self.full_width, field)
 
         polynomials = MemoryTable.transition_constraints_afo_named_variables(
-            cycle, address, value, cycle_next, address_next, value_next)
+            cycle, address, value, dummy, cycle_next, address_next, value_next, dummy_next)
 
-        polynomials += [permutation *
+        polynomials += [(permutation *
                         (beta - d * cycle
                          - e * address
                          - f * value)
-                        - permutation_next]
+                        - permutation_next) * (one - dummy) + (permutation - permutation_next) * dummy]
 
         return polynomials
 
@@ -103,6 +125,7 @@ class MemoryTable(Table):
 
     def terminal_constraints_ext(self, challenges, terminals):
         field = challenges[0].field
+        one = MPolynomial.constant(field.one())
         a, b, c, d, e, f, alpha, beta, gamma, delta, eta = [
             MPolynomial.constant(ch) for ch in challenges]
         permutation = terminals[1]
@@ -114,7 +137,18 @@ class MemoryTable(Table):
         #                  - f * value)
         #                 - permutation_next]
 
-        return [x[MemoryTable.permutation] * (beta - d * x[MemoryTable.cycle] - e * x[MemoryTable.memory_pointer] - f * x[MemoryTable.memory_value]) - MPolynomial.constant(permutation)]
+        # [(permutation *
+        #             (beta - d * cycle
+        #              - e * address
+        #              - f * value)
+        #             - permutation_next) * (one - dummy) + (permutation - permutation_next) * dummy]
+
+        return [(x[MemoryTable.permutation] *
+                 (beta - d * x[MemoryTable.cycle]
+                  - e * x[MemoryTable.memory_pointer]
+                  - f * x[MemoryTable.memory_value])
+                 - MPolynomial.constant(permutation)) * (one - x[MemoryTable.dummy])
+                + (x[MemoryTable.permutation] - MPolynomial.constant(permutation)) * x[MemoryTable.dummy]]
 
     def extend(self, all_challenges, all_initials):
         a, b, c, d, e, f, alpha, beta, gamma, delta, eta = all_challenges
@@ -135,12 +169,14 @@ class MemoryTable(Table):
             new_row = [xfield.lift(nr) for nr in row]
 
             new_row += [memory_permutation_running_product]
-            memory_permutation_running_product *= beta \
-                - d * new_row[MemoryTable.cycle] \
-                - e * new_row[MemoryTable.memory_pointer] \
-                - f * new_row[MemoryTable.memory_value]
 
             extended_matrix += [new_row]
+
+            if new_row[MemoryTable.dummy].is_zero():
+                memory_permutation_running_product *= beta \
+                    - d * new_row[MemoryTable.cycle] \
+                    - e * new_row[MemoryTable.memory_pointer] \
+                    - f * new_row[MemoryTable.memory_value]
 
         self.matrix = extended_matrix
         self.field = xfield
