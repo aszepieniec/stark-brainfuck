@@ -50,24 +50,45 @@ class MemoryTable(Table):
 
         polynomials = []
 
-        # 1. memory pointer increases by one, zero, or minus one
+        # 1. memory pointer increases by one, zero
         # <=>. (MP*=MP+1) \/ (MP*=MP)
         polynomials += [(address_next - address - one)
                         * (address_next - address)]
 
-        # 2. If a) memory pointer does not increase; and b) cycle count increases by one; then the memory value may change
+        # 2. Only if a) memory pointer does not increase; and b) cycle count increases by one; then the memory value may change
         # a) MV*=/=MV => MP=MP*
         # (DNF:) <=> MV*==MV \/ MP*=MP
-        polynomials += [(value_next-value)*(address_next-address)]
+        # polynomials += [(value_next-value)*(address_next-address)]
         # b) MV*=/=MV => CLK*=CLK+1
         # (DNF:) <=> MV*==MV \/ CLK*=CLK+1
-        polynomials += [(value_next-value)*(cycle + one - cycle_next)]
+        # polynomials += [(value_next-value)*(cycle + one - cycle_next)]
+        # These constraints are implied by 3.
 
         # 3. if memory pointer increases by one, then memory value must be set to zero
         #        <=>. MP*=MP+1 => MV* = 0
         # (DNF:) <=>. MP*=/=MP+1 \/ MV*=0
         polynomials += [(address_next - address)
                         * value_next]
+
+        # 4. Dummy has to be zero or one
+        # (DNF:) <=> D=1 \/ D=0
+        polynomials += [(dummy_next - one) * dummy_next]
+
+        # 5. If Dummy is set, memory pointer cannot change
+        #        <=> D=1 => MP*=MP
+        # (DNF:) <=> D=/=1 \/ MP*=MP
+        polynomials += [dummy * (address_next - address)]
+
+        # 6. If Dummy is set, memory value cannot change
+        #        <=> D=1 => MV*=MV
+        # (DNF:) <=> D=/=1 \/ MV*=MV
+        polynomials += [dummy * (value_next - value)]
+
+        # 7. If the memory pointer remains the same, then the cycle counter has to increase by one
+        #        <=> MP*=MP => CLK*=CLK+1
+        # (DNF:) <=> MP*=/=MP \/ CLK*=CLK+1
+        polynomials += [(address_next - one - address)
+                        * (cycle_next - one - cycle)]
 
         return polynomials
 
