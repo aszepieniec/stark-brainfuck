@@ -83,7 +83,9 @@ class BrainfuckStark:
         # compute fri domain length
         self.max_degree = 1
         for table in self.tables:
-            for air in table.transition_constraints_ext([self.xfield.zero()] * 11):
+             # Using one() here might lead to syzygies in weird edge cases,
+             # but that shouldn't be the case for Brainfuck though.
+            for air in table.transition_constraints_ext([self.xfield.one()] * 11):
                 degree_bounds = [table.interpolant_degree()] * \
                     table.full_width * 2
                 degree = air.symbolic_degree_bound(
