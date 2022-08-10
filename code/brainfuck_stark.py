@@ -36,12 +36,12 @@ class BrainfuckStark:
         self.security_level = 160  # for security
         self.security_level = 2  # for speed
         self.num_colinearity_checks = self.security_level // log_expansion_factor
-        assert(self.expansion_factor & (self.expansion_factor - 1)
-               == 0), "expansion factor must be a power of 2"
-        assert(self.expansion_factor >=
-               4), "expansion factor must be 4 or greater"
-        assert(self.num_colinearity_checks * len(bin(self.expansion_factor)
-               [3:]) >= self.security_level), "number of colinearity checks times log of expansion factor must be at least security level"
+        assert (self.expansion_factor & (self.expansion_factor - 1)
+                == 0), "expansion factor must be a power of 2"
+        assert (self.expansion_factor >=
+                4), "expansion factor must be 4 or greater"
+        assert (self.num_colinearity_checks * len(bin(self.expansion_factor)
+                                                  [3:]) >= self.security_level), "number of colinearity checks times log of expansion factor must be at least security level"
 
         self.num_randomizers = 1  # TODO: self.security_level
 
@@ -84,8 +84,8 @@ class BrainfuckStark:
         # compute fri domain length
         self.max_degree = 1
         for table in self.tables:
-             # Using one() here might lead to syzygies in weird edge cases,
-             # but that shouldn't be the case for Brainfuck though.
+            # Using one() here might lead to syzygies in weird edge cases,
+            # but that shouldn't be the case for Brainfuck though.
             for air in table.transition_constraints_ext([self.xfield.one()] * 11):
                 degree_bounds = [table.interpolant_degree()] * \
                     table.full_width * 2
@@ -241,8 +241,8 @@ class BrainfuckStark:
         terms = [randomizer_codeword]
         # base_codewords = processor_base_codewords + instruction_base_codewords + \
         # memory_base_codewords + input_base_codewords + output_base_codewords
-        assert(len(base_codewords) ==
-               num_base_polynomials), f"number of base codewords {len(base_codewords)} codewords =/= number of base polynomials {num_base_polynomials}!"
+        assert (len(base_codewords) ==
+                num_base_polynomials), f"number of base codewords {len(base_codewords)} codewords =/= number of base polynomials {num_base_polynomials}!"
         for i in range(len(base_codewords)):
             terms += [[self.xfield.lift(c) for c in base_codewords[i]]]
             shift = self.max_degree - base_degree_bounds[i]
@@ -253,9 +253,9 @@ class BrainfuckStark:
                 interpolated = self.fri.domain.xinterpolate(terms[-1])
                 print(
                     f"degree of interpolation, base_codewords({i}): {interpolated.degree()}")
-                assert(interpolated.degree() <= self.max_degree)
-        assert(len(extension_codewords) ==
-               num_extension_polynomials), f"number of extension codewords {len(extension_codewords)} =/= number of extension polynomials {num_extension_polynomials}"
+                assert (interpolated.degree() <= self.max_degree)
+        assert (len(extension_codewords) ==
+                num_extension_polynomials), f"number of extension codewords {len(extension_codewords)} =/= number of extension polynomials {num_extension_polynomials}"
         for i in range(len(extension_codewords)):
             terms += [extension_codewords[i]]
             shift = self.max_degree - extension_degree_bounds[i]
@@ -266,16 +266,16 @@ class BrainfuckStark:
                 interpolated = self.fri.domain.xinterpolate(terms[-1])
                 print(
                     f"degree of interpolation, extension_codewords({i}): {interpolated.degree()}")
-                assert(interpolated.degree() <= self.max_degree)
-        assert(len(quotient_codewords) ==
-               num_quotient_polynomials), f"number of quotient codewords {len(quotient_codewords)} =/= number of quotient polynomials {num_quotient_polynomials}"
+                assert (interpolated.degree() <= self.max_degree)
+        assert (len(quotient_codewords) ==
+                num_quotient_polynomials), f"number of quotient codewords {len(quotient_codewords)} =/= number of quotient polynomials {num_quotient_polynomials}"
 
         for quotient_codeword, quotient_degree_bound in zip(quotient_codewords, quotient_degree_bounds):
             terms += [quotient_codeword]
             if os.environ.get('DEBUG') is not None:
                 interpolated = self.fri.domain.xinterpolate(terms[-1])
-                assert(interpolated.degree() == -1 or interpolated.degree() <=
-                       quotient_degree_bound), f"for unshifted quotient polynomial {i}, interpolated degree is {interpolated.degree()} but > degree bound i = {quotient_degree_bound}"
+                assert (interpolated.degree() == -1 or interpolated.degree() <=
+                        quotient_degree_bound), f"for unshifted quotient polynomial {i}, interpolated degree is {interpolated.degree()} but > degree bound i = {quotient_degree_bound}"
             shift = self.max_degree - quotient_degree_bound
 
             terms += [[self.xfield.lift(self.fri.domain(j) ^ shift) * quotient_codeword[j]
@@ -286,12 +286,12 @@ class BrainfuckStark:
                 print(
                     f"degree of interpolation, , quotient_codewords({i}): {interpolated.degree()}")
                 print("quotient  degree bound:", quotient_degree_bound)
-                assert(interpolated.degree(
+                assert (interpolated.degree(
                 ) == -1 or interpolated.degree() <= self.max_degree), f"for (shifted) quotient polynomial {i}, interpolated degree is {interpolated.degree()} but > max_degree = {self.max_degree}"
 
         # take weighted sum
         # combination = sum(weights[i] * terms[i] for i)
-        assert(len(terms) == len(
+        assert (len(terms) == len(
             weights)), f"number of terms {len(terms)} is not equal to number of weights {len(weights)}"
 
         combination_codeword = reduce(
@@ -319,8 +319,8 @@ class BrainfuckStark:
                 proof_stream.push(element)
                 proof_stream.push((salt, path))
 
-                assert(SaltedMerkle.verify(base_tree.root(), idx, salt, path,
-                       element)), "SaltedMerkle for base tree leaf fails to verify"
+                assert (SaltedMerkle.verify(base_tree.root(), idx, salt, path,
+                                            element)), "SaltedMerkle for base tree leaf fails to verify"
 
                 proof_stream.push(extension_tree.leafs[idx][0])
                 proof_stream.push(extension_tree.open(idx))
@@ -329,8 +329,8 @@ class BrainfuckStark:
         for index in indices:
             proof_stream.push(combination_tree.leafs[index])
             proof_stream.push(combination_tree.open(index))
-            assert(Merkle.verify(combination_tree.root(), index,
-                   combination_tree.open(index), combination_tree.leafs[index]))
+            assert (Merkle.verify(combination_tree.root(), index,
+                                  combination_tree.open(index), combination_tree.leafs[index]))
 
         # prove low degree of combination polynomial, and collect indices
         indices = self.fri.prove(combination_codeword, proof_stream)
@@ -428,7 +428,7 @@ class BrainfuckStark:
                 verifier_verdict = verifier_verdict and SaltedMerkle.verify(
                     base_root, idx, salt, path, element)
                 tuples[idx] = [self.xfield.lift(e) for e in list(element)]
-                assert(
+                assert (
                     verifier_verdict), "salted base tree verify must succeed for base codewords"
 
                 element = proof_stream.pull()
@@ -436,11 +436,11 @@ class BrainfuckStark:
                 verifier_verdict = verifier_verdict and SaltedMerkle.verify(
                     extension_root, idx, salt, path, element)
                 tuples[idx] = tuples[idx] + list(element)
-                assert(
+                assert (
                     verifier_verdict), "salted base tree verify must succeed for extension codewords"
 
-        assert(num_base_polynomials == len(base_degree_bounds)
-               ), f"number of base polynomials {num_base_polynomials} =/= number of base degree bounds {len(base_degree_bounds)}"
+        assert (num_base_polynomials == len(base_degree_bounds)
+                ), f"number of base polynomials {num_base_polynomials} =/= number of base degree bounds {len(base_degree_bounds)}"
         # verify nonlinear combination
         for index in indices:
             # collect terms: randomizer
@@ -458,7 +458,7 @@ class BrainfuckStark:
             extension_offset = num_randomizer_polynomials + \
                 sum(table.base_width for table in self.tables)
 
-            assert(len(
+            assert (len(
                 terms) == 2 * extension_offset - num_randomizer_polynomials), f"number of terms {len(terms)} does not match with extension offset {2 * extension_offset - num_randomizer_polynomials}"
 
             for i in range(num_extension_polynomials):
@@ -476,15 +476,15 @@ class BrainfuckStark:
                 points += [tuples[index][acc_index:(acc_index+step)]]
                 acc_index += step
 
-            assert(acc_index == extension_offset,
-                   "Column count in verifier must match until extension columns")
+            assert (acc_index == extension_offset,
+                    "Column count in verifier must match until extension columns")
 
             for point, table in zip(points, self.tables):
                 step = table.full_width - table.base_width
                 point += tuples[index][acc_index:(acc_index+step)]
                 acc_index += step
 
-            assert(acc_index == len(
+            assert (acc_index == len(
                 tuples[index]), "Column count in verifier must match until end")
 
             base_acc_index = num_randomizer_polynomials
@@ -546,7 +546,7 @@ class BrainfuckStark:
                 terms += [quotient *
                           self.xfield.lift(self.fri.domain(index) ^ shift)]
 
-            assert(len(terms) == len(
+            assert (len(terms) == len(
                 weights)), f"length of terms ({len(terms)}) must be equal to length of weights ({len(weights)})"
 
             # compute inner product of weights and terms

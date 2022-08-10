@@ -249,8 +249,8 @@ class ProcessorTable(Table):
         polynomials = ProcessorTable.transition_constraints_afo_named_variables(cycle, instruction_pointer, current_instruction, next_instruction, memory_pointer, memory_value,
                                                                                 memory_value_inverse, cycle_next, instruction_pointer_next, current_instruction_next, next_instruction_next, memory_pointer_next, memory_value_next, memory_value_inverse_next)
 
-        assert(len(polynomials) ==
-               6), f"expected to have 6 transition constraint polynomials, but have {len(polynomials)}"
+        assert (len(polynomials) ==
+                6), f"expected to have 6 transition constraint polynomials, but have {len(polynomials)}"
 
         # extension AIR polynomials
         # running product for instruction permutation
@@ -274,8 +274,8 @@ class ProcessorTable(Table):
         polynomials += [(output_evaluation_next - output_evaluation * delta - memory_value) * ProcessorTable.ifnot_instruction(
             '.', current_instruction) * current_instruction + (output_evaluation_next - output_evaluation) * ProcessorTable.if_instruction('.', current_instruction)]
 
-        assert(len(polynomials) ==
-               10), f"number of transition constraints ({len(polynomials)}) does not match with expectation (10)"
+        assert (len(polynomials) ==
+                10), f"number of transition constraints ({len(polynomials)}) does not match with expectation (10)"
 
         return polynomials  # max degree 11
 
@@ -297,8 +297,8 @@ class ProcessorTable(Table):
                        x[self.input_evaluation] - zero,
                        x[self.output_evaluation] - zero
                        ]
-        assert(len(constraints) ==
-               7), "number of boundary constraints does not match with expectation"
+        assert (len(constraints) ==
+                7), "number of boundary constraints does not match with expectation"
         return constraints
 
     def terminal_constraints_ext(self, challenges, terminals):
@@ -339,7 +339,8 @@ class ProcessorTable(Table):
         airs += [MPolynomial.constant(terminals[3]) -
                  x[ProcessorTable.output_evaluation]]
 
-        assert(len(airs) == 4), "number of terminal airs did not match with expectation"
+        assert (len(airs) ==
+                4), "number of terminal airs did not match with expectation"
         return airs
 
     def extend(self, all_challenges, all_initials):

@@ -85,17 +85,21 @@ class VirtualMachine:
 
         # parser
         program = []
-        stack = []  # keeps track of loop beginnings while (potentially nested) loops are being compiled
+        # keeps track of loop beginnings while (potentially nested) loops are being compiled
+        stack = []
         for symbol in brainfuck_code:
             program += [F(symbol)]
             # to allow skipping a loop and jumping back to the loop's beginning, the respective start and end positions
             # are recorded in the program. For example, the (nonsensical) program `+[>+<-]+` would be `+[9>+<-]3+`.
             if symbol == '[':
-                program += [zero]  # placeholder for position of loop's end, to be filled in once position is known
+                # placeholder for position of loop's end, to be filled in once position is known
+                program += [zero]
                 stack += [len(program) - 1]
             elif symbol == ']':
-                program += [BaseFieldElement(stack[-1] + 1, field)]  # record loop's end
-                program[stack[-1]] = BaseFieldElement(len(program), field)  # record loop's beginning
+                # record loop's end
+                program += [BaseFieldElement(stack[-1] + 1, field)]
+                # record loop's beginning
+                program[stack[-1]] = BaseFieldElement(len(program), field)
                 stack = stack[:-1]
 
         return program
@@ -153,7 +157,7 @@ class VirtualMachine:
                     input_counter += 1
                 memory[memory_pointer] = BaseFieldElement(ord(char), field)
             else:
-                assert(
+                assert (
                     False), f"unrecognized instruction at {instruction_pointer}: {program[instruction_pointer].value}"
 
             running_time += 1
@@ -259,7 +263,7 @@ class VirtualMachine:
                 input_matrix += [[memory[register.memory_pointer]]]
 
             else:
-                assert(
+                assert (
                     False), f"unrecognized instruction at {register.instruction_pointer.value}: '{chr(register.current_instruction.value)}'"
 
             # update non-pointer registers

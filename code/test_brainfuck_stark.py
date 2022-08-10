@@ -101,7 +101,7 @@ def mallorys_simulator(program, input_data=[]):
             input_matrix += [[memory[register.memory_pointer]]]
 
         else:
-            assert(
+            assert (
                 False), f"unrecognized instruction at {register.instruction_pointer.value}: '{chr(register.current_instruction.value)}'"
 
         # update non-pointer registers
@@ -211,7 +211,7 @@ def test_bfs():
     #output_symbols = [row[0] for row in output_matrix]
 
     verdict = bfs.verify(proof)
-    assert(verdict == True), "honest proof fails to verify"
+    assert (verdict == True), "honest proof fails to verify"
     print("output length was:", len(output_symbols))
 
     if verdict == True:
