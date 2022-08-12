@@ -60,4 +60,4 @@ In the case of the Brainfuck VM, the program terminates when the instruction poi
 
 | Next up: [Part III: Arithmetization](arithmetization) |
 |-|
-| [0](index) - [1](engine) - **2** - [3](arithmetization) - [4](next) |
+| [0](index) - [1](engine) - **2** - [3](arithmetization) - [4](next) - [5](attack) |

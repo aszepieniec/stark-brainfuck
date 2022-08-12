@@ -184,4 +184,4 @@ Credit goes to [Ferdinand](https://github.com/jan-ferdinand) for producing the f
 
 | Next up: [Part IV: Next Steps](next) |
 |-|
-| [0](index) - [1](engine) - [2](brainfuck) - **3** - [4](next) |
+| [0](index) - [1](engine) - [2](brainfuck) - **3** - [4](next) - [5](attack) |

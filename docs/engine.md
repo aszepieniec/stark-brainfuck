@@ -332,7 +332,7 @@ The prover follows the workflow sketched below. This workflow implicitly defines
 
 | Next up: [Part II: Brainfuck](brainfuck) |
 |-|
-| [0](index) - **1** - [2](brainfuck) - [3](arithmetization) - [4](next) |
+| [0](index) - **1** - [2](brainfuck) - [3](arithmetization) - [4](next) - [5](attack) |
 
 [^1]: This table-lookup argument is similar to [Plookup](https://eprint.iacr.org/2020/315.pdf) except that it uses the element-wise inverse column along with an evaluation argument, whereas Plookup uses a custom argument to establish the correct order of the nonzero consecutive differences.
 

@@ -40,4 +40,4 @@ Many thanks go to [Thorkil Værge](https://github.com/Sword-Smith) for helping t
 
 | Next up: [Part I: STARK Engine](engine) |
 |-|
-| **0** - [1](engine) - [2](brainfuck) - [3](arithmetization) - [4](next) |
+| **0** - [1](engine) - [2](brainfuck) - [3](arithmetization) - [4](next) - [5](attack) |
