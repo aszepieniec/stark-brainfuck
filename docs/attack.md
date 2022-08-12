@@ -112,7 +112,7 @@ The transition constraints for the base table are as follows.
 
  The terminal constraint is essentially the same as the transition constraint but with $\mathsf{ppa}^\star$ replaced by $T_{\mathsf{ppa}}$: $\mathsf{d} \cdot \mathsf{ppa} + (1 - \mathsf{d}) \cdot \mathsf{ppa} \cdot (d \cdot \mathsf{clk} + e \cdot \mathsf{mp} + f \cdot \mathsf{mv} - \beta) - T_{\mathsf{ppa}}$
 
- **Acknowledgements.** Many thanks to [Yuncong Zhang](https://github.com/yczhangshjt) for drawing attention to the attack, and to [Thorkil](https://github.com/Sword-Smith) for demonstrating the attack, brainstorming for a solution, and helping to implement it.
+ **Acknowledgements.** Many thanks to [Yuncong Zhang](https://github.com/yczhangsjtu) for drawing attention to the attack, and to [Thorkil](https://github.com/Sword-Smith) for demonstrating the attack, brainstorming for a solution, and helping to implement it.
 
 | Back to Start: [Index](index) |
 |-|
