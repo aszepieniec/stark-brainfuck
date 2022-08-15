@@ -22,6 +22,7 @@ This tutorial assumes some familiarity with SNARKs in general, STARKs in particu
  - [Part 2: Brainfuck](brainfuck) describes the language that we are building a STARK engine for.
  - [Part 3: Arithmetization of Brainfuck VM](arithmetization) describes the arithmetization for Brainfuck, and compiles the STARK engine tools developed earlier to build a STARK engine for Brainfuck.
  - [Part 4: Next Steps](next) concludes this tutorial with some thought-provoking perspectives and ideas and suggestions for next steps. 
+ - [Part 5: Attack!](attack) was added later. It covers an attack and fix.
 
 ## Supporting Python Code
 
