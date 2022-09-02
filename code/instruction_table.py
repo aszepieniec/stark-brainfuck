@@ -33,6 +33,9 @@ class InstructionTable(Table):
         # instruction pointer increases by 0 or 1
         polynomials += [(address_next - address - one)
                         * (address_next - address)]
+        # if address changes, then current row's next instruction is the next row's current instruction
+        polynomials += [(address_next - address) *
+                        (next_instruction - current_instruction_next)]
         # if address is the same, then current instruction is also
         polynomials += [(address_next - address - one) *
                         (current_instruction_next - current_instruction)]
