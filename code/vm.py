@@ -72,7 +72,7 @@ class VirtualMachine:
 
     def execute(brainfuck_code):
         program = VirtualMachine.compile(brainfuck_code)
-        running_time, input_data, output_data = VirtualMachine.perform(program)
+        running_time, input_data, output_data = VirtualMachine.run(program)
         return running_time, input_data, output_data
 
     def compile(brainfuck_code):
@@ -342,4 +342,3 @@ class VirtualMachine:
             b * current_instruction + c * next_instruction
 
         return running_sum
-
