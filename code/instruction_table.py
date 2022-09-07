@@ -81,9 +81,6 @@ class InstructionTable(Table):
         polynomials = InstructionTable.transition_constraints_afo_named_variables(
             address, current_instruction, next_instruction, address_next, current_instruction_next, next_instruction_next)
 
-        assert(len(polynomials) ==
-               3), f"expected to inherit 3 polynomials from ancestor but got {len(polynomials)}"
-
         polynomials += [(permutation *
                          (alpha
                           - a * address_next
