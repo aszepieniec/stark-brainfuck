@@ -140,7 +140,7 @@ The permutation argument establishes that two tables with the same height have t
 Without loss of generality, both tables columns are compressed into one column with the same technique to produce a linear combination with verifier-supplied weights $a, b, c, ...$. Additionally, the larger table has to have a virtual or explicit indicator column, with values denoted by $\jmath_i$, that takes the value 1 if row $i$ is part of the sublist relation and 0 if it is not. Reusing the same notation as the previous section, the claimed relation is $(c_ i)_ {i \, \vert \, \jmath_ i = 1} = (k_ j)_ j$.
 
 Like with the permutation argument both tables will be extended with a new column. Unlike the permutation argument, the evaluation argument interprets the row elements as the coefficients in reverse order, rather than the roots, of a polynomial whose value in $\alpha$ is computed step by step. Specifically, the transition constraints are given by
- - $\forall i > 0 : e_ {i} = \jmath_ {i} \cdot (\alpha e_ {i-1} + c_ i) + (1 - \jmath_ {i}) \cdot e_ {j-1}$ for the larger table, and
+ - $\forall i > 0 : e_ {i} = \jmath_ {i} \cdot (\alpha e_ {i-1} + c_ i) + (1 - \jmath_ {i}) \cdot e_ {i-1}$ for the larger table, and
  - $\forall j > 0: e_ {j} = \alpha e_{j-1} + k_ j$ for the smaller one.
 
 Note that the factors $\jmath_ {i-1}$ and $1-\jmath_ {i-1}$ enforce the *conditional* accumulation of a new term. Specifically, in un-indicated rows the running sum does not change whereas in indicated rows it changes in the same way that it changes in the smaller table.
