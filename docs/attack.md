@@ -92,7 +92,7 @@ So the correct sorting is important, and the problem exploited by the attack was
 
 The design space of fixes for this problem is large. The supporting code base elects for the following approach.
 
-The Memory Table is extended as follows. Whenever there is a jump in `clk` by more than 1, within a contiguous region of constant `mp`, insert dummy rows. Every dummy row increases `clk` by one, and repeats the previous row's values otherwise. The net effect is that all jumps within contiguous regions are erased. Next, add a column `dummy` whose values are `0` or `1` and whose purpose is to indicate which rows are dummy rows and which are not. 
+The Memory Table is extended as follows. Whenever there is a jump in `clk` by something other than 1, within a contiguous region of constant `mp`, insert dummy rows. Every dummy row increases `clk` by one, and repeats the previous row's values otherwise. The net effect is that all jumps within contiguous regions are erased. Next, add a column `dummy` whose values are `0` or `1` and whose purpose is to indicate which rows are dummy rows and which are not. 
 
 The dummy rows should *not* be included in the permutation argument, and so the transition constraint that enforces the correct update of the running product should take it into account. Additionally, jumps in `clk` within the same contiguous region should be disallowed entirely. The changes give rise to the following AIR, presented here at the risk of repetition for the sake of standalone completeness.
 
