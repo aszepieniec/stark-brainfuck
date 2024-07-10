@@ -40,8 +40,8 @@ class MemoryTable(Table):
     def pad(self):
         one = self.matrix[0][MemoryTable.cycle].field.one()
         while len(self.matrix) & (len(self.matrix) - 1) != 0:
-            self.matrix += [self.matrix[-1][MemoryTable.cycle] + one, self.matrix[-1]
-                            [MemoryTable.memory_pointer], self.matrix[-1][MemoryTable.memory_value], one]
+            self.matrix.append([self.matrix[-1][MemoryTable.cycle] + one, self.matrix[-1]
+                            [MemoryTable.memory_pointer], self.matrix[-1][MemoryTable.memory_value], one])
 
     @staticmethod
     def transition_constraints_afo_named_variables(cycle, address, value, dummy, cycle_next, address_next, value_next, dummy_next):
