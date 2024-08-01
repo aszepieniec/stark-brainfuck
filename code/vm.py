@@ -98,7 +98,7 @@ class VirtualMachine:
             elif symbol == ']':
                 # record loop's end
                 program += [BaseFieldElement(stack[-1] + 1, field)]
-                # record loop's beginning
+                # record loop's end in beginning
                 program[stack[-1]] = BaseFieldElement(len(program), field)
                 stack = stack[:-1]
 
